@@ -1,0 +1,142 @@
+services:
+  gateway:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      gateway-pg:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_started
+    secrets:
+      - gateway-config
+    networks:
+      - xcord-shared-net
+    ports:
+      - "8080:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    restart: unless-stopped
+
+  gateway-pg:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${GATEWAY_POSTGRES_DB:-xcord_hub}
+      POSTGRES_USER: ${GATEWAY_POSTGRES_USER:-xcord_hub}
+      POSTGRES_PASSWORD: ${GATEWAY_POSTGRES_PASSWORD:-xcord_hub_dev}
+    volumes:
+      - gateway-pg-data:/var/lib/postgresql/data
+    networks:
+      - xcord-shared-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GATEWAY_POSTGRES_USER:-xcord_hub} -d ${GATEWAY_POSTGRES_DB:-xcord_hub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    networks:
+      - xcord-shared-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - xcord-shared-net
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - xcord-shared-net
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      HUB_DOMAIN: ${HUB_DOMAIN:-localhost}
+    restart: unless-stopped
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - xcord-shared-net
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      IMAGES: 1
+      SERVICES: 0
+      TASKS: 0
+      EXEC: 0
+      POST: 1
+      DELETE: 1
+    restart: unless-stopped
+
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    networks:
+      - xcord-shared-net
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7880"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  xcord-shared-net:
+    driver: bridge
+    external: false
+
+volumes:
+  gateway-pg-data:
+  redis-data:
+  minio-data:
+  caddy-data:
+  caddy-config:
+
+secrets:
+  gateway-config:
+    file: ${GATEWAY_CONFIG_FILE:-./gateway.example.json}

@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-xcord-bg-primary: #313338;
+  --color-xcord-bg-secondary: #2b2d31;
+  --color-xcord-bg-tertiary: #1e1f22;
+  --color-xcord-bg-accent: #404249;
+  --color-xcord-bg-floating: #111214;
+
+  --color-xcord-text-primary: #f2f3f5;
+  --color-xcord-text-secondary: #b5bac1;
+  --color-xcord-text-muted: #949ba4;
+  --color-xcord-text-link: #00a8fc;
+
+  --color-xcord-brand: #5865f2;
+  --color-xcord-brand-hover: #4752c4;
+
+  --color-xcord-green: #23a55a;
+  --color-xcord-yellow: #f0b232;
+  --color-xcord-red: #f23f43;
+
+  --color-xcord-status-online: #23a55a;
+  --color-xcord-status-idle: #f0b232;
+  --color-xcord-status-dnd: #f23f43;
+  --color-xcord-status-offline: #80848e;
+
+  --color-xcord-landing-bg: #0a0a0f;
+  --color-xcord-landing-surface: #13131a;
+  --color-xcord-landing-border: #1e1e2a;
+  --color-xcord-landing-text: #e4e4e7;
+  --color-xcord-landing-text-muted: #71717a;
+
+  --font-sans: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-xcord-bg-primary);
+  color: var(--color-xcord-text-primary);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-xcord-bg-tertiary);
+  border-radius: 4px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-xcord-bg-tertiary) transparent;
+}
