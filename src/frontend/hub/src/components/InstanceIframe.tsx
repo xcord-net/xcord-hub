@@ -1,4 +1,4 @@
-import { onMount, onCleanup } from 'solid-js';
+import { createEffect } from 'solid-js';
 
 interface InstanceIframeProps {
   url: string;
@@ -8,31 +8,18 @@ interface InstanceIframeProps {
 export default function InstanceIframe(props: InstanceIframeProps) {
   let iframeRef: HTMLIFrameElement | undefined;
 
-  onMount(() => {
-    // Send LeaveConversation message when iframe becomes hidden
-    const handleVisibilityChange = () => {
-      if (!props.visible && iframeRef?.contentWindow) {
-        iframeRef.contentWindow.postMessage(
-          { type: 'xcord_leave_conversation' },
-          props.url
-        );
-      }
-    };
-
-    // Watch for visibility changes
-    const unwatch = () => {};
-    onCleanup(unwatch);
-  });
-
-  // Send LeaveConversation when iframe is hidden
-  const handleLeaveOnHide = () => {
-    if (!props.visible && iframeRef?.contentWindow) {
+  // When the iframe transitions from visible to hidden, notify the instance
+  // so it can leave the active conversation / voice channel cleanly.
+  createEffect((prevVisible: boolean) => {
+    const visible = props.visible;
+    if (prevVisible && !visible && iframeRef?.contentWindow) {
       iframeRef.contentWindow.postMessage(
         { type: 'xcord_leave_conversation' },
         props.url
       );
     }
-  };
+    return visible;
+  }, true);
 
   return (
     <iframe
@@ -42,7 +29,6 @@ export default function InstanceIframe(props: InstanceIframeProps) {
       style={{
         display: props.visible ? 'block' : 'none',
       }}
-      onLoad={handleLeaveOnHide}
       title="Instance"
     />
   );

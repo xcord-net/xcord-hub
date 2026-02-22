@@ -94,9 +94,9 @@ public sealed class SuspendInstanceHandler(
 
 public static class SuspendInstanceEndpoint
 {
-    public static void MapSuspendInstanceEndpoint(this IEndpointRouteBuilder app)
+    public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/instances/{instanceId:long}/suspend", async (
+        return app.MapPost("/api/v1/admin/instances/{instanceId:long}/suspend", async (
             [FromRoute] long instanceId,
             ClaimsPrincipal user,
             SuspendInstanceHandler handler,

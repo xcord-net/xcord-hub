@@ -14,6 +14,7 @@ public sealed class InstanceInfrastructure
     public string CaddyRouteId { get; set; } = string.Empty;
     public string LiveKitApiKey { get; set; } = string.Empty;
     public string LiveKitSecretKey { get; set; } = string.Empty;
+    public string? BootstrapTokenHash { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 
     // Navigation properties

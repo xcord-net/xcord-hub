@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -27,7 +26,7 @@ public sealed class RefreshTokenHandler(
     public async Task<Result<RefreshTokenResponse>> HandleWithToken(string refreshTokenValue, CancellationToken cancellationToken)
     {
         // Hash the token
-        var tokenHash = HashToken(refreshTokenValue);
+        var tokenHash = TokenHelper.HashToken(refreshTokenValue);
 
         // Find the refresh token in database
         var refreshToken = await dbContext.RefreshTokens
@@ -57,8 +56,8 @@ public sealed class RefreshTokenHandler(
         dbContext.RefreshTokens.Remove(refreshToken);
 
         // Create new refresh token (30 days)
-        var newRefreshTokenValue = GenerateRefreshToken();
-        var newRefreshTokenHash = HashToken(newRefreshTokenValue);
+        var newRefreshTokenValue = TokenHelper.GenerateToken();
+        var newRefreshTokenHash = TokenHelper.HashToken(newRefreshTokenValue);
         var now = DateTimeOffset.UtcNow;
 
         var newRefreshToken = new Entities.RefreshToken
@@ -128,18 +127,4 @@ public sealed class RefreshTokenHandler(
         .WithTags("Auth");
     }
 
-    private static string GenerateRefreshToken()
-    {
-        var randomBytes = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomBytes);
-        return Convert.ToBase64String(randomBytes);
-    }
-
-    private static string HashToken(string token)
-    {
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(hashBytes);
-    }
 }

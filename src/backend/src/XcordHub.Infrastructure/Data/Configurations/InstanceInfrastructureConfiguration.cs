@@ -71,6 +71,9 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
             .HasColumnType("bytea")
             .HasConversion(_encryptedStringConverter);
 
+        builder.Property(x => x.BootstrapTokenHash)
+            .HasMaxLength(64);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

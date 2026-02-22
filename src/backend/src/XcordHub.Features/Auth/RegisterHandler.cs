@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Builder;
@@ -109,8 +108,8 @@ public sealed class RegisterHandler(
         dbContext.HubUsers.Add(user);
 
         // Create refresh token (30 days)
-        var refreshTokenValue = GenerateRefreshToken();
-        var refreshTokenHash = HashToken(refreshTokenValue);
+        var refreshTokenValue = TokenHelper.GenerateToken();
+        var refreshTokenHash = TokenHelper.HashToken(refreshTokenValue);
         var refreshToken = new Entities.RefreshToken
         {
             Id = snowflakeGenerator.NextId(),
@@ -166,18 +165,4 @@ public sealed class RegisterHandler(
         .WithTags("Auth");
     }
 
-    private static string GenerateRefreshToken()
-    {
-        var randomBytes = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomBytes);
-        return Convert.ToBase64String(randomBytes);
-    }
-
-    private static string HashToken(string token)
-    {
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(hashBytes);
-    }
 }

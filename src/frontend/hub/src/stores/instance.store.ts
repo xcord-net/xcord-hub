@@ -70,7 +70,7 @@ export const instanceStore = {
 
   async searchInstances(query: string): Promise<DiscoverableInstance[]> {
     try {
-      const response = await fetch(`/api/v1/instances/search?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/v1/discover/instances?search=${encodeURIComponent(query)}`);
       if (!response.ok) return [];
       return await response.json();
     } catch {
@@ -80,7 +80,7 @@ export const instanceStore = {
 
   async listPublicInstances(): Promise<DiscoverableInstance[]> {
     try {
-      const response = await fetch('/api/v1/instances/public');
+      const response = await fetch('/api/v1/discover/instances');
       if (!response.ok) return [];
       return await response.json();
     } catch {

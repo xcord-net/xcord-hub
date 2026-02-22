@@ -56,7 +56,7 @@ public sealed class GetBillingHandler(HubDbContext dbContext, ICurrentUserServic
         var maxInstances = TierDefaults.GetMaxInstancesForTier(user.SubscriptionTier);
 
         // Determine billing status from Stripe subscription presence
-        var status = user.StripeSubscriptionId != null ? "Active" : "Active";
+        var status = user.StripeSubscriptionId != null ? "Active" : "Free";
 
         var currentTierInfo = BuildTierInfo(user.SubscriptionTier);
         var availableTiers = new List<BillingTierInfo>

@@ -94,11 +94,6 @@ public sealed class CreateInstanceHandler(
                 $"You have reached the maximum number of instances ({maxInstances}) for your tier");
         }
 
-        // Allocate snowflake worker ID
-        var maxWorkerId = await dbContext.ManagedInstances
-            .MaxAsync(i => (long?)i.SnowflakeWorkerId, cancellationToken) ?? 0;
-        var workerId = maxWorkerId + 1;
-
         var now = DateTimeOffset.UtcNow;
         var instanceId = snowflakeGenerator.NextId();
 
@@ -115,7 +110,7 @@ public sealed class CreateInstanceHandler(
             Domain = domain,
             DisplayName = request.DisplayName,
             Status = InstanceStatus.Pending,
-            SnowflakeWorkerId = workerId,
+            SnowflakeWorkerId = 0, // Will be allocated by AllocateWorkerIdStep in the provisioning pipeline
             CreatedAt = now
         };
 

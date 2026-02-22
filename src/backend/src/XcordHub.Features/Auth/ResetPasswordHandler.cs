@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Builder;
@@ -42,7 +41,7 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext)
 
     public async Task<Result<bool>> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
     {
-        var tokenHash = HashToken(request.Token);
+        var tokenHash = TokenHelper.HashToken(request.Token);
         var now = DateTimeOffset.UtcNow;
 
         var resetToken = await dbContext.PasswordResetTokens
@@ -89,10 +88,4 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext)
         .WithTags("Auth");
     }
 
-    private static string HashToken(string token)
-    {
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(hashBytes);
-    }
 }
