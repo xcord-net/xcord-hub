@@ -3,7 +3,7 @@ import { useAuth } from '../stores/auth.store';
 
 interface LayoutProps {
   children: JSX.Element;
-  currentPage: 'instances' | 'instance-detail';
+  currentPage: 'instances' | 'instance-detail' | 'mailing-list';
   onNavigate: (page: string) => void;
 }
 
@@ -45,6 +45,16 @@ export function Layout(props: LayoutProps) {
                 }`}
               >
                 Instances
+              </button>
+              <button
+                onClick={() => props.onNavigate('mailing-list')}
+                class={`w-full text-left px-3 py-2 rounded ${
+                  props.currentPage === 'mailing-list'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'hover:bg-gray-100'
+                }`}
+              >
+                Mailing List
               </button>
             </nav>
           </aside>

@@ -6,8 +6,9 @@ import { Layout } from './components/Layout';
 import { InstanceList } from './components/InstanceList';
 import { InstanceDetail } from './components/InstanceDetail';
 import { ProvisionForm } from './components/ProvisionForm';
+import { MailingListPage } from './components/MailingListPage';
 
-type Page = 'login' | 'instances' | 'instance-detail' | 'provision';
+type Page = 'login' | 'instances' | 'instance-detail' | 'provision' | 'mailing-list';
 
 export function App() {
   const auth = useAuth();
@@ -29,6 +30,8 @@ export function App() {
       instanceStore.clearSelectedInstance();
       setSelectedInstanceId(null);
       setCurrentPage('instances');
+    } else if (page === 'mailing-list') {
+      setCurrentPage('mailing-list');
     }
   };
 
@@ -61,7 +64,7 @@ export function App() {
           fallback={<Login />}
         >
           <Layout
-            currentPage={currentPage() === 'instance-detail' ? 'instance-detail' : 'instances'}
+            currentPage={currentPage() === 'mailing-list' ? 'mailing-list' : currentPage() === 'instance-detail' ? 'instance-detail' : 'instances'}
             onNavigate={handleNavigate}
           >
             <Show when={currentPage() === 'instances'}>
@@ -83,6 +86,10 @@ export function App() {
                 onCancel={handleBackToInstances}
                 onSuccess={handleProvisionSuccess}
               />
+            </Show>
+
+            <Show when={currentPage() === 'mailing-list'}>
+              <MailingListPage />
             </Show>
           </Layout>
         </Show>
