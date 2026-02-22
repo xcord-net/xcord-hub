@@ -5,6 +5,9 @@ WORKDIR /app
 # Copy hub frontend source
 COPY src/frontend/hub/ .
 
+# Copy generated types (resolved as ../generated from /app)
+COPY src/frontend/generated/ /generated/
+
 # Build if package.json exists, otherwise create placeholder
 RUN if [ -f package.json ]; then \
         npm ci && npm run build; \
@@ -19,6 +22,9 @@ WORKDIR /app
 
 # Copy admin frontend source
 COPY src/frontend/admin/ .
+
+# Copy generated types (resolved as ../generated from /app)
+COPY src/frontend/generated/ /generated/
 
 # Build if package.json exists, otherwise create placeholder
 RUN if [ -f package.json ]; then \

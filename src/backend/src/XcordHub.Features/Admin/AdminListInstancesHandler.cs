@@ -22,7 +22,7 @@ public sealed record AdminListInstancesResponse(
 );
 
 public sealed record AdminInstanceListItem(
-    long Id,
+    string Id,
     string Subdomain,
     string DisplayName,
     string Status,
@@ -69,7 +69,7 @@ public sealed class AdminListInstancesHandler(HubDbContext dbContext)
             .ToListAsync(cancellationToken);
 
         var instances = rawInstances.Select(i => new AdminInstanceListItem(
-            i.Id,
+            i.Id.ToString(),
             i.Domain.Contains('.') ? i.Domain[..i.Domain.IndexOf('.')] : i.Domain,
             i.DisplayName,
             i.Status.ToString(),
@@ -96,6 +96,7 @@ public sealed class AdminListInstancesHandler(HubDbContext dbContext)
             return await handler.ExecuteAsync(query, ct);
         })
         .RequireAuthorization(Policies.Admin)
+        .Produces<AdminListInstancesResponse>(200)
         .WithName("AdminListInstances")
         .WithTags("Admin");
     }

@@ -19,7 +19,7 @@ public sealed record UpdateResourceLimitsCommand(
 );
 
 public sealed record UpdateResourceLimitsResponse(
-    long InstanceId,
+    string InstanceId,
     string Message
 );
 
@@ -68,7 +68,7 @@ public sealed class UpdateResourceLimitsHandler(HubDbContext dbContext)
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new UpdateResourceLimitsResponse(
-            request.InstanceId,
+            request.InstanceId.ToString(),
             "Resource limits updated successfully"
         );
     }
@@ -109,17 +109,14 @@ public static class UpdateResourceLimitsEndpoint
             var result = await handler.Handle(command, ct);
 
             return result.Match(
-                success => Results.Ok(new
-                {
-                    instanceId = success.InstanceId,
-                    message = success.Message
-                }),
+                success => Results.Ok(success),
                 error => Results.Problem(
                     statusCode: error.StatusCode,
                     title: error.Code,
                     detail: error.Message));
         })
         .RequireAuthorization(Policies.Admin)
+        .Produces<UpdateResourceLimitsResponse>(200)
         .WithName("UpdateResourceLimits")
         .WithTags("Admin", "Instances");
     }

@@ -20,7 +20,7 @@ public sealed record CreateInstanceCommand(
 );
 
 public sealed record CreateInstanceResponse(
-    long InstanceId,
+    string InstanceId,
     string Domain,
     string DisplayName,
     string Status,
@@ -158,7 +158,7 @@ public sealed class CreateInstanceHandler(
         await provisioningQueue.EnqueueAsync(instanceId, cancellationToken);
 
         return new CreateInstanceResponse(
-            instanceId,
+            instanceId.ToString(),
             domain,
             request.DisplayName,
             InstanceStatus.Pending.ToString(),
@@ -177,6 +177,7 @@ public sealed class CreateInstanceHandler(
                 Results.Created($"/api/v1/hub/instances/{success.InstanceId}", success));
         })
         .RequireAuthorization(Policies.User)
+        .Produces<CreateInstanceResponse>(201)
         .WithName("CreateInstance")
         .WithTags("Instances");
     }

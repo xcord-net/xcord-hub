@@ -12,7 +12,7 @@ namespace XcordHub.Features.Admin;
 public sealed record AdminGetInstanceQuery(long Id);
 
 public sealed record AdminGetInstanceResponse(
-    long Id,
+    string Id,
     string Subdomain,
     string DisplayName,
     string Domain,
@@ -21,7 +21,7 @@ public sealed record AdminGetInstanceResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? SuspendedAt,
     DateTimeOffset? DestroyedAt,
-    long OwnerId,
+    string OwnerId,
     string OwnerUsername,
     object? ResourceLimits,
     object? FeatureFlags,
@@ -85,7 +85,7 @@ public sealed class AdminGetInstanceHandler(HubDbContext dbContext)
         }
 
         return new AdminGetInstanceResponse(
-            instance.Id,
+            instance.Id.ToString(),
             subdomain,
             instance.DisplayName,
             instance.Domain,
@@ -94,7 +94,7 @@ public sealed class AdminGetInstanceHandler(HubDbContext dbContext)
             instance.CreatedAt,
             null, // SuspendedAt — ManagedInstance does not have a dedicated SuspendedAt field
             instance.DeletedAt,
-            instance.OwnerId,
+            instance.OwnerId.ToString(),
             instance.Owner.Username,
             resourceLimits,
             featureFlags,
@@ -114,6 +114,7 @@ public sealed class AdminGetInstanceHandler(HubDbContext dbContext)
             return await handler.ExecuteAsync(query, ct);
         })
         .RequireAuthorization(Policies.Admin)
+        .Produces<AdminGetInstanceResponse>(200)
         .WithName("AdminGetInstance")
         .WithTags("Admin");
     }

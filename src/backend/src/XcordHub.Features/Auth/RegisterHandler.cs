@@ -16,7 +16,9 @@ public sealed record RegisterRequest(
     string Password
 );
 
-public sealed record RegisterResponse(long UserId, string Username, string DisplayName, string Email, string AccessToken, string RefreshToken);
+public sealed record RegisterResponse(string UserId, string Username, string DisplayName, string Email, string AccessToken, string RefreshToken);
+
+public sealed record RegisterApiResponse(string UserId, string Username, string DisplayName, string Email, string AccessToken);
 
 public sealed class RegisterHandler(
     HubDbContext dbContext,
@@ -126,7 +128,7 @@ public sealed class RegisterHandler(
         // Generate JWT access token
         var accessToken = jwtService.GenerateAccessToken(userId, user.IsAdmin);
 
-        return new RegisterResponse(userId, user.Username, user.DisplayName, request.Email, accessToken, refreshTokenValue);
+        return new RegisterResponse(userId.ToString(), user.Username, user.DisplayName, request.Email, accessToken, refreshTokenValue);
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
@@ -148,19 +150,18 @@ public sealed class RegisterHandler(
                     Expires = DateTimeOffset.UtcNow.AddDays(30)
                 });
 
-                return Results.Ok(new
-                {
-                    userId = success.UserId,
-                    username = success.Username,
-                    displayName = success.DisplayName,
-                    email = success.Email,
-                    accessToken = success.AccessToken
-                });
+                return Results.Ok(new RegisterApiResponse(
+                    success.UserId,
+                    success.Username,
+                    success.DisplayName,
+                    success.Email,
+                    success.AccessToken));
             });
 
             return result;
         })
         .AllowAnonymous()
+        .Produces<RegisterApiResponse>(200)
         .WithName("Register")
         .WithTags("Auth");
     }

@@ -77,6 +77,7 @@ public sealed class AddMailingListEntryHandler(HubDbContext dbContext, Snowflake
             return await handler.ExecuteAsync(request, ct);
         })
         .AllowAnonymous()
+        .Produces<AddMailingListEntryResponse>(200)
         .WithName("AddMailingListEntry")
         .WithTags("MailingList");
     }

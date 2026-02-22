@@ -23,7 +23,7 @@ public sealed record ListInstancesResponse(
 );
 
 public sealed record InstancePreview(
-    long Id,
+    string Id,
     string Name,
     string Description,
     string IconUrl,
@@ -67,19 +67,32 @@ public sealed class ListInstancesHandler(HubDbContext dbContext)
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
         var skip = (page - 1) * pageSize;
 
-        var instances = await query
+        var rawInstances = await query
             .Skip(skip)
             .Take(pageSize)
-            .Select(i => new InstancePreview(
+            .Select(i => new
+            {
                 i.Id,
                 i.DisplayName,
-                i.Description ?? string.Empty,
-                i.IconUrl ?? string.Empty,
+                Description = i.Description ?? string.Empty,
+                IconUrl = i.IconUrl ?? string.Empty,
+                i.Domain,
+                i.MemberCount,
+                i.OnlineCount
+            })
+            .ToListAsync(cancellationToken);
+
+        var instances = rawInstances
+            .Select(i => new InstancePreview(
+                i.Id.ToString(),
+                i.DisplayName,
+                i.Description,
+                i.IconUrl,
                 i.Domain,
                 i.MemberCount,
                 i.OnlineCount
             ))
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return new ListInstancesResponse(instances, totalCount, page, pageSize);
     }
@@ -98,6 +111,7 @@ public sealed class ListInstancesHandler(HubDbContext dbContext)
             return await handler.ExecuteAsync(query, ct);
         })
         .AllowAnonymous()
+        .Produces<ListInstancesResponse>(200)
         .WithName("DiscoveryListInstances")
         .WithTags("Discovery");
     }

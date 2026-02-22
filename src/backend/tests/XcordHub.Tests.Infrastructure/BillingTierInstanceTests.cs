@@ -146,8 +146,9 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
         result.IsSuccess.Should().BeTrue("a Free-tier user should be able to create their first instance");
 
         await using var verifyCtx = CreateDbContext();
+        var instanceId = long.Parse(result.Value.InstanceId);
         var billing = await verifyCtx.InstanceBillings
-            .FirstOrDefaultAsync(b => b.ManagedInstanceId == result.Value.InstanceId);
+            .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.Should().NotBeNull();
         billing!.Tier.Should().Be(BillingTier.Free,
@@ -155,31 +156,32 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task CreateInstance_ProTierUser_AssignsProTierToBillingRecord()
+    public async Task CreateInstance_BasicTierUser_AssignsBasicTierToBillingRecord()
     {
         // Arrange
         await using var dbContext = CreateDbContext();
 
-        var user = MakeUser(UserIdBase + 2, "billing_pro_user", BillingTier.Pro);
+        var user = MakeUser(UserIdBase + 2, "billing_basic_user", BillingTier.Basic);
         dbContext.HubUsers.Add(user);
         await dbContext.SaveChangesAsync();
 
         var handler = BuildHandler(dbContext, StubCurrentUser(user.Id));
-        var command = new CreateInstanceCommand("billing-pro-test", "Pro Tier Instance");
+        var command = new CreateInstanceCommand("billing-basic-test", "Basic Tier Instance");
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.IsSuccess.Should().BeTrue("a Pro-tier user should be able to create an instance");
+        result.IsSuccess.Should().BeTrue("a Basic-tier user should be able to create an instance");
 
         await using var verifyCtx = CreateDbContext();
+        var instanceId = long.Parse(result.Value.InstanceId);
         var billing = await verifyCtx.InstanceBillings
-            .FirstOrDefaultAsync(b => b.ManagedInstanceId == result.Value.InstanceId);
+            .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.Should().NotBeNull();
-        billing!.Tier.Should().Be(BillingTier.Pro,
-            "the billing record tier must match the user's Pro subscription tier");
+        billing!.Tier.Should().Be(BillingTier.Basic,
+            "the billing record tier must match the user's Basic subscription tier");
     }
 
     [Fact]
@@ -222,87 +224,40 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task CreateInstance_ProTierUser_CanCreateMultipleInstancesUpToQuota()
+    public async Task CreateInstance_BasicTierUser_SecondInstanceIsRejectedWithForbidden()
     {
-        // Arrange — Pro tier allows up to 10 instances; we pre-seed 9 and verify the 10th succeeds
+        // Arrange — all tiers allow max 1 instance; pre-seed one existing instance
         await using var seedCtx = CreateDbContext();
 
-        var user = MakeUser(UserIdBase + 4, "billing_pro_quota_user", BillingTier.Pro);
+        var user = MakeUser(UserIdBase + 4, "billing_basic_quota_user", BillingTier.Basic);
         seedCtx.HubUsers.Add(user);
 
-        // Pre-seed 9 instances (quota limit for Pro is 10)
-        for (var i = 1; i <= 9; i++)
+        seedCtx.ManagedInstances.Add(new ManagedInstance
         {
-            seedCtx.ManagedInstances.Add(new ManagedInstance
-            {
-                Id          = InstanceIdBase + 10 + i,
-                OwnerId     = user.Id,
-                Domain      = $"billing-pro-existing-{i}.xcord-dev.net",
-                DisplayName = $"Pro Existing {i}",
-                Status      = InstanceStatus.Running,
-                SnowflakeWorkerId = 10 + i,
-                CreatedAt   = DateTimeOffset.UtcNow
-            });
-        }
+            Id          = InstanceIdBase + 10,
+            OwnerId     = user.Id,
+            Domain      = "billing-basic-existing.xcord-dev.net",
+            DisplayName = "Basic Existing",
+            Status      = InstanceStatus.Running,
+            SnowflakeWorkerId = 10,
+            CreatedAt   = DateTimeOffset.UtcNow
+        });
 
         await seedCtx.SaveChangesAsync();
 
-        // Act — 10th instance should succeed
+        // Act — 2nd instance should be rejected (max = 1 for all tiers)
         await using var handlerCtx = CreateDbContext();
         var handler = BuildHandler(handlerCtx, StubCurrentUser(user.Id));
-        var command = new CreateInstanceCommand("billing-pro-tenth", "Pro Tenth Instance");
-
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue(
-            "a Pro-tier user with 9 existing instances should be allowed to create a 10th (quota = 10)");
-
-        await using var verifyCtx = CreateDbContext();
-        var billing = await verifyCtx.InstanceBillings
-            .FirstOrDefaultAsync(b => b.ManagedInstanceId == result.Value.InstanceId);
-
-        billing.Should().NotBeNull();
-        billing!.Tier.Should().Be(BillingTier.Pro);
-    }
-
-    [Fact]
-    public async Task CreateInstance_ProTierUser_IsRejectedWhenAtMaxQuota()
-    {
-        // Arrange — Pro tier allows up to 10 instances; pre-seed exactly 10
-        await using var seedCtx = CreateDbContext();
-
-        var user = MakeUser(UserIdBase + 5, "billing_pro_over_quota_user", BillingTier.Pro);
-        seedCtx.HubUsers.Add(user);
-
-        for (var i = 1; i <= 10; i++)
-        {
-            seedCtx.ManagedInstances.Add(new ManagedInstance
-            {
-                Id          = InstanceIdBase + 30 + i,
-                OwnerId     = user.Id,
-                Domain      = $"billing-pro-full-{i}.xcord-dev.net",
-                DisplayName = $"Pro Full {i}",
-                Status      = InstanceStatus.Running,
-                SnowflakeWorkerId = 30 + i,
-                CreatedAt   = DateTimeOffset.UtcNow
-            });
-        }
-
-        await seedCtx.SaveChangesAsync();
-
-        // Act — 11th instance should be rejected
-        await using var handlerCtx = CreateDbContext();
-        var handler = BuildHandler(handlerCtx, StubCurrentUser(user.Id));
-        var command = new CreateInstanceCommand("billing-pro-eleventh", "Pro Eleventh Instance");
+        var command = new CreateInstanceCommand("billing-basic-second", "Basic Second Instance");
 
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         result.IsFailure.Should().BeTrue(
-            "a Pro-tier user who already has 10 instances should be rejected when creating an 11th");
+            "a Basic-tier user who already has 1 instance should be rejected when creating a second");
         result.Error!.Code.Should().Be("INSTANCE_LIMIT_REACHED");
-        result.Error.StatusCode.Should().Be(403);
+        result.Error.StatusCode.Should().Be(403,
+            "exceeding an instance quota is a Forbidden (403) error");
     }
 }
 

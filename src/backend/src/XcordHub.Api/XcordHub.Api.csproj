@@ -4,12 +4,19 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../../../frontend/generated</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocuments Condition="'$(DOTNET_RUNNING_IN_CONTAINER)' != 'true'">true</OpenApiGenerateDocuments>
+    <OpenApiGenerateDocumentsOnBuild Condition="'$(DOTNET_RUNNING_IN_CONTAINER)' != 'true'">true</OpenApiGenerateDocumentsOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
-<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="9.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -26,5 +33,37 @@
     <ProjectReference Include="..\XcordHub.Infrastructure\XcordHub.Infrastructure.csproj" />
     <ProjectReference Include="..\XcordHub.Shared\XcordHub.Shared.csproj" />
   </ItemGroup>
+
+  <!-- Set ASPNETCORE_ENVIRONMENT=OpenApiGen so Program.cs skips DB initialization -->
+  <UsingTask TaskName="SetEnvironmentVariable"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Name ParameterType="System.String" Required="true" />
+      <Value ParameterType="System.String" Required="false" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs">
+        System.Environment.SetEnvironmentVariable(Name, Value);
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="SetOpenApiGenEnvironment" BeforeTargets="GenerateOpenApiDocuments">
+    <SetEnvironmentVariable Name="ASPNETCORE_ENVIRONMENT" Value="OpenApiGen" />
+  </Target>
+
+  <Target Name="UnsetOpenApiGenEnvironment" AfterTargets="GenerateOpenApiDocuments">
+    <SetEnvironmentVariable Name="ASPNETCORE_ENVIRONMENT" Value="" />
+  </Target>
+
+  <!-- Generate TypeScript types from the OpenAPI spec (skip in Docker containers) -->
+  <Target Name="GenerateTypeScriptTypes" AfterTargets="Build"
+          Condition="'$(DOTNET_RUNNING_IN_CONTAINER)' != 'true'">
+    <Exec Command="npx openapi-typescript $(OpenApiDocumentsDirectory)/XcordHub.Api.json -o $(OpenApiDocumentsDirectory)/api-types.ts"
+          WorkingDirectory="$(MSBuildProjectDirectory)/../../../frontend/hub"
+          IgnoreExitCode="true"
+          ContinueOnError="true" />
+  </Target>
 
 </Project>

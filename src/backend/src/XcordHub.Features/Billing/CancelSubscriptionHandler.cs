@@ -86,6 +86,7 @@ public sealed class CancelSubscriptionHandler(
             return await handler.ExecuteAsync(new CancelSubscriptionCommand(), ct);
         })
         .RequireAuthorization(Policies.User)
+        .Produces<CancelSubscriptionResponse>(200)
         .WithName("CancelSubscription")
         .WithTags("Billing");
     }

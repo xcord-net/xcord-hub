@@ -20,7 +20,7 @@ public sealed record AdminListMailingListResponse(
 );
 
 public sealed record MailingListItem(
-    long Id,
+    string Id,
     string Email,
     string Tier,
     DateTimeOffset CreatedAt
@@ -44,12 +44,16 @@ public sealed class AdminListMailingListHandler(HubDbContext dbContext)
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
         var skip = (page - 1) * pageSize;
 
-        var entries = await query
+        var rawEntries = await query
             .OrderByDescending(e => e.CreatedAt)
             .Skip(skip)
             .Take(pageSize)
-            .Select(e => new MailingListItem(e.Id, e.Email, e.Tier, e.CreatedAt))
+            .Select(e => new { e.Id, e.Email, e.Tier, e.CreatedAt })
             .ToListAsync(cancellationToken);
+
+        var entries = rawEntries
+            .Select(e => new MailingListItem(e.Id.ToString(), e.Email, e.Tier, e.CreatedAt))
+            .ToList();
 
         return new AdminListMailingListResponse(entries, total, page, pageSize);
     }
@@ -68,6 +72,7 @@ public sealed class AdminListMailingListHandler(HubDbContext dbContext)
             return await handler.ExecuteAsync(new AdminListMailingListQuery(effectivePage, effectivePageSize, tier), ct);
         })
         .RequireAuthorization(Policies.Admin)
+        .Produces<AdminListMailingListResponse>(200)
         .WithName("AdminListMailingList")
         .WithTags("Admin");
     }

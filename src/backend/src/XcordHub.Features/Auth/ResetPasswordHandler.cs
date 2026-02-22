@@ -85,6 +85,7 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext)
             var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent());
             return result;
         })
+        .Produces(204)
         .WithTags("Auth");
     }
 

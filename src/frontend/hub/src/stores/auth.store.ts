@@ -1,11 +1,7 @@
 import { createSignal } from 'solid-js';
+import type { components } from '@generated/api-types';
 
-export interface HubUser {
-  id: string;
-  email: string;
-  username: string;
-  displayName: string;
-}
+export type HubUser = components['schemas']['GetMeResponse'];
 
 const [user, setUser] = createSignal<HubUser | null>(null);
 const [token, setToken] = createSignal<string | null>(null);
@@ -29,7 +25,7 @@ async function login(email: string, password: string): Promise<boolean> {
 
     const data = await response.json();
     setToken(data.accessToken);
-    setUser({ id: String(data.userId), username: data.username, displayName: data.displayName, email: data.email });
+    setUser({ userId: String(data.userId), username: data.username, displayName: data.displayName, email: data.email });
     localStorage.setItem('xcord_hub_token', data.accessToken);
     return true;
   } catch {
@@ -55,7 +51,7 @@ async function signup(email: string, password: string, displayName: string, user
 
     const data = await response.json();
     setToken(data.accessToken);
-    setUser({ id: String(data.userId), username: data.username, displayName: data.displayName, email: data.email });
+    setUser({ userId: String(data.userId), username: data.username, displayName: data.displayName, email: data.email });
     localStorage.setItem('xcord_hub_token', data.accessToken);
     return true;
   } catch {
@@ -92,7 +88,7 @@ async function restoreSession(): Promise<boolean> {
 
     const data = await response.json();
     setToken(savedToken);
-    setUser({ id: String(data.userId), username: data.username, displayName: data.displayName, email: data.email });
+    setUser({ userId: String(data.userId), username: data.username, displayName: data.displayName, email: data.email });
     setIsLoading(false);
     return true;
   } catch {

@@ -8,9 +8,8 @@ export enum InstanceStatus {
 
 export enum BillingTier {
   Free = 'Free',
-  Starter = 'Starter',
-  Professional = 'Professional',
-  Enterprise = 'Enterprise',
+  Basic = 'Basic',
+  Pro = 'Pro',
 }
 
 export interface InstanceListItem {

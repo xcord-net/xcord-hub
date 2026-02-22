@@ -11,7 +11,7 @@ namespace XcordHub.Features.Admin;
 public sealed record GetAggregatedHealthQuery();
 
 public sealed record InstanceHealthDto(
-    long Id,
+    string Id,
     string Domain,
     string Status,
     bool IsHealthy,
@@ -47,7 +47,7 @@ public sealed class GetAggregatedHealthHandler(HubDbContext dbContext)
             if (instance.Health != null)
             {
                 healthDtos.Add(new InstanceHealthDto(
-                    instance.Id,
+                    instance.Id.ToString(),
                     instance.Domain,
                     instance.Status.ToString(),
                     instance.Health.IsHealthy,
@@ -61,7 +61,7 @@ public sealed class GetAggregatedHealthHandler(HubDbContext dbContext)
             {
                 // No health record yet, consider unknown
                 healthDtos.Add(new InstanceHealthDto(
-                    instance.Id,
+                    instance.Id.ToString(),
                     instance.Domain,
                     instance.Status.ToString(),
                     false,
@@ -98,6 +98,7 @@ public sealed class GetAggregatedHealthHandler(HubDbContext dbContext)
             return await handler.ExecuteAsync(query, ct);
         })
         .RequireAuthorization(Policies.Admin)
+        .Produces<AggregatedHealthResponse>(200)
         .WithName("GetAggregatedHealth")
         .WithTags("Admin");
     }

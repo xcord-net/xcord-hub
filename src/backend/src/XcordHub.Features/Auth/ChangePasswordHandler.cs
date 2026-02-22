@@ -95,6 +95,7 @@ public sealed class ChangePasswordHandler(HubDbContext dbContext)
             return result;
         })
         .RequireAuthorization(Policies.User)
+        .Produces(204)
         .WithTags("Auth");
     }
 }

@@ -1,46 +1,11 @@
 import { A } from '@solidjs/router';
-import { createSignal, createResource, For, Show, Switch, Match } from 'solid-js';
+import { createSignal, createResource, For, Show } from 'solid-js';
+import type { components } from '@generated/api-types';
 
-interface BillingTierFeature {
-  name: string;
-  value: string;
-}
-
-interface BillingTierInfo {
-  name: string;
-  price: string;
-  period: string;
-  maxInstances: number;
-  maxUsersPerInstance: number;
-  maxStorageMb: number;
-  features: BillingTierFeature[];
-}
-
-interface BillingData {
-  tier: string;
-  status: string;
-  hasStripeSubscription: boolean;
-  currentPeriodEnd: string | null;
-  nextBillingDate: string | null;
-  instanceCount: number;
-  maxInstances: number;
-  currentTierInfo: BillingTierInfo;
-  availableTiers: BillingTierInfo[];
-}
-
-interface InvoiceSummary {
-  id: string;
-  description: string;
-  amountCents: number;
-  currency: string;
-  status: string;
-  createdAt: string;
-  pdfUrl: string | null;
-}
-
-interface InvoicesData {
-  invoices: InvoiceSummary[];
-}
+type BillingTierInfo = components['schemas']['BillingTierInfo'];
+type BillingData = components['schemas']['GetBillingResponse'];
+type InvoiceSummary = components['schemas']['InvoiceSummary'];
+type InvoicesData = components['schemas']['GetInvoicesResponse'];
 
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem('xcord_hub_token');
@@ -129,12 +94,8 @@ export default function Billing() {
         window.location.href = data.checkoutUrl;
         return;
       }
-      if (targetTier === 'Enterprise') {
-        setUpgradeSuccess('Contact us at billing@xcord.net to discuss an Enterprise plan.');
-      } else {
-        setUpgradeSuccess(`Plan changed to ${data.tier}.`);
-        refetchBilling();
-      }
+      setUpgradeSuccess(`Plan changed to ${data.tier}.`);
+      refetchBilling();
     } catch {
       setUpgradeError('Network error. Please try again.');
     } finally {
@@ -269,31 +230,21 @@ export default function Billing() {
                             {' '}{formatStorage(tier.maxStorageMb)} storage
                           </div>
                         </div>
-                        <Switch>
-                          <Match when={isCurrent}>
-                            <span class="text-xs text-xcord-text-muted">Active</span>
-                          </Match>
-                          <Match when={tier.name === 'Enterprise'}>
-                            <button
-                              onClick={() => handleUpgrade('Enterprise')}
-                              disabled={isLoading}
-                              class="px-4 py-2 text-sm font-medium bg-xcord-bg-accent hover:bg-xcord-bg-tertiary text-xcord-text-primary rounded transition disabled:opacity-50"
-                            >
-                              {isLoading ? 'Loading...' : 'Contact Sales'}
-                            </button>
-                          </Match>
-                          <Match when={true}>
+                        <Show when={isCurrent} fallback={
+                          tier.name === 'Free' ? (
                             <button
                               onClick={() => handleUpgrade(tier.name)}
                               disabled={!!upgrading()}
                               class="px-4 py-2 text-sm font-medium bg-xcord-brand hover:bg-xcord-brand-hover text-white rounded transition disabled:opacity-50"
                             >
-                              {isLoading ? 'Loading...' : (
-                                tier.name === 'Free' ? 'Downgrade' : 'Upgrade'
-                              )}
+                              {isLoading ? 'Loading...' : 'Downgrade'}
                             </button>
-                          </Match>
-                        </Switch>
+                          ) : (
+                            <span class="px-4 py-2 text-sm text-xcord-text-muted">Coming Soon</span>
+                          )
+                        }>
+                          <span class="text-xs text-xcord-text-muted">Active</span>
+                        </Show>
                       </div>
                     );
                   }}

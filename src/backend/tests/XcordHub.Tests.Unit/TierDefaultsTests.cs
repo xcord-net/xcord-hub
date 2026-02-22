@@ -7,10 +7,6 @@ namespace XcordHub.Tests.Unit;
 /// <summary>
 /// Unit tests for TierDefaults — the static class that maps BillingTier values to
 /// resource limits, feature flags, and per-tier instance quotas.
-///
-/// These tests exercise the logic that CreateInstanceHandler relies on to enforce
-/// billing tier assignment and quota checks (issue #240: billing tier was hardcoded
-/// to Free; the handler now reads user.SubscriptionTier and passes it through).
 /// </summary>
 public sealed class TierDefaultsTests
 {
@@ -20,19 +16,13 @@ public sealed class TierDefaultsTests
 
     [Theory]
     [InlineData(BillingTier.Free, 1)]
-    [InlineData(BillingTier.Pro, 10)]
-    public void GetMaxInstancesForTier_BoundedTiers_ReturnExpectedLimit(BillingTier tier, int expectedMax)
+    [InlineData(BillingTier.Basic, 1)]
+    [InlineData(BillingTier.Pro, 1)]
+    public void GetMaxInstancesForTier_ReturnsExpectedLimit(BillingTier tier, int expectedMax)
     {
         var result = TierDefaults.GetMaxInstancesForTier(tier);
         result.Should().Be(expectedMax,
             $"{tier} tier should allow exactly {expectedMax} instance(s)");
-    }
-
-    [Fact]
-    public void GetMaxInstancesForTier_Enterprise_ReturnsUnlimited()
-    {
-        var result = TierDefaults.GetMaxInstancesForTier(BillingTier.Enterprise);
-        result.Should().Be(-1, "Enterprise tier should have no instance limit (-1 = unlimited)");
     }
 
     [Fact]
@@ -61,36 +51,48 @@ public sealed class TierDefaultsTests
     }
 
     [Fact]
-    public void GetResourceLimits_ProTier_ExceedsFreeOnAllBoundedLimits()
+    public void GetResourceLimits_BasicTier_ExceedsFreeOnAllLimits()
     {
         var freeLimits = TierDefaults.GetResourceLimits(BillingTier.Free);
-        var proLimits = TierDefaults.GetResourceLimits(BillingTier.Pro);
+        var basicLimits = TierDefaults.GetResourceLimits(BillingTier.Basic);
 
-        proLimits.MaxUsers.Should().BeGreaterThan(freeLimits.MaxUsers,
-            "Pro tier should allow more users than Free");
-        proLimits.MaxServers.Should().BeGreaterThan(freeLimits.MaxServers,
-            "Pro tier should allow more servers than Free");
-        proLimits.MaxStorageMb.Should().BeGreaterThan(freeLimits.MaxStorageMb,
-            "Pro tier should have more storage than Free");
-        proLimits.MaxCpuPercent.Should().BeGreaterThan(freeLimits.MaxCpuPercent,
-            "Pro tier should have higher CPU limit than Free");
-        proLimits.MaxMemoryMb.Should().BeGreaterThan(freeLimits.MaxMemoryMb,
-            "Pro tier should have more memory than Free");
-        proLimits.MaxRateLimit.Should().BeGreaterThan(freeLimits.MaxRateLimit,
-            "Pro tier should have higher rate limit than Free");
+        basicLimits.MaxUsers.Should().BeGreaterThan(freeLimits.MaxUsers,
+            "Basic tier should allow more users than Free");
+        basicLimits.MaxServers.Should().BeGreaterThan(freeLimits.MaxServers,
+            "Basic tier should allow more servers than Free");
+        basicLimits.MaxStorageMb.Should().BeGreaterThan(freeLimits.MaxStorageMb,
+            "Basic tier should have more storage than Free");
+        basicLimits.MaxCpuPercent.Should().BeGreaterThan(freeLimits.MaxCpuPercent,
+            "Basic tier should have higher CPU limit than Free");
+        basicLimits.MaxMemoryMb.Should().BeGreaterThan(freeLimits.MaxMemoryMb,
+            "Basic tier should have more memory than Free");
+        basicLimits.MaxRateLimit.Should().BeGreaterThan(freeLimits.MaxRateLimit,
+            "Basic tier should have higher rate limit than Free");
     }
 
     [Fact]
-    public void GetResourceLimits_EnterpriseTier_ReturnsUnlimitedLimits()
+    public void GetResourceLimits_ProTier_HasHighestBoundedLimits()
     {
-        var limits = TierDefaults.GetResourceLimits(BillingTier.Enterprise);
+        var basicLimits = TierDefaults.GetResourceLimits(BillingTier.Basic);
+        var proLimits = TierDefaults.GetResourceLimits(BillingTier.Pro);
 
-        limits.MaxUsers.Should().Be(-1, "Enterprise tier should have unlimited users");
-        limits.MaxServers.Should().Be(-1, "Enterprise tier should have unlimited servers");
-        limits.MaxStorageMb.Should().Be(-1, "Enterprise tier should have unlimited storage");
-        limits.MaxCpuPercent.Should().Be(-1, "Enterprise tier should have unlimited CPU");
-        limits.MaxMemoryMb.Should().Be(-1, "Enterprise tier should have unlimited memory");
-        limits.MaxRateLimit.Should().Be(-1, "Enterprise tier should have unlimited rate limit");
+        proLimits.MaxUsers.Should().BeGreaterThan(basicLimits.MaxUsers,
+            "Pro tier should allow more users than Basic");
+        proLimits.MaxServers.Should().BeGreaterThan(basicLimits.MaxServers,
+            "Pro tier should allow more servers than Basic");
+        proLimits.MaxStorageMb.Should().BeGreaterThan(basicLimits.MaxStorageMb,
+            "Pro tier should have more storage than Basic");
+        proLimits.MaxCpuPercent.Should().BeGreaterThan(basicLimits.MaxCpuPercent,
+            "Pro tier should have higher CPU limit than Basic");
+        proLimits.MaxMemoryMb.Should().BeGreaterThan(basicLimits.MaxMemoryMb,
+            "Pro tier should have more memory than Basic");
+        proLimits.MaxRateLimit.Should().BeGreaterThan(basicLimits.MaxRateLimit,
+            "Pro tier should have higher rate limit than Basic");
+
+        // Pro is bounded — no unlimited (-1) values
+        proLimits.MaxUsers.Should().BeGreaterThan(0, "Pro tier should have bounded (not unlimited) users");
+        proLimits.MaxServers.Should().BeGreaterThan(0, "Pro tier should have bounded (not unlimited) servers");
+        proLimits.MaxStorageMb.Should().BeGreaterThan(0, "Pro tier should have bounded (not unlimited) storage");
     }
 
     [Fact]
@@ -101,41 +103,33 @@ public sealed class TierDefaultsTests
     }
 
     // ---------------------------------------------------------------------------
-    // GetFeatureFlags — verify tier escalation unlocks features
+    // GetFeatureFlags — Free tier has no video; Basic/Pro have all features
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void GetFeatureFlags_FreeTier_RestrictsAdvancedFeatures()
+    public void GetFeatureFlags_FreeTier_DisablesVideo()
     {
         var flags = TierDefaults.GetFeatureFlags(BillingTier.Free);
 
         flags.Should().NotBeNull();
-        // Advanced features not available on Free
-        flags.CanCreateBots.Should().BeFalse("bots require a paid tier");
-        flags.CanUseWebhooks.Should().BeFalse("webhooks require a paid tier");
-        flags.CanUseCustomEmoji.Should().BeFalse("custom emoji require a paid tier");
-        flags.CanUseVideoChannels.Should().BeFalse("video channels require a paid tier");
-        flags.CanUseForumChannels.Should().BeFalse("forum channels require a paid tier");
-        flags.CanUseScheduledEvents.Should().BeFalse("scheduled events require a paid tier");
-    }
-
-    [Fact]
-    public void GetFeatureFlags_FreeTier_AllowsBasicFeatures()
-    {
-        var flags = TierDefaults.GetFeatureFlags(BillingTier.Free);
-
-        // Basic features available even on Free
-        flags.CanUseThreads.Should().BeTrue("threads should be available on Free tier");
-        flags.CanUseVoiceChannels.Should().BeTrue("voice channels should be available on Free tier");
+        flags.CanCreateBots.Should().BeTrue("Free should allow bots");
+        flags.CanUseWebhooks.Should().BeTrue("Free should allow webhooks");
+        flags.CanUseCustomEmoji.Should().BeTrue("Free should allow custom emoji");
+        flags.CanUseThreads.Should().BeTrue("Free should allow threads");
+        flags.CanUseVoiceChannels.Should().BeTrue("Free should allow voice channels");
+        flags.CanUseVideoChannels.Should().BeFalse("Free should not allow video channels");
+        flags.CanUseForumChannels.Should().BeTrue("Free should allow forum channels");
+        flags.CanUseScheduledEvents.Should().BeTrue("Free should allow scheduled events");
     }
 
     [Theory]
+    [InlineData(BillingTier.Basic)]
     [InlineData(BillingTier.Pro)]
-    [InlineData(BillingTier.Enterprise)]
-    public void GetFeatureFlags_PaidTiers_UnlockAllAdvancedFeatures(BillingTier tier)
+    public void GetFeatureFlags_PaidTiers_EnableAllFeatures(BillingTier tier)
     {
         var flags = TierDefaults.GetFeatureFlags(tier);
 
+        flags.Should().NotBeNull();
         flags.CanCreateBots.Should().BeTrue($"{tier} should allow bots");
         flags.CanUseWebhooks.Should().BeTrue($"{tier} should allow webhooks");
         flags.CanUseCustomEmoji.Should().BeTrue($"{tier} should allow custom emoji");
@@ -159,8 +153,8 @@ public sealed class TierDefaultsTests
 
     [Theory]
     [InlineData(BillingTier.Free)]
+    [InlineData(BillingTier.Basic)]
     [InlineData(BillingTier.Pro)]
-    [InlineData(BillingTier.Enterprise)]
     public void AllThreeMethods_ReturnsValueForEveryDefinedTier(BillingTier tier)
     {
         // Each method should return without throwing for all defined tiers.
