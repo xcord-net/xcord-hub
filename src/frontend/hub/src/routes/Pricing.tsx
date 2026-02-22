@@ -1,7 +1,19 @@
 import { A } from '@solidjs/router';
-import { createSignal, For } from 'solid-js';
+import { createSignal, For, Show } from 'solid-js';
 
-const tiers = [
+interface Tier {
+  name: string;
+  price: string | null;
+  period: string;
+  description: string;
+  features: string[];
+  cta: string;
+  ctaAction: 'notify' | 'link';
+  ctaHref?: string;
+  highlighted: boolean;
+}
+
+const tiers: Tier[] = [
   {
     name: 'Free',
     price: '$0',
@@ -9,33 +21,39 @@ const tiers = [
     description: 'Perfect for getting started',
     features: ['1 instance', '50 members', '1 GB storage', 'Community support'],
     cta: 'Get Started',
+    ctaAction: 'link',
+    ctaHref: '/register',
     highlighted: false,
   },
   {
     name: 'Basic',
-    price: '$5',
-    period: '/month',
+    price: 'TBD',
+    period: '',
     description: 'For growing communities',
     features: ['3 instances', '500 members each', '10 GB storage', 'Email support', 'Custom domain'],
-    cta: 'Start Free Trial',
+    cta: 'Notify Me',
+    ctaAction: 'notify',
     highlighted: false,
   },
   {
     name: 'Pro',
-    price: '$15',
-    period: '/month',
+    price: 'TBD',
+    period: '',
     description: 'For serious communities',
     features: ['Unlimited instances', 'Unlimited members', '100 GB storage', 'Priority support', 'Custom domain', 'Custom branding', 'API access'],
-    cta: 'Start Free Trial',
+    cta: 'Notify Me',
+    ctaAction: 'notify',
     highlighted: true,
   },
   {
     name: 'Self-Hosted',
-    price: 'Free',
-    period: 'forever',
+    price: null,
+    period: '',
     description: 'Full control, your infrastructure',
     features: ['Unlimited everything', 'Your own servers', 'Full source access', 'Community support', 'Docker & Kubernetes'],
     cta: 'View Docs',
+    ctaAction: 'link',
+    ctaHref: '/docs/getting-started',
     highlighted: false,
   },
 ];
@@ -49,13 +67,43 @@ const faqs = [
 
 export default function Pricing() {
   const [openFaq, setOpenFaq] = createSignal<number | null>(null);
+  const [notifyEmail, setNotifyEmail] = createSignal('');
+  const [notifyTier, setNotifyTier] = createSignal<string | null>(null);
+  const [notifySubmitted, setNotifySubmitted] = createSignal<Set<string>>(new Set());
+  const [notifyError, setNotifyError] = createSignal<string | null>(null);
+
+  const handleNotify = async (tierName: string) => {
+    const email = notifyEmail().trim();
+    if (!email) {
+      setNotifyError('Please enter your email address.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/v1/mailing-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, tier: tierName }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setNotifyError(body?.message ?? 'Something went wrong. Please try again.');
+        return;
+      }
+      setNotifySubmitted((prev) => new Set(prev).add(tierName));
+      setNotifyTier(null);
+      setNotifyEmail('');
+      setNotifyError(null);
+    } catch {
+      setNotifyError('Unable to reach the server. Please try again.');
+    }
+  };
 
   return (
     <>
       <section class="max-w-7xl mx-auto px-6 py-20 text-center">
         <h1 class="text-4xl font-bold mb-4">Simple, transparent pricing</h1>
         <p class="text-xcord-landing-text-muted max-w-xl mx-auto mb-16">
-          Start free, scale as you grow. No hidden fees, no surprises.
+          Pricing is coming soon. Sign up to be notified when plans are available.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
@@ -68,8 +116,9 @@ export default function Pricing() {
               }`}>
                 <h3 class="text-lg font-semibold text-white">{tier.name}</h3>
                 <div class="mt-4 mb-2">
-                  <span class="text-3xl font-bold text-white">{tier.price}</span>
-                  <span class="text-sm text-xcord-landing-text-muted">{tier.period}</span>
+                  <Show when={tier.price !== null}>
+                    <span class="text-3xl font-bold text-white">{tier.price}</span>
+                  </Show>
                 </div>
                 <p class="text-sm text-xcord-landing-text-muted mb-6">{tier.description}</p>
                 <ul class="space-y-2 mb-8 flex-1">
@@ -84,16 +133,66 @@ export default function Pricing() {
                     )}
                   </For>
                 </ul>
-                <A
-                  href="/register"
-                  class={`block text-center py-2 rounded-lg font-medium transition ${
-                    tier.highlighted
-                      ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
-                      : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
-                  }`}
-                >
-                  {tier.cta}
-                </A>
+                <Show when={tier.ctaAction === 'notify'}>
+                  <Show when={notifySubmitted().has(tier.name)}>
+                    <p class="text-sm text-xcord-green text-center py-2">Subscribed! We'll let you know.</p>
+                  </Show>
+                  <Show when={!notifySubmitted().has(tier.name)}>
+                    <Show when={notifyTier() === tier.name}>
+                      <div class="space-y-2">
+                        <input
+                          type="email"
+                          placeholder="you@example.com"
+                          value={notifyEmail()}
+                          onInput={(e) => { setNotifyEmail(e.currentTarget.value); setNotifyError(null); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleNotify(tier.name); }}
+                          class="w-full px-3 py-2 rounded-lg bg-xcord-bg-primary border border-xcord-landing-border text-sm text-white placeholder-xcord-landing-text-muted focus:outline-none focus:border-xcord-brand"
+                        />
+                        <Show when={notifyError()}>
+                          <p class="text-xs text-red-400">{notifyError()}</p>
+                        </Show>
+                        <div class="flex gap-2">
+                          <button
+                            onClick={() => { setNotifyTier(null); setNotifyEmail(''); setNotifyError(null); }}
+                            class="flex-1 py-2 rounded-lg text-sm font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleNotify(tier.name)}
+                            class={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+                              tier.highlighted
+                                ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
+                                : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
+                            }`}
+                          >
+                            Submit
+                          </button>
+                        </div>
+                      </div>
+                    </Show>
+                    <Show when={notifyTier() !== tier.name}>
+                      <button
+                        onClick={() => { setNotifyTier(tier.name); setNotifyError(null); }}
+                        class={`block w-full text-center py-2 rounded-lg font-medium transition ${
+                          tier.highlighted
+                            ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
+                            : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
+                        }`}
+                      >
+                        {tier.cta}
+                      </button>
+                    </Show>
+                  </Show>
+                </Show>
+                <Show when={tier.ctaAction === 'link'}>
+                  <A
+                    href={tier.ctaHref ?? '/register'}
+                    class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
+                  >
+                    {tier.cta}
+                  </A>
+                </Show>
               </div>
             )}
           </For>

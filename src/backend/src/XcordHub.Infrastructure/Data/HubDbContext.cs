@@ -26,6 +26,7 @@ public sealed class HubDbContext : DbContext
     public DbSet<ProvisioningEvent> ProvisioningEvents => Set<ProvisioningEvent>();
     public DbSet<WorkerIdRegistry> WorkerIdRegistry => Set<WorkerIdRegistry>();
     public DbSet<FederationToken> FederationTokens => Set<FederationToken>();
+    public DbSet<MailingListEntry> MailingListEntries => Set<MailingListEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

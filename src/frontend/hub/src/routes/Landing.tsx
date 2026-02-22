@@ -68,7 +68,7 @@ export default function Landing() {
             <FeatureCard
               icon="👥"
               title="Membership Tiers"
-              description="Create tiered access levels for your community. Gate channels, roles, and content to the members who matter most. All built in — no third-party tools needed."
+              description="Create tiered access levels for your community. Gate channels, roles, and content, all built in — no third-party tools needed."
             />
             <FeatureCard
               icon="🌐"
