@@ -106,7 +106,7 @@ public sealed class RefreshTokenHandler(
                     httpContext.Response.Cookies.Append("refresh_token", success.RefreshToken, new CookieOptions
                     {
                         HttpOnly = true,
-                        Secure = true,
+                        Secure = httpContext.Request.IsHttps,
                         SameSite = SameSiteMode.Strict,
                         Expires = DateTimeOffset.UtcNow.AddDays(30)
                     });

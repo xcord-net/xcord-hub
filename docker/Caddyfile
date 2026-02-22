@@ -2,17 +2,15 @@
     # Admin API on port 2019 (internal to Docker network only, not host-exposed)
     admin :2019
 
-    # Use Caddy's internal CA for all auto-provisioned certificates.
-    # When the gateway provisioner adds routes for instance subdomains via the
-    # Admin API, Caddy discovers the new hostname in the route's host matcher
-    # and automatically provisions an internal TLS cert for it.
-    local_certs
+    # Dev stack: no TLS. Production uses xcord-topo-generated Caddyfiles
+    # with real ACME certs and security headers.
+    auto_https off
 }
 
 # Hub domain only — serves the gateway API and hub SPA.
 # Instance routes are added dynamically via the Caddy Admin API by the gateway
 # provisioner after each instance container is started.
-{$HUB_DOMAIN:localhost} {
+http://{$HUB_DOMAIN:localhost} {
     reverse_proxy gateway:80
 
     log {
@@ -21,7 +19,6 @@
     }
 }
 
-mail.{$HUB_DOMAIN:localhost} {
-    tls internal
+http://mail.{$HUB_DOMAIN:localhost} {
     reverse_proxy mailpit:8025
 }

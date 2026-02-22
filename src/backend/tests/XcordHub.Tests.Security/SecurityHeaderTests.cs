@@ -57,6 +57,40 @@ public sealed class SecurityHeaderTests
 
         response.Headers.Should().ContainKey("Permissions-Policy");
         response.Headers.GetValues("Permissions-Policy").Should().Contain("camera=(), microphone=(), geolocation=()");
+
+        response.Headers.Should().ContainKey("Strict-Transport-Security");
+        response.Headers.GetValues("Strict-Transport-Security").Should().Contain("max-age=31536000; includeSubDomains");
+    }
+
+    [Fact]
+    public async Task Hsts_ShouldNotBePresent_InDevelopment()
+    {
+        // Arrange
+        using var host = await new HostBuilder()
+            .ConfigureWebHost(webBuilder =>
+            {
+                webBuilder
+                    .UseTestServer()
+                    .UseEnvironment("Development")
+                    .Configure(app =>
+                    {
+                        app.UseSecurityHeaders();
+                        app.Run(async context =>
+                        {
+                            context.Response.StatusCode = 200;
+                            await context.Response.WriteAsync("OK");
+                        });
+                    });
+            })
+            .StartAsync();
+
+        var client = host.GetTestServer().CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/");
+
+        // Assert
+        response.Headers.Should().NotContainKey("Strict-Transport-Security");
     }
 
     [Fact]

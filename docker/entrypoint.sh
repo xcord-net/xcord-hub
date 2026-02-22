@@ -2,7 +2,8 @@
 set -e
 
 CONFIG_PATH="/run/secrets/gateway-config"
-APPSETTINGS_PATH="/app/appsettings.Production.json"
+APPSETTINGS_ENV="${ASPNETCORE_ENVIRONMENT:-Production}"
+APPSETTINGS_PATH="/app/appsettings.${APPSETTINGS_ENV}.json"
 
 # Check if config secret exists
 if [ -f "$CONFIG_PATH" ]; then
