@@ -16,8 +16,8 @@ namespace XcordHub.Tests.Infrastructure;
 /// Verifies graceful shutdown ordering, resource cleanup, state transitions, and worker ID tombstoning.
 ///
 /// All tests use a dedicated PostgreSQL Testcontainer with spy implementations of
-/// infrastructure services (IDockerService, ICaddyProxyManager, IDnsProvider,
-/// IDatabaseManager, IStorageManager) so that no Docker-in-Docker environment is required.
+/// infrastructure services (IDockerService, ICaddyProxyManager, IDnsProvider)
+/// so that no Docker-in-Docker environment is required.
 /// </summary>
 [Trait("Category", "Integration")]
 public sealed class LifecycleTests : IAsyncLifetime
@@ -135,34 +135,6 @@ public sealed class LifecycleTests : IAsyncLifetime
             _callLog.Add($"DeleteDns:{subdomain}");
             return Task.CompletedTask;
         }
-    }
-
-    private sealed class SpyDatabaseManager : IDatabaseManager
-    {
-        private readonly List<string> _callLog;
-
-        public SpyDatabaseManager(List<string> callLog) => _callLog = callLog;
-
-        public Task DropDatabaseAsync(string databaseName, CancellationToken cancellationToken = default)
-        {
-            _callLog.Add($"DropDb:{databaseName}");
-            return Task.CompletedTask;
-        }
-        public Task<bool> VerifyDatabaseExistsAsync(string databaseName, CancellationToken cancellationToken = default) => Task.FromResult(true);
-    }
-
-    private sealed class SpyStorageManager : IStorageManager
-    {
-        private readonly List<string> _callLog;
-
-        public SpyStorageManager(List<string> callLog) => _callLog = callLog;
-
-        public Task DeleteBucketAsync(string bucketName, CancellationToken cancellationToken = default)
-        {
-            _callLog.Add($"DeleteBucket:{bucketName}");
-            return Task.CompletedTask;
-        }
-        public Task<bool> VerifyBucketExistsAsync(string bucketName, CancellationToken cancellationToken = default) => Task.FromResult(true);
     }
 
     // ---------------------------------------------------------------------------
@@ -325,11 +297,9 @@ public sealed class LifecycleTests : IAsyncLifetime
         var dockerSpy = new SpyDockerService(callLog);
         var caddySpy = new SpyCaddyProxyManager(callLog);
         var dnsSpy = new SpyDnsProvider(callLog);
-        var dbManagerSpy = new SpyDatabaseManager(callLog);
-        var storageSpy = new SpyStorageManager(callLog);
 
         var handler = new DestroyInstanceHandler(
-            _dbContext!, dockerSpy, caddySpy, dnsSpy, dbManagerSpy, storageSpy,
+            _dbContext!, dockerSpy, caddySpy, dnsSpy,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -349,8 +319,6 @@ public sealed class LifecycleTests : IAsyncLifetime
         callLog.Should().Contain(s => s.StartsWith("Stop:"), "container should be stopped");
         callLog.Should().Contain(s => s.StartsWith("DeleteRoute:"), "Caddy route should be removed");
         callLog.Should().Contain(s => s.StartsWith("DeleteDns:"), "DNS record should be removed");
-        callLog.Should().Contain(s => s.StartsWith("DropDb:"), "database should be dropped");
-        callLog.Should().Contain(s => s.StartsWith("DeleteBucket:"), "storage bucket should be deleted");
         callLog.Should().Contain(s => s.StartsWith("RemoveContainer:"), "container should be removed");
         callLog.Should().Contain(s => s.StartsWith("RemoveNetwork:"), "network should be removed");
 
@@ -369,11 +337,9 @@ public sealed class LifecycleTests : IAsyncLifetime
         var dockerSpy = new SpyDockerService(callLog);
         var caddySpy = new SpyCaddyProxyManager(callLog);
         var dnsSpy = new SpyDnsProvider(callLog);
-        var dbManagerSpy = new SpyDatabaseManager(callLog);
-        var storageSpy = new SpyStorageManager(callLog);
 
         var handler = new DestroyInstanceHandler(
-            _dbContext!, dockerSpy, caddySpy, dnsSpy, dbManagerSpy, storageSpy,
+            _dbContext!, dockerSpy, caddySpy, dnsSpy,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -397,7 +363,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         var callLog = new List<string>();
         var handler = new DestroyInstanceHandler(
             _dbContext!, new SpyDockerService(callLog), new SpyCaddyProxyManager(callLog),
-            new SpyDnsProvider(callLog), new SpyDatabaseManager(callLog), new SpyStorageManager(callLog),
+            new SpyDnsProvider(callLog),
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 

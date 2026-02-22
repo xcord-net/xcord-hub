@@ -20,7 +20,6 @@ public sealed class ManagedInstance
     // Navigation properties
     public HubUser Owner { get; set; } = null!;
     public InstanceInfrastructure? Infrastructure { get; set; }
-    public InstanceSecrets? Secrets { get; set; }
     public InstanceBilling? Billing { get; set; }
     public InstanceConfig? Config { get; set; }
     public InstanceHealth? Health { get; set; }

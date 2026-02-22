@@ -83,9 +83,9 @@ public sealed class UpdateFeatureFlagsHandler(HubDbContext dbContext)
 
 public static class UpdateFeatureFlagsEndpoint
 {
-    public static void MapUpdateFeatureFlagsEndpoint(this IEndpointRouteBuilder app)
+    public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/api/v1/admin/instances/{id}/feature-flags", async (
+        return app.MapPatch("/api/v1/admin/instances/{id}/feature-flags", async (
             long id,
             UpdateFeatureFlagsRequest request,
             UpdateFeatureFlagsHandler handler,

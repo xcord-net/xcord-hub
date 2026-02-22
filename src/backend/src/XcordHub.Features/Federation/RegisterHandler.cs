@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -27,13 +26,13 @@ public sealed class RegisterHandler(HubDbContext dbContext, SnowflakeId snowflak
     public async Task<Result<RegisterResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         // Hash the provided bootstrap token
-        var bootstrapTokenHash = HashToken(request.BootstrapToken);
+        var bootstrapTokenHash = TokenHelper.HashToken(request.BootstrapToken);
 
         // Find instance with matching bootstrap token
         var instance = await dbContext.ManagedInstances
-            .Include(i => i.Secrets)
+            .Include(i => i.Infrastructure)
             .FirstOrDefaultAsync(
-                i => i.Secrets != null && i.Secrets.BootstrapTokenHash == bootstrapTokenHash,
+                i => i.Infrastructure != null && i.Infrastructure.BootstrapTokenHash == bootstrapTokenHash,
                 cancellationToken);
 
         if (instance == null)
@@ -59,8 +58,8 @@ public sealed class RegisterHandler(HubDbContext dbContext, SnowflakeId snowflak
         }
 
         // Generate new OAuth token
-        var oauthToken = GenerateOAuthToken();
-        var oauthTokenHash = HashToken(oauthToken);
+        var oauthToken = TokenHelper.GenerateToken();
+        var oauthTokenHash = TokenHelper.HashToken(oauthToken);
         var now = DateTimeOffset.UtcNow;
 
         var federationToken = new FederationToken
@@ -74,29 +73,14 @@ public sealed class RegisterHandler(HubDbContext dbContext, SnowflakeId snowflak
         dbContext.FederationTokens.Add(federationToken);
 
         // Clear the bootstrap token hash so it can't be reused
-        if (instance.Secrets != null)
+        if (instance.Infrastructure != null)
         {
-            instance.Secrets.BootstrapTokenHash = null;
+            instance.Infrastructure.BootstrapTokenHash = null;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new RegisterResponse(oauthToken, instance.Id, instance.Domain);
-    }
-
-    private static string GenerateOAuthToken()
-    {
-        var randomBytes = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomBytes);
-        return Convert.ToBase64String(randomBytes);
-    }
-
-    private static string HashToken(string token)
-    {
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(hashBytes);
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)

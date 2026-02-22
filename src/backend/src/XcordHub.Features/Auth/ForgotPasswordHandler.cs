@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.AspNetCore.Builder;
@@ -54,8 +53,8 @@ public sealed class ForgotPasswordHandler(
         }
 
         // Generate reset token
-        var resetTokenValue = GenerateResetToken();
-        var resetTokenHash = HashToken(resetTokenValue);
+        var resetTokenValue = TokenHelper.GenerateToken();
+        var resetTokenHash = TokenHelper.HashToken(resetTokenValue);
         var now = DateTimeOffset.UtcNow;
 
         var resetToken = new PasswordResetToken
@@ -95,21 +94,6 @@ public sealed class ForgotPasswordHandler(
             return result;
         })
         .WithTags("Auth");
-    }
-
-    private static string GenerateResetToken()
-    {
-        var randomBytes = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomBytes);
-        return Convert.ToBase64String(randomBytes);
-    }
-
-    private static string HashToken(string token)
-    {
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(hashBytes);
     }
 
     private static string BuildResetUrl(string hubBaseUrl, string token)

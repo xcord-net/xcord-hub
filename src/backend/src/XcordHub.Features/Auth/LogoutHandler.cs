@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -21,7 +20,7 @@ public sealed class LogoutHandler(HubDbContext dbContext)
     public async Task<Result<bool>> HandleWithToken(string refreshTokenValue, CancellationToken cancellationToken)
     {
         // Hash the token
-        var tokenHash = HashToken(refreshTokenValue);
+        var tokenHash = TokenHelper.HashToken(refreshTokenValue);
 
         // Find and delete the refresh token
         var refreshToken = await dbContext.RefreshTokens
@@ -60,10 +59,4 @@ public sealed class LogoutHandler(HubDbContext dbContext)
         .WithTags("Auth");
     }
 
-    private static string HashToken(string token)
-    {
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(hashBytes);
-    }
 }

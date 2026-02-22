@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using StackExchange.Redis;
 using XcordHub.Api;
+using XcordHub.Api.Options;
 using XcordHub.Entities;
 using XcordHub.Features;
 using XcordHub.Features.Monitoring;
@@ -132,10 +133,6 @@ else
     builder.Services.AddSingleton<ICaddyProxyManager, NoopCaddyProxyManager>();
 }
 
-// Lifecycle management services
-builder.Services.AddSingleton<IDatabaseManager, NoopDatabaseManager>();
-builder.Services.AddSingleton<IStorageManager, NoopStorageManager>();
-
 // Instance notifier (sends System_ShuttingDown before stopping containers)
 builder.Services.AddHttpClient<IInstanceNotifier, HttpInstanceNotifier>(client =>
 {
@@ -161,9 +158,7 @@ builder.Services.AddScoped<IProvisioningStep, EnforceTierLimitsStep>();
 builder.Services.AddScoped<IProvisioningStep, GenerateSecretsStep>();
 builder.Services.AddScoped<IProvisioningStep, AllocateWorkerIdStep>();
 builder.Services.AddScoped<IProvisioningStep, CreateNetworkStep>();
-builder.Services.AddScoped<IProvisioningStep, ProvisionMinioStep>();
 builder.Services.AddScoped<IProvisioningStep, ProvisionDatabaseStep>();
-builder.Services.AddScoped<IProvisioningStep, RunMigrationsStep>();
 builder.Services.AddScoped<IProvisioningStep, StartApiContainerStep>();
 builder.Services.AddScoped<IProvisioningStep, ConfigureDnsAndProxyStep>();
 
@@ -420,49 +415,6 @@ static async Task SeedAdminUser(WebApplication app)
     await dbContext.SaveChangesAsync();
 
     Log.Information("Admin user '{Username}' created successfully", adminUsername);
-}
-
-// Options classes
-public sealed class DatabaseOptions
-{
-    public string ConnectionString { get; set; } = string.Empty;
-}
-
-public sealed class JwtOptions
-{
-    public string Issuer { get; set; } = string.Empty;
-    public string Audience { get; set; } = string.Empty;
-}
-
-public sealed class RedisOptions
-{
-    public string ConnectionString { get; set; } = string.Empty;
-    public string ChannelPrefix { get; set; } = string.Empty;
-}
-
-public sealed class CorsOptions
-{
-    public string[] AllowedOrigins { get; set; } = [];
-}
-
-public sealed class RateLimitingOptions
-{
-    public int TokenLimit { get; set; } = 100;
-    public int ReplenishmentPeriodSeconds { get; set; } = 10;
-    public int TokensPerPeriod { get; set; } = 20;
-}
-
-public sealed class AdminOptions
-{
-    public string Username { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
-
-public sealed class CaddyOptions
-{
-    public string AdminUrl { get; set; } = string.Empty;
-    public bool UseReal { get; set; } = false;
 }
 
 // Expose Program to test projects that use WebApplicationFactory<Program>.

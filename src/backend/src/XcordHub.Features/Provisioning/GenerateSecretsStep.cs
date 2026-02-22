@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
 using XcordHub;
@@ -23,7 +23,6 @@ public sealed class GenerateSecretsStep : IProvisioningStep
     {
         var instance = await _dbContext.ManagedInstances
             .Include(i => i.Infrastructure)
-            .Include(i => i.Secrets)
             .FirstOrDefaultAsync(i => i.Id == instanceId, cancellationToken);
 
         if (instance == null)
@@ -43,7 +42,7 @@ public sealed class GenerateSecretsStep : IProvisioningStep
         var minioSecretKey = GenerateSecurePassword(40);
         var liveKitApiKey = GenerateAccessKey(20);
         var liveKitSecretKey = GenerateSecurePassword(40);
-        var bootstrapToken = GenerateBootstrapToken();
+        var bootstrapToken = TokenHelper.GenerateToken();
 
         var infrastructure = new InstanceInfrastructure
         {
@@ -58,16 +57,11 @@ public sealed class GenerateSecretsStep : IProvisioningStep
             CaddyRouteId = string.Empty, // Will be set in ConfigureDnsAndProxy step
             LiveKitApiKey = liveKitApiKey,
             LiveKitSecretKey = liveKitSecretKey,
+            BootstrapTokenHash = TokenHelper.HashToken(bootstrapToken),
             CreatedAt = DateTimeOffset.UtcNow
         };
 
         _dbContext.InstanceInfrastructures.Add(infrastructure);
-
-        // Store bootstrap token hash in InstanceSecrets
-        if (instance.Secrets != null)
-        {
-            instance.Secrets.BootstrapTokenHash = HashToken(bootstrapToken);
-        }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -126,18 +120,4 @@ public sealed class GenerateSecretsStep : IProvisioningStep
         return new string(result);
     }
 
-    private static string GenerateBootstrapToken()
-    {
-        var randomBytes = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomBytes);
-        return Convert.ToBase64String(randomBytes);
-    }
-
-    private static string HashToken(string token)
-    {
-        using var sha256 = System.Security.Cryptography.SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexString(hashBytes);
-    }
 }

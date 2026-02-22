@@ -17,7 +17,6 @@ public sealed class HubDbContext : DbContext
 
     public DbSet<ManagedInstance> ManagedInstances => Set<ManagedInstance>();
     public DbSet<InstanceInfrastructure> InstanceInfrastructures => Set<InstanceInfrastructure>();
-    public DbSet<InstanceSecrets> InstanceSecrets => Set<InstanceSecrets>();
     public DbSet<InstanceBilling> InstanceBillings => Set<InstanceBilling>();
     public DbSet<InstanceConfig> InstanceConfigs => Set<InstanceConfig>();
     public DbSet<InstanceHealth> InstanceHealths => Set<InstanceHealth>();

@@ -18,8 +18,6 @@ public sealed class DestroyInstanceHandler(
     IDockerService dockerService,
     ICaddyProxyManager proxyManager,
     IDnsProvider dnsProvider,
-    IDatabaseManager databaseManager,
-    IStorageManager storageManager,
     ILogger<DestroyInstanceHandler> logger)
     : IRequestHandler<DestroyInstanceCommand, Result<bool>>
 {
@@ -131,33 +129,7 @@ public sealed class DestroyInstanceHandler(
             logger.LogWarning(ex, "Failed to remove DNS record, continuing cleanup");
         }
 
-        // 4. Drop database
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(infrastructure.DatabaseName))
-            {
-                logger.LogInformation("Dropping database {DatabaseName}", infrastructure.DatabaseName);
-                await databaseManager.DropDatabaseAsync(infrastructure.DatabaseName, cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to drop database, continuing cleanup");
-        }
-
-        // 5. Delete MinIO bucket
-        try
-        {
-            var bucketName = $"xcord-{instance.Domain.Replace(".", "-")}";
-            logger.LogInformation("Deleting storage bucket {BucketName}", bucketName);
-            await storageManager.DeleteBucketAsync(bucketName, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to delete storage bucket, continuing cleanup");
-        }
-
-        // 6. Remove container
+        // 4. Remove container
         try
         {
             if (!string.IsNullOrWhiteSpace(infrastructure.DockerContainerId))
@@ -171,7 +143,7 @@ public sealed class DestroyInstanceHandler(
             logger.LogWarning(ex, "Failed to remove container, continuing cleanup");
         }
 
-        // 7. Remove network
+        // 5. Remove network
         try
         {
             logger.LogInformation("Removing network for {Domain}", instance.Domain);
@@ -202,9 +174,9 @@ public sealed class DestroyInstanceHandler(
 
 public static class DestroyInstanceEndpoint
 {
-    public static void MapDestroyInstanceEndpoint(this IEndpointRouteBuilder app)
+    public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/v1/instances/{instanceId:long}", async (
+        return app.MapDelete("/api/v1/admin/instances/{instanceId:long}", async (
             [FromRoute] long instanceId,
             ClaimsPrincipal user,
             DestroyInstanceHandler handler,

@@ -77,9 +77,9 @@ public sealed class UpdateResourceLimitsHandler(HubDbContext dbContext)
 
 public static class UpdateResourceLimitsEndpoint
 {
-    public static void MapUpdateResourceLimitsEndpoint(this IEndpointRouteBuilder app)
+    public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
-        app.MapPatch("/api/v1/admin/instances/{id}/resource-limits", async (
+        return app.MapPatch("/api/v1/admin/instances/{id}/resource-limits", async (
             long id,
             UpdateResourceLimitsRequest request,
             UpdateResourceLimitsHandler handler,
