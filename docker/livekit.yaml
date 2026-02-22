@@ -1,0 +1,12 @@
+port: 7880
+rtc:
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: false
+redis:
+  address: redis:6379
+keys:
+  # IMPORTANT: Replace these with secure random keys in production
+  devkey: REPLACE_WITH_SECURE_LIVEKIT_API_SECRET
+logging:
+  level: info

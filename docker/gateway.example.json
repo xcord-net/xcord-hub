@@ -1,0 +1,59 @@
+{
+  "database": {
+    "connectionString": "Host=gateway-pg;Port=5432;Database=xcord_hub;Username=xcord_hub;Password=xcord_hub_dev"
+  },
+  "redis": {
+    "connectionString": "redis:6379",
+    "channelPrefix": "hub:"
+  },
+  "jwt": {
+    "issuer": "https://hub.xcord.local",
+    "audience": "xcord-hub",
+    "signingKey": "REPLACE_WITH_SECURE_KEY_AT_LEAST_32_CHARACTERS_LONG_FOR_HS256"
+  },
+  "storage": {
+    "endpoint": "minio:9000",
+    "accessKey": "minioadmin",
+    "secretKey": "minioadmin",
+    "bucketName": "xcord-hub",
+    "useSsl": false
+  },
+  "docker": {
+    "socketProxyUrl": "http://docker-socket-proxy:2375",
+    "useReal": false,
+    "instanceImage": "xcord-fed:latest"
+  },
+  "caddy": {
+    "adminUrl": "http://caddy:2019"
+  },
+  "admin": {
+    "username": "admin",
+    "email": "admin@xcord.local",
+    "password": "REPLACE_WITH_SECURE_PASSWORD"
+  },
+  "secretEncryption": {
+    "key": "REPLACE_WITH_32_BYTE_BASE64_KEY_FOR_AES_256_ENCRYPTION"
+  },
+  "cors": {
+    "allowedOrigins": [
+      "http://localhost:3000",
+      "https://hub.xcord.local"
+    ]
+  },
+  "rateLimiting": {
+    "tokenLimit": 100,
+    "replenishmentPeriodSeconds": 10,
+    "tokensPerPeriod": 20
+  },
+  "email": {
+    "smtpHost": "mailpit",
+    "smtpPort": 1025,
+    "smtpUsername": "",
+    "smtpPassword": "",
+    "fromAddress": "noreply@hub.xcord.local",
+    "fromName": "Xcord",
+    "useSsl": false,
+    "devMode": false,
+    "hubBaseUrl": "https://hub.xcord.local"
+  }
+}
