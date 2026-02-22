@@ -53,6 +53,7 @@ public sealed class GetInvoicesHandler(HubDbContext dbContext, ICurrentUserServi
             return await handler.ExecuteAsync(new GetInvoicesQuery(limit ?? 25), ct);
         })
         .RequireAuthorization(Policies.User)
+        .Produces<GetInvoicesResponse>(200)
         .WithName("GetInvoices")
         .WithTags("Billing");
     }

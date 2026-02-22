@@ -62,8 +62,8 @@ public sealed class GetBillingHandler(HubDbContext dbContext, ICurrentUserServic
         var availableTiers = new List<BillingTierInfo>
         {
             BuildTierInfo(BillingTier.Free),
+            BuildTierInfo(BillingTier.Basic),
             BuildTierInfo(BillingTier.Pro),
-            BuildTierInfo(BillingTier.Enterprise),
         };
 
         return new GetBillingResponse(
@@ -93,47 +93,42 @@ public sealed class GetBillingHandler(HubDbContext dbContext, ICurrentUserServic
                 Features: new List<BillingTierFeature>
                 {
                     new("Instances", "1"),
-                    new("Members per instance", "100"),
+                    new("Members", "50"),
                     new("Storage", "1 GB"),
-                    new("Voice channels", "Included"),
+                    new("Voice channels", "Yes"),
                     new("Support", "Community"),
+                }
+            ),
+            BillingTier.Basic => new BillingTierInfo(
+                Name: "Basic",
+                Price: "TBD",
+                Period: "/month",
+                MaxInstances: TierDefaults.GetMaxInstancesForTier(BillingTier.Basic),
+                MaxUsersPerInstance: TierDefaults.GetResourceLimits(BillingTier.Basic).MaxUsers,
+                MaxStorageMb: TierDefaults.GetResourceLimits(BillingTier.Basic).MaxStorageMb,
+                Features: new List<BillingTierFeature>
+                {
+                    new("Instances", "1"),
+                    new("Members", "250"),
+                    new("Storage", "10 GB"),
+                    new("Video & screen sharing", "Yes"),
+                    new("Support", "Email"),
                 }
             ),
             BillingTier.Pro => new BillingTierInfo(
                 Name: "Pro",
-                Price: "$15",
+                Price: "TBD",
                 Period: "/month",
                 MaxInstances: TierDefaults.GetMaxInstancesForTier(BillingTier.Pro),
                 MaxUsersPerInstance: TierDefaults.GetResourceLimits(BillingTier.Pro).MaxUsers,
                 MaxStorageMb: TierDefaults.GetResourceLimits(BillingTier.Pro).MaxStorageMb,
                 Features: new List<BillingTierFeature>
                 {
-                    new("Instances", "10"),
-                    new("Members per instance", "10,000"),
-                    new("Storage", "10 GB"),
-                    new("Voice & video channels", "Included"),
-                    new("Custom emoji", "Included"),
-                    new("Webhooks & bots", "Included"),
-                    new("Forum channels", "Included"),
-                    new("Scheduled events", "Included"),
-                    new("Support", "Email"),
-                }
-            ),
-            BillingTier.Enterprise => new BillingTierInfo(
-                Name: "Enterprise",
-                Price: "Custom",
-                Period: "",
-                MaxInstances: -1,
-                MaxUsersPerInstance: -1,
-                MaxStorageMb: -1,
-                Features: new List<BillingTierFeature>
-                {
-                    new("Instances", "Unlimited"),
-                    new("Members per instance", "Unlimited"),
-                    new("Storage", "Unlimited"),
-                    new("All Pro features", "Included"),
-                    new("SLA", "99.9% uptime"),
-                    new("Support", "Dedicated"),
+                    new("Instances", "1"),
+                    new("Members", "1,000"),
+                    new("Storage", "50 GB"),
+                    new("Video, screen sharing & Go Live", "Yes"),
+                    new("Support", "Priority"),
                 }
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown billing tier")
@@ -149,6 +144,7 @@ public sealed class GetBillingHandler(HubDbContext dbContext, ICurrentUserServic
             return await handler.ExecuteAsync(new GetBillingQuery(), ct);
         })
         .RequireAuthorization(Policies.User)
+        .Produces<GetBillingResponse>(200)
         .WithName("GetBilling")
         .WithTags("Billing");
     }

@@ -1,0 +1,2095 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "XcordHub.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "ProvisionInstance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionInstanceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionInstanceResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminListInstances",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminListInstancesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mailing-list": {
+      "post": {
+        "tags": [
+          "MailingList"
+        ],
+        "operationId": "AddMailingListEntry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMailingListEntryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddMailingListEntryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/instances": {
+      "post": {
+        "tags": [
+          "Instances"
+        ],
+        "operationId": "CreateInstance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInstanceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateInstanceResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Instances"
+        ],
+        "operationId": "ListInstances",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListInstancesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{instanceId}": {
+      "delete": {
+        "tags": [
+          "Instances"
+        ],
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{instanceId}/resume": {
+      "post": {
+        "tags": [
+          "Instances"
+        ],
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{instanceId}/suspend": {
+      "post": {
+        "tags": [
+          "Instances"
+        ],
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{id}/feature-flags": {
+      "patch": {
+        "tags": [
+          "Admin",
+          "Instances"
+        ],
+        "operationId": "UpdateFeatureFlags",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFeatureFlagsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateFeatureFlagsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{id}/resource-limits": {
+      "patch": {
+        "tags": [
+          "Admin",
+          "Instances"
+        ],
+        "operationId": "UpdateResourceLimits",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourceLimitsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateResourceLimitsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/register": {
+      "post": {
+        "tags": [
+          "Federation"
+        ],
+        "operationId": "FederationRegister",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/discover/instances/{instanceId}": {
+      "get": {
+        "tags": [
+          "Discovery"
+        ],
+        "operationId": "DiscoveryGetInstance",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetInstanceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/discover/instances": {
+      "get": {
+        "tags": [
+          "Discovery"
+        ],
+        "operationId": "DiscoveryListInstances",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListInstancesResponse2"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/billing/cancel": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "CancelSubscription",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/billing": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "GetBilling",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetBillingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/billing/invoices": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "GetInvoices",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetInvoicesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/billing/upgrade": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "UpgradeSubscription",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeSubscriptionCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpgradeSubscriptionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/users/@me": {
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "DeleteAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/2fa/disable": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Disable2FARequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/2fa/enable": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Enable2FAResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "GetMe",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "Logout",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "RefreshToken",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshTokenApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "Register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/2fa/verify": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Verify2FARequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminGetInstance",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminGetInstanceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/mailing-list": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminListMailingList",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "tier",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminListMailingListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/health": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "GetAggregatedHealth",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AggregatedHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddMailingListEntryRequest": {
+        "required": [
+          "email",
+          "tier"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          }
+        }
+      },
+      "AddMailingListEntryResponse": {
+        "required": [
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminGetInstanceResponse": {
+        "required": [
+          "id",
+          "subdomain",
+          "displayName",
+          "domain",
+          "status",
+          "tier",
+          "createdAt",
+          "suspendedAt",
+          "destroyedAt",
+          "ownerId",
+          "ownerUsername",
+          "resourceLimits",
+          "featureFlags",
+          "health",
+          "infrastructure"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subdomain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "suspendedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "destroyedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "resourceLimits": { },
+          "featureFlags": { },
+          "health": { },
+          "infrastructure": { }
+        }
+      },
+      "AdminInstanceListItem": {
+        "required": [
+          "id",
+          "subdomain",
+          "displayName",
+          "status",
+          "tier",
+          "createdAt",
+          "ownerUsername"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subdomain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ownerUsername": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminListInstancesResponse": {
+        "required": [
+          "instances",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminInstanceListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminListMailingListResponse": {
+        "required": [
+          "entries",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MailingListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AggregatedHealthResponse": {
+        "required": [
+          "overallStatus",
+          "totalInstances",
+          "healthyInstances",
+          "unhealthyInstances",
+          "timestamp",
+          "instances"
+        ],
+        "type": "object",
+        "properties": {
+          "overallStatus": {
+            "type": "string"
+          },
+          "totalInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "healthyInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unhealthyInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceHealthDto"
+            }
+          }
+        }
+      },
+      "BillingTierFeature": {
+        "required": [
+          "name",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "BillingTierInfo": {
+        "required": [
+          "name",
+          "price",
+          "period",
+          "maxInstances",
+          "maxUsersPerInstance",
+          "maxStorageMb",
+          "features"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "maxInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxUsersPerInstance": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxStorageMb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingTierFeature"
+            }
+          }
+        }
+      },
+      "CancelSubscriptionResponse": {
+        "required": [
+          "message",
+          "newTier"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "newTier": {
+            "type": "string"
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateInstanceCommand": {
+        "required": [
+          "subdomain",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "subdomain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "adminPassword": {
+            "type": "string",
+            "default": null,
+            "nullable": true
+          }
+        }
+      },
+      "CreateInstanceResponse": {
+        "required": [
+          "instanceId",
+          "domain",
+          "displayName",
+          "status",
+          "adminPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "adminPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "DeleteAccountRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "Disable2FARequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "Enable2FAResponse": {
+        "required": [
+          "secret",
+          "qrCodeUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "secret": {
+            "type": "string"
+          },
+          "qrCodeUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "GetBillingResponse": {
+        "required": [
+          "tier",
+          "status",
+          "hasStripeSubscription",
+          "currentPeriodEnd",
+          "nextBillingDate",
+          "instanceCount",
+          "maxInstances",
+          "currentTierInfo",
+          "availableTiers"
+        ],
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "hasStripeSubscription": {
+            "type": "boolean"
+          },
+          "currentPeriodEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "nextBillingDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "instanceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentTierInfo": {
+            "$ref": "#/components/schemas/BillingTierInfo"
+          },
+          "availableTiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingTierInfo"
+            }
+          }
+        }
+      },
+      "GetInstanceResponse": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "iconUrl",
+          "domain",
+          "memberCount",
+          "onlineCount",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "iconUrl": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "memberCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "onlineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GetInvoicesResponse": {
+        "required": [
+          "invoices"
+        ],
+        "type": "object",
+        "properties": {
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceSummary"
+            }
+          }
+        }
+      },
+      "GetMeResponse": {
+        "required": [
+          "userId",
+          "username",
+          "displayName",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "InstanceHealthDto": {
+        "required": [
+          "id",
+          "domain",
+          "status",
+          "isHealthy",
+          "consecutiveFailures",
+          "responseTimeMs",
+          "errorMessage",
+          "lastCheckAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "isHealthy": {
+            "type": "boolean"
+          },
+          "consecutiveFailures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "responseTimeMs": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastCheckAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "InstancePreview": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "iconUrl",
+          "domain",
+          "memberCount",
+          "onlineCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "iconUrl": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "memberCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "onlineCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "InstanceSummary": {
+        "required": [
+          "instanceId",
+          "domain",
+          "displayName",
+          "status",
+          "tier",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "InvoiceSummary": {
+        "required": [
+          "id",
+          "description",
+          "amountCents",
+          "currency",
+          "status",
+          "createdAt",
+          "pdfUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pdfUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ListInstancesResponse": {
+        "required": [
+          "instances"
+        ],
+        "type": "object",
+        "properties": {
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceSummary"
+            }
+          }
+        }
+      },
+      "ListInstancesResponse2": {
+        "required": [
+          "instances",
+          "totalCount",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstancePreview"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LoginApiResponse": {
+        "required": [
+          "userId",
+          "username",
+          "displayName",
+          "email",
+          "accessToken"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "MailingListItem": {
+        "required": [
+          "id",
+          "email",
+          "tier",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProvisionInstanceCommand": {
+        "required": [
+          "ownerId",
+          "domain",
+          "displayName",
+          "adminPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "ownerId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "adminPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "ProvisionInstanceResponse": {
+        "required": [
+          "instanceId",
+          "domain",
+          "displayName",
+          "adminPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "adminPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshTokenApiResponse": {
+        "required": [
+          "accessToken"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterApiResponse": {
+        "required": [
+          "userId",
+          "username",
+          "displayName",
+          "email",
+          "accessToken"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterCommand": {
+        "required": [
+          "bootstrapToken"
+        ],
+        "type": "object",
+        "properties": {
+          "bootstrapToken": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "required": [
+          "username",
+          "displayName",
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "required": [
+          "instanceOAuthToken",
+          "instanceId",
+          "domain"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceOAuthToken": {
+            "type": "string"
+          },
+          "instanceId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "required": [
+          "token",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "SuccessResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateFeatureFlagsRequest": {
+        "required": [
+          "canCreateBots",
+          "canUseWebhooks",
+          "canUseCustomEmoji",
+          "canUseThreads",
+          "canUseVoiceChannels",
+          "canUseVideoChannels",
+          "canUseForumChannels",
+          "canUseScheduledEvents"
+        ],
+        "type": "object",
+        "properties": {
+          "canCreateBots": {
+            "type": "boolean"
+          },
+          "canUseWebhooks": {
+            "type": "boolean"
+          },
+          "canUseCustomEmoji": {
+            "type": "boolean"
+          },
+          "canUseThreads": {
+            "type": "boolean"
+          },
+          "canUseVoiceChannels": {
+            "type": "boolean"
+          },
+          "canUseVideoChannels": {
+            "type": "boolean"
+          },
+          "canUseForumChannels": {
+            "type": "boolean"
+          },
+          "canUseScheduledEvents": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateFeatureFlagsResponse": {
+        "required": [
+          "instanceId",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateResourceLimitsRequest": {
+        "required": [
+          "maxUsers",
+          "maxServers",
+          "maxStorageMb",
+          "maxCpuPercent",
+          "maxMemoryMb",
+          "maxRateLimit"
+        ],
+        "type": "object",
+        "properties": {
+          "maxUsers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxServers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxStorageMb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxCpuPercent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxMemoryMb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxRateLimit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateResourceLimitsResponse": {
+        "required": [
+          "instanceId",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "UpgradeSubscriptionCommand": {
+        "required": [
+          "targetTier"
+        ],
+        "type": "object",
+        "properties": {
+          "targetTier": {
+            "type": "string"
+          }
+        }
+      },
+      "UpgradeSubscriptionResponse": {
+        "required": [
+          "tier",
+          "checkoutUrl",
+          "requiresCheckout"
+        ],
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string"
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "requiresCheckout": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Verify2FARequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health"
+    },
+    {
+      "name": "Admin"
+    },
+    {
+      "name": "MailingList"
+    },
+    {
+      "name": "Instances"
+    },
+    {
+      "name": "Federation"
+    },
+    {
+      "name": "Discovery"
+    },
+    {
+      "name": "Billing"
+    },
+    {
+      "name": "Auth"
+    }
+  ]
+}

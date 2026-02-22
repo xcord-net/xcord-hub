@@ -12,8 +12,9 @@
     "noEmit": true,
     "isolatedModules": true,
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "@generated/*": ["../generated/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../generated"]
 }

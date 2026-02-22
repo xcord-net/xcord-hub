@@ -14,7 +14,9 @@ public sealed record LoginRequest(
     string Password
 );
 
-public sealed record LoginResponse(long UserId, string Username, string DisplayName, string Email, string AccessToken, string RefreshToken);
+public sealed record LoginResponse(string UserId, string Username, string DisplayName, string Email, string AccessToken, string RefreshToken);
+
+public sealed record LoginApiResponse(string UserId, string Username, string DisplayName, string Email, string AccessToken);
 
 public sealed class LoginHandler(
     HubDbContext dbContext,
@@ -92,7 +94,7 @@ public sealed class LoginHandler(
 
         var email = encryptionService.Decrypt(user.Email);
 
-        return new LoginResponse(user.Id, user.Username, user.DisplayName, email, accessToken, refreshTokenValue);
+        return new LoginResponse(user.Id.ToString(), user.Username, user.DisplayName, email, accessToken, refreshTokenValue);
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
@@ -114,19 +116,18 @@ public sealed class LoginHandler(
                     Expires = DateTimeOffset.UtcNow.AddDays(30)
                 });
 
-                return Results.Ok(new
-                {
-                    userId = success.UserId,
-                    username = success.Username,
-                    displayName = success.DisplayName,
-                    email = success.Email,
-                    accessToken = success.AccessToken
-                });
+                return Results.Ok(new LoginApiResponse(
+                    success.UserId,
+                    success.Username,
+                    success.DisplayName,
+                    success.Email,
+                    success.AccessToken));
             });
 
             return result;
         })
         .AllowAnonymous()
+        .Produces<LoginApiResponse>(200)
         .WithName("Login")
         .WithTags("Auth");
     }

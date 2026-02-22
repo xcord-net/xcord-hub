@@ -112,10 +112,11 @@ public static class SuspendInstanceEndpoint
             var result = await handler.Handle(command, ct);
 
             return result.Match(
-                success => Results.Ok(new { Success = true }),
+                success => Results.Ok(new SuccessResponse(true)),
                 error => Results.Json(new { Error = error.Code, Message = error.Message }, statusCode: error.StatusCode));
         })
         .RequireAuthorization(Policies.User)
+        .Produces<SuccessResponse>(200)
         .WithTags("Instances");
     }
 }

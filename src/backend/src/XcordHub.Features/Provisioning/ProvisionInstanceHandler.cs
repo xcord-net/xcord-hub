@@ -21,7 +21,7 @@ public sealed record ProvisionInstanceCommand(
 );
 
 public sealed record ProvisionInstanceResponse(
-    long InstanceId,
+    string InstanceId,
     string Domain,
     string DisplayName,
     string AdminPassword
@@ -153,7 +153,7 @@ public sealed class ProvisionInstanceHandler(
 
         // Return 201 with instance details and plaintext admin password
         return new ProvisionInstanceResponse(
-            instanceId,
+            instanceId.ToString(),
             request.Domain,
             request.DisplayName,
             request.AdminPassword // Plaintext password returned only in response
@@ -171,6 +171,7 @@ public sealed class ProvisionInstanceHandler(
                 Results.Created($"/api/v1/admin/instances/{success.InstanceId}", success));
         })
         .RequireAuthorization(Policies.Admin)
+        .Produces<ProvisionInstanceResponse>(201)
         .WithName("ProvisionInstance")
         .WithTags("Admin");
     }

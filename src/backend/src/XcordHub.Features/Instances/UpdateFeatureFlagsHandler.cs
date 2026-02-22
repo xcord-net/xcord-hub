@@ -21,7 +21,7 @@ public sealed record UpdateFeatureFlagsCommand(
 );
 
 public sealed record UpdateFeatureFlagsResponse(
-    long InstanceId,
+    string InstanceId,
     string Message
 );
 
@@ -74,7 +74,7 @@ public sealed class UpdateFeatureFlagsHandler(HubDbContext dbContext)
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new UpdateFeatureFlagsResponse(
-            request.InstanceId,
+            request.InstanceId.ToString(),
             "Feature flags updated successfully"
         );
     }
@@ -117,17 +117,14 @@ public static class UpdateFeatureFlagsEndpoint
             var result = await handler.Handle(command, ct);
 
             return result.Match(
-                success => Results.Ok(new
-                {
-                    instanceId = success.InstanceId,
-                    message = success.Message
-                }),
+                success => Results.Ok(success),
                 error => Results.Problem(
                     statusCode: error.StatusCode,
                     title: error.Code,
                     detail: error.Message));
         })
         .RequireAuthorization(Policies.Admin)
+        .Produces<UpdateFeatureFlagsResponse>(200)
         .WithName("UpdateFeatureFlags")
         .WithTags("Admin", "Instances");
     }

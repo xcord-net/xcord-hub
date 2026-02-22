@@ -60,6 +60,7 @@ public sealed class Enable2FAHandler(HubDbContext dbContext)
             return result;
         })
         .RequireAuthorization(Policies.User)
+        .Produces<Enable2FAResponse>(200)
         .WithTags("Auth");
     }
 

@@ -11,7 +11,7 @@ namespace XcordHub.Features.Discovery;
 public sealed record GetInstanceQuery(long InstanceId);
 
 public sealed record GetInstanceResponse(
-    long Id,
+    string Id,
     string Name,
     string Description,
     string IconUrl,
@@ -26,26 +26,36 @@ public sealed class GetInstanceHandler(HubDbContext dbContext)
 {
     public async Task<Result<GetInstanceResponse>> Handle(GetInstanceQuery request, CancellationToken cancellationToken)
     {
-        var instance = await dbContext.ManagedInstances
+        var raw = await dbContext.ManagedInstances
             .Where(i => i.Id == request.InstanceId && i.Status == InstanceStatus.Running)
-            .Select(i => new GetInstanceResponse(
+            .Select(i => new
+            {
                 i.Id,
                 i.DisplayName,
-                i.Description ?? string.Empty,
-                i.IconUrl ?? string.Empty,
+                Description = i.Description ?? string.Empty,
+                IconUrl = i.IconUrl ?? string.Empty,
                 i.Domain,
                 i.MemberCount,
                 i.OnlineCount,
                 i.CreatedAt
-            ))
+            })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (instance == null)
+        if (raw == null)
         {
             return Error.NotFound("INSTANCE_NOT_FOUND", "Instance not found or not available");
         }
 
-        return instance;
+        return new GetInstanceResponse(
+            raw.Id.ToString(),
+            raw.DisplayName,
+            raw.Description,
+            raw.IconUrl,
+            raw.Domain,
+            raw.MemberCount,
+            raw.OnlineCount,
+            raw.CreatedAt
+        );
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
@@ -59,6 +69,7 @@ public sealed class GetInstanceHandler(HubDbContext dbContext)
             return await handler.ExecuteAsync(query, ct);
         })
         .AllowAnonymous()
+        .Produces<GetInstanceResponse>(200)
         .WithName("DiscoveryGetInstance")
         .WithTags("Discovery");
     }

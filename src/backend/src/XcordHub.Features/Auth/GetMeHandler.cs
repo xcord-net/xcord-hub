@@ -50,6 +50,7 @@ public sealed class GetMeHandler(HubDbContext dbContext, ICurrentUserService cur
             return await handler.ExecuteAsync(new GetMeQuery(), ct);
         })
         .RequireAuthorization(Policies.User)
+        .Produces<GetMeResponse>(200)
         .WithName("GetMe")
         .WithTags("Auth");
     }

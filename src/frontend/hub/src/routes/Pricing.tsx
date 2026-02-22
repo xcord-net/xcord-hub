@@ -3,14 +3,31 @@ import { createSignal, For, Show } from 'solid-js';
 
 interface Tier {
   name: string;
-  price: string | null;
+  price: string;
   period: string;
   description: string;
   features: string[];
-  cta: string;
-  ctaAction: 'notify' | 'link';
+  cta: 'link' | 'notify';
+  ctaLabel: string;
   ctaHref?: string;
   highlighted: boolean;
+}
+
+interface SplitCard {
+  top: {
+    name: string;
+    tagline: string;
+    description: string;
+    cta: string;
+    ctaHref: string;
+  };
+  bottom: {
+    name: string;
+    tagline: string;
+    description: string;
+    cta: string;
+    ctaHref: string;
+  };
 }
 
 const tiers: Tier[] = [
@@ -19,44 +36,50 @@ const tiers: Tier[] = [
     price: '$0',
     period: '/month',
     description: 'Perfect for getting started',
-    features: ['1 instance', '50 members', '1 GB storage', 'Community support'],
-    cta: 'Get Started',
-    ctaAction: 'link',
+    features: ['1 instance', '50 members', '1 GB storage', 'Voice channels', 'Community support'],
+    cta: 'link',
+    ctaLabel: 'Get Started',
     ctaHref: '/register',
     highlighted: false,
   },
   {
     name: 'Basic',
     price: 'TBD',
-    period: '',
+    period: '/month',
     description: 'For growing communities',
-    features: ['3 instances', '500 members each', '10 GB storage', 'Email support', 'Custom domain'],
-    cta: 'Notify Me',
-    ctaAction: 'notify',
+    features: ['1 instance', '250 members', '10 GB storage', 'Video & screen sharing', 'Email support'],
+    cta: 'notify',
+    ctaLabel: 'Notify Me',
     highlighted: false,
   },
   {
     name: 'Pro',
     price: 'TBD',
-    period: '',
+    period: '/month',
     description: 'For serious communities',
-    features: ['Unlimited instances', 'Unlimited members', '100 GB storage', 'Priority support', 'Custom domain', 'Custom branding', 'API access'],
-    cta: 'Notify Me',
-    ctaAction: 'notify',
+    features: ['1 instance', '1,000 members', '50 GB storage', 'Video, screen sharing & Go Live', 'Priority support'],
+    cta: 'notify',
+    ctaLabel: 'Notify Me',
     highlighted: true,
   },
-  {
-    name: 'Self-Hosted',
-    price: null,
-    period: '',
-    description: 'Full control, your infrastructure',
-    features: ['Unlimited everything', 'Your own servers', 'Full source access', 'Community support', 'Docker & Kubernetes'],
-    cta: 'View Docs',
-    ctaAction: 'link',
-    ctaHref: '/docs/getting-started',
-    highlighted: false,
-  },
 ];
+
+const splitCard: SplitCard = {
+  top: {
+    name: 'Custom',
+    tagline: 'Need more?',
+    description: 'Custom limits, dedicated infrastructure, SLA',
+    cta: 'Request Quote',
+    ctaHref: 'mailto:sales@xcord.net',
+  },
+  bottom: {
+    name: 'Self-Hosted',
+    tagline: 'Full control',
+    description: 'Unlimited everything, your servers',
+    cta: 'View Docs',
+    ctaHref: '/docs/getting-started',
+  },
+};
 
 const faqs = [
   { q: 'Can I switch plans later?', a: 'Yes, you can upgrade or downgrade at any time. Changes take effect immediately and billing is prorated.' },
@@ -65,46 +88,90 @@ const faqs = [
   { q: 'Can I connect a self-hosted instance to the hub?', a: 'Absolutely. Self-hosted instances can connect to the hub for discovery and SSO, or run completely standalone.' },
 ];
 
-export default function Pricing() {
-  const [openFaq, setOpenFaq] = createSignal<number | null>(null);
-  const [notifyEmail, setNotifyEmail] = createSignal('');
-  const [notifyTier, setNotifyTier] = createSignal<string | null>(null);
-  const [notifySubmitted, setNotifySubmitted] = createSignal<Set<string>>(new Set());
-  const [notifyError, setNotifyError] = createSignal<string | null>(null);
+function NotifyMeButton(props: { tier: string; highlighted: boolean }) {
+  const [expanded, setExpanded] = createSignal(false);
+  const [email, setEmail] = createSignal('');
+  const [submitting, setSubmitting] = createSignal(false);
+  const [submitted, setSubmitted] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
 
-  const handleNotify = async (tierName: string) => {
-    const email = notifyEmail().trim();
-    if (!email) {
-      setNotifyError('Please enter your email address.');
-      return;
-    }
+  const handleSubmit = async (e: Event) => {
+    e.preventDefault();
+    const value = email().trim();
+    if (!value) return;
+    setError(null);
+    setSubmitting(true);
     try {
       const res = await fetch('/api/v1/mailing-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, tier: tierName }),
+        body: JSON.stringify({ email: value, tier: props.tier }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setNotifyError(body?.message ?? 'Something went wrong. Please try again.');
+        const data = await res.json().catch(() => null);
+        setError(data?.detail || data?.message || 'Something went wrong.');
         return;
       }
-      setNotifySubmitted((prev) => new Set(prev).add(tierName));
-      setNotifyTier(null);
-      setNotifyEmail('');
-      setNotifyError(null);
+      setSubmitted(true);
     } catch {
-      setNotifyError('Unable to reach the server. Please try again.');
+      setError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
+    <Show when={!submitted()} fallback={
+      <p class="text-sm text-xcord-green text-center py-2">You're on the list!</p>
+    }>
+      <Show when={expanded()} fallback={
+        <button
+          onClick={() => setExpanded(true)}
+          class={`block w-full text-center py-2 rounded-lg font-medium transition ${
+            props.highlighted
+              ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
+              : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
+          }`}
+        >
+          Notify Me
+        </button>
+      }>
+        <form onSubmit={handleSubmit} class="flex flex-col gap-2">
+          <input
+            type="email"
+            required
+            placeholder="you@example.com"
+            value={email()}
+            onInput={(e) => setEmail(e.currentTarget.value)}
+            class="w-full px-3 py-2 rounded-lg bg-xcord-bg-primary border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted focus:outline-none focus:border-xcord-brand"
+          />
+          <button
+            type="submit"
+            disabled={submitting()}
+            class={`w-full py-2 rounded-lg font-medium text-sm transition disabled:opacity-50 ${
+              props.highlighted
+                ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
+                : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
+            }`}
+          >
+            {submitting() ? 'Submitting...' : 'Submit'}
+          </button>
+          <Show when={error()}>
+            <p class="text-xs text-xcord-red">{error()}</p>
+          </Show>
+        </form>
+      </Show>
+    </Show>
+  );
+}
+
+export default function Pricing() {
+  const [openFaq, setOpenFaq] = createSignal<number | null>(null);
+
+  return (
     <>
       <section class="max-w-7xl mx-auto px-6 py-20 text-center">
-        <h1 class="text-4xl font-bold mb-4">Simple, transparent pricing</h1>
-        <p class="text-xcord-landing-text-muted max-w-xl mx-auto mb-16">
-          Pricing is coming soon. Sign up to be notified when plans are available.
-        </p>
+        <h1 class="text-4xl font-bold mb-16">Pricing</h1>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
           <For each={tiers}>
@@ -116,9 +183,8 @@ export default function Pricing() {
               }`}>
                 <h3 class="text-lg font-semibold text-white">{tier.name}</h3>
                 <div class="mt-4 mb-2">
-                  <Show when={tier.price !== null}>
-                    <span class="text-3xl font-bold text-white">{tier.price}</span>
-                  </Show>
+                  <span class="text-3xl font-bold text-white">{tier.price}</span>
+                  <span class="text-sm text-xcord-landing-text-muted">{tier.period}</span>
                 </div>
                 <p class="text-sm text-xcord-landing-text-muted mb-6">{tier.description}</p>
                 <ul class="space-y-2 mb-8 flex-1">
@@ -133,69 +199,51 @@ export default function Pricing() {
                     )}
                   </For>
                 </ul>
-                <Show when={tier.ctaAction === 'notify'}>
-                  <Show when={notifySubmitted().has(tier.name)}>
-                    <p class="text-sm text-xcord-green text-center py-2">Subscribed! We'll let you know.</p>
-                  </Show>
-                  <Show when={!notifySubmitted().has(tier.name)}>
-                    <Show when={notifyTier() === tier.name}>
-                      <div class="space-y-2">
-                        <input
-                          type="email"
-                          placeholder="you@example.com"
-                          value={notifyEmail()}
-                          onInput={(e) => { setNotifyEmail(e.currentTarget.value); setNotifyError(null); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') handleNotify(tier.name); }}
-                          class="w-full px-3 py-2 rounded-lg bg-xcord-bg-primary border border-xcord-landing-border text-sm text-white placeholder-xcord-landing-text-muted focus:outline-none focus:border-xcord-brand"
-                        />
-                        <Show when={notifyError()}>
-                          <p class="text-xs text-red-400">{notifyError()}</p>
-                        </Show>
-                        <div class="flex gap-2">
-                          <button
-                            onClick={() => { setNotifyTier(null); setNotifyEmail(''); setNotifyError(null); }}
-                            class="flex-1 py-2 rounded-lg text-sm font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => handleNotify(tier.name)}
-                            class={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
-                              tier.highlighted
-                                ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
-                                : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
-                            }`}
-                          >
-                            Submit
-                          </button>
-                        </div>
-                      </div>
-                    </Show>
-                    <Show when={notifyTier() !== tier.name}>
-                      <button
-                        onClick={() => { setNotifyTier(tier.name); setNotifyError(null); }}
-                        class={`block w-full text-center py-2 rounded-lg font-medium transition ${
-                          tier.highlighted
-                            ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
-                            : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
-                        }`}
-                      >
-                        {tier.cta}
-                      </button>
-                    </Show>
-                  </Show>
-                </Show>
-                <Show when={tier.ctaAction === 'link'}>
+                <Show when={tier.cta === 'link'}>
                   <A
-                    href={tier.ctaHref ?? '/register'}
-                    class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
+                    href={tier.ctaHref!}
+                    class={`block text-center py-2 rounded-lg font-medium transition ${
+                      tier.highlighted
+                        ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
+                        : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
+                    }`}
                   >
-                    {tier.cta}
+                    {tier.ctaLabel}
                   </A>
+                </Show>
+                <Show when={tier.cta === 'notify'}>
+                  <NotifyMeButton tier={tier.name} highlighted={tier.highlighted} />
                 </Show>
               </div>
             )}
           </For>
+
+          {/* Split card: Custom (top) + Self-Hosted (bottom) */}
+          <div class="rounded-xl text-left flex flex-col border border-xcord-landing-border overflow-hidden">
+            <div class="flex-1 p-6 bg-xcord-landing-surface flex flex-col">
+              <h3 class="text-lg font-semibold text-white">{splitCard.top.name}</h3>
+              <p class="text-sm text-xcord-brand font-medium mt-2">{splitCard.top.tagline}</p>
+              <p class="text-sm text-xcord-landing-text-muted mt-2 mb-6 flex-1">{splitCard.top.description}</p>
+              <a
+                href={splitCard.top.ctaHref}
+                class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
+              >
+                {splitCard.top.cta}
+              </a>
+            </div>
+            <div class="border-t border-xcord-landing-border" />
+            <div class="flex-1 p-6 bg-xcord-landing-surface flex flex-col">
+              <h3 class="text-lg font-semibold text-white">{splitCard.bottom.name}</h3>
+              <p class="text-sm text-xcord-brand font-medium mt-2">{splitCard.bottom.tagline}</p>
+              <p class="text-sm text-xcord-landing-text-muted mt-2 mb-6 flex-1">{splitCard.bottom.description}</p>
+              <A
+                href={splitCard.bottom.ctaHref}
+                class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
+              >
+                {splitCard.bottom.cta}
+              </A>
+            </div>
+          </div>
         </div>
       </section>
 

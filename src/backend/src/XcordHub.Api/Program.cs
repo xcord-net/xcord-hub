@@ -232,9 +232,9 @@ builder.Services.AddRateLimiter(options =>
 // CORS
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
-if (corsOrigins.Length == 0 && !builder.Environment.IsDevelopment())
+if (corsOrigins.Length == 0 && builder.Environment.IsProduction())
 {
-    throw new InvalidOperationException("Cors:AllowedOrigins must not be empty in non-Development environments");
+    throw new InvalidOperationException("Cors:AllowedOrigins must not be empty in Production");
 }
 
 builder.Services.AddCors(options =>
@@ -286,6 +286,9 @@ builder.Services.AddAuthorization(options =>
         .RequireClaim("admin", "true"));
 });
 
+// OpenAPI
+builder.Services.AddOpenApi();
+
 // Exception handling
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -295,15 +298,14 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Apply database schema
-using (var scope = app.Services.CreateScope())
+// Apply database schema and seed admin (skip during OpenAPI spec generation)
+if (!app.Environment.IsEnvironment("OpenApiGen"))
 {
+    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
     await dbContext.Database.EnsureCreatedAsync();
+    await SeedAdminUser(app);
 }
-
-// Seed admin user
-await SeedAdminUser(app);
 
 // Middleware pipeline
 app.UseExceptionHandler();
@@ -356,6 +358,9 @@ app.MapHealthEndpoint();
 
 // Auto-register all handler endpoints
 app.MapHandlerEndpoints(typeof(FeaturesAssemblyMarker).Assembly);
+
+// OpenAPI endpoint (serves /openapi/v1.json)
+app.MapOpenApi();
 
 // Hub SPA fallback
 app.MapFallbackToFile("index.html");

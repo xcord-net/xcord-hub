@@ -7,7 +7,7 @@ public static class EndpointExtensions
     public static void MapHandlerEndpoints(this IEndpointRouteBuilder app, Assembly assembly)
     {
         var handlerTypes = assembly.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract)
+            .Where(t => t.IsClass && (!t.IsAbstract || t.IsSealed))
             .Where(t => t.GetMethod("Map", BindingFlags.Public | BindingFlags.Static,
                 null, [typeof(IEndpointRouteBuilder)], null) is not null);
 

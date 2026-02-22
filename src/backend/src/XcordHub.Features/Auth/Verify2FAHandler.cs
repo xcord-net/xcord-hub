@@ -78,6 +78,7 @@ public sealed class Verify2FAHandler(HubDbContext dbContext)
             return result;
         })
         .RequireAuthorization(Policies.User)
+        .Produces(204)
         .WithTags("Auth");
     }
 

@@ -52,9 +52,10 @@ public sealed class LogoutHandler(HubDbContext dbContext)
             // Delete the cookie
             httpContext.Response.Cookies.Delete("refresh_token");
 
-            return Results.Ok(new { success = true });
+            return Results.Ok(new SuccessResponse(true));
         })
         .RequireAuthorization(Policies.User)
+        .Produces<SuccessResponse>(200)
         .WithName("Logout")
         .WithTags("Auth");
     }

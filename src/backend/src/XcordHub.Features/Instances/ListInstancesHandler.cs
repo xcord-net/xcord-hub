@@ -15,7 +15,7 @@ public sealed record ListInstancesQuery(
 public sealed record ListInstancesResponse(List<InstanceSummary> Instances);
 
 public sealed record InstanceSummary(
-    long InstanceId,
+    string InstanceId,
     string Domain,
     string DisplayName,
     string Status,
@@ -47,7 +47,7 @@ public sealed class ListInstancesHandler(HubDbContext dbContext, ICurrentUserSer
             .OrderByDescending(i => i.Id)
             .Take(limit)
             .Select(i => new InstanceSummary(
-                i.Id,
+                i.Id.ToString(),
                 i.Domain,
                 i.DisplayName,
                 i.Status.ToString(),
@@ -74,6 +74,7 @@ public sealed class ListInstancesHandler(HubDbContext dbContext, ICurrentUserSer
             return await handler.ExecuteAsync(query, ct);
         })
         .RequireAuthorization(Policies.User)
+        .Produces<ListInstancesResponse>(200)
         .WithName("ListInstances")
         .WithTags("Instances");
     }

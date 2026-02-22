@@ -10,7 +10,7 @@ namespace XcordHub.Features.Federation;
 
 public sealed record RegisterCommand(string BootstrapToken);
 
-public sealed record RegisterResponse(string InstanceOAuthToken, long InstanceId, string Domain);
+public sealed record RegisterResponse(string InstanceOAuthToken, string InstanceId, string Domain);
 
 public sealed class RegisterHandler(HubDbContext dbContext, SnowflakeId snowflakeGenerator)
     : IRequestHandler<RegisterCommand, Result<RegisterResponse>>, IValidatable<RegisterCommand>
@@ -80,7 +80,7 @@ public sealed class RegisterHandler(HubDbContext dbContext, SnowflakeId snowflak
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new RegisterResponse(oauthToken, instance.Id, instance.Domain);
+        return new RegisterResponse(oauthToken, instance.Id.ToString(), instance.Domain);
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
@@ -93,6 +93,7 @@ public sealed class RegisterHandler(HubDbContext dbContext, SnowflakeId snowflak
             return await handler.ExecuteAsync(request, ct);
         })
         .AllowAnonymous()
+        .Produces<RegisterResponse>(200)
         .WithName("FederationRegister")
         .WithTags("Federation");
     }

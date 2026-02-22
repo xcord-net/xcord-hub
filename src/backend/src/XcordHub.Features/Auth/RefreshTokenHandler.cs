@@ -11,6 +11,8 @@ public sealed record RefreshTokenRequest;
 
 public sealed record RefreshTokenResponse(string AccessToken, string RefreshToken);
 
+public sealed record RefreshTokenApiResponse(string AccessToken);
+
 public sealed class RefreshTokenHandler(
     HubDbContext dbContext,
     IJwtService jwtService,
@@ -111,10 +113,7 @@ public sealed class RefreshTokenHandler(
                         Expires = DateTimeOffset.UtcNow.AddDays(30)
                     });
 
-                    return Results.Ok(new
-                    {
-                        accessToken = success.AccessToken
-                    });
+                    return Results.Ok(new RefreshTokenApiResponse(success.AccessToken));
                 },
                 error => Results.Problem(
                     statusCode: error.StatusCode,
@@ -123,6 +122,7 @@ public sealed class RefreshTokenHandler(
             );
         })
         .AllowAnonymous()
+        .Produces<RefreshTokenApiResponse>(200)
         .WithName("RefreshToken")
         .WithTags("Auth");
     }

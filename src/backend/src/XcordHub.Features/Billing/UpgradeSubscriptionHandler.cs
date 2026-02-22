@@ -30,7 +30,7 @@ public sealed class UpgradeSubscriptionHandler(
             return Error.Validation("VALIDATION_FAILED", "TargetTier is required");
 
         if (!Enum.TryParse<BillingTier>(request.TargetTier, ignoreCase: true, out _))
-            return Error.Validation("VALIDATION_FAILED", $"Invalid tier '{request.TargetTier}'. Valid values: Free, Pro, Enterprise");
+            return Error.Validation("VALIDATION_FAILED", $"Invalid tier '{request.TargetTier}'. Valid values: Free, Basic, Pro");
 
         return null;
     }
@@ -52,16 +52,6 @@ public sealed class UpgradeSubscriptionHandler(
 
         if (targetTier == user.SubscriptionTier)
             return Error.BadRequest("SAME_TIER", "You are already on this plan");
-
-        if (targetTier == BillingTier.Enterprise)
-        {
-            // Enterprise requires manual contact
-            return new UpgradeSubscriptionResponse(
-                Tier: "Enterprise",
-                CheckoutUrl: null,
-                RequiresCheckout: false
-            );
-        }
 
         // Check if Stripe is configured
         var stripeKey = configuration.GetValue<string>("Stripe:SecretKey");
@@ -108,6 +98,7 @@ public sealed class UpgradeSubscriptionHandler(
             return await handler.ExecuteAsync(command, ct);
         })
         .RequireAuthorization(Policies.User)
+        .Produces<UpgradeSubscriptionResponse>(200)
         .WithName("UpgradeSubscription")
         .WithTags("Billing");
     }

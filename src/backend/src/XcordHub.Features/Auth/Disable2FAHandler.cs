@@ -67,6 +67,7 @@ public sealed class Disable2FAHandler(HubDbContext dbContext)
             return result;
         })
         .RequireAuthorization(Policies.User)
+        .Produces(204)
         .WithTags("Auth");
     }
 }

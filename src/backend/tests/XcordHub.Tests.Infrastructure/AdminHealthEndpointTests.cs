@@ -172,7 +172,7 @@ public sealed class AdminHealthEndpointTests
         var body = await response.Content.ReadFromJsonAsync<AggregatedHealthResponseDto>();
 
         body.Should().NotBeNull();
-        var dto = body!.Instances.FirstOrDefault(i => i.Id == instance.Id);
+        var dto = body!.Instances.FirstOrDefault(i => i.Id == instance.Id.ToString());
         dto.Should().NotBeNull("the seeded instance should appear in the health response");
         dto!.IsHealthy.Should().BeTrue();
         dto.Domain.Should().Be("healthep.xcord.net");
@@ -220,7 +220,7 @@ public sealed class AdminHealthEndpointTests
         var body = await response.Content.ReadFromJsonAsync<AggregatedHealthResponseDto>();
 
         body.Should().NotBeNull();
-        var dto = body!.Instances.FirstOrDefault(i => i.Id == instance.Id);
+        var dto = body!.Instances.FirstOrDefault(i => i.Id == instance.Id.ToString());
         dto.Should().NotBeNull();
         dto!.IsHealthy.Should().BeFalse();
         dto.ErrorMessage.Should().Be("Connection timed out");
@@ -258,7 +258,7 @@ public sealed class AdminHealthEndpointTests
 
         body.Should().NotBeNull();
         body!.Instances.Should().NotContain(
-            i => i.Id == suspendedInstance.Id,
+            i => i.Id == suspendedInstance.Id.ToString(),
             "suspended instances should be excluded from health aggregation");
     }
 
@@ -274,7 +274,7 @@ public sealed class AdminHealthEndpointTests
     );
 
     private sealed record InstanceHealthDtoRecord(
-        long Id,
+        string Id,
         string Domain,
         string Status,
         bool IsHealthy,
