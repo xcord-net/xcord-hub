@@ -15,7 +15,7 @@ export default function Footer() {
           <div>
             <h3 class="text-sm font-semibold text-white mb-3">Community</h3>
             <ul class="space-y-2">
-              <li><a href="https://github.com/xcord" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+              <li><a href="https://github.com/xcord-net" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a></li>
             </ul>
           </div>
           <div>
@@ -33,7 +33,7 @@ export default function Footer() {
           </div>
         </div>
         <div class="mt-8 pt-8 border-t border-xcord-landing-border text-center text-sm text-xcord-landing-text-muted">
-          &copy; {new Date().getFullYear()} Xcord. All rights reserved.
+          &copy; {new Date().getFullYear()} xcord.net, LLC. All rights reserved.
         </div>
       </div>
     </footer>

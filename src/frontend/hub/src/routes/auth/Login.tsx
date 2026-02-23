@@ -1,6 +1,7 @@
 import { createSignal, Show } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { useAuth } from '../../stores/auth.store';
+import Logo from '../../components/Logo';
 
 export default function Login() {
   const auth = useAuth();
@@ -24,7 +25,7 @@ export default function Login() {
     <div class="min-h-screen bg-xcord-bg-primary flex items-center justify-center px-4">
       <div class="w-full max-w-md bg-xcord-bg-secondary rounded-lg shadow-lg p-8">
         <div class="text-center mb-8">
-          <A href="/" class="text-2xl font-bold text-white">xcord</A>
+          <A href="/" class="text-2xl font-bold text-white"><Logo /></A>
           <h1 class="text-xl text-xcord-text-primary mt-4">Welcome back!</h1>
           <p class="text-sm text-xcord-text-muted mt-1">We're so excited to see you again!</p>
         </div>

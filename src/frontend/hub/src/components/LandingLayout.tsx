@@ -1,6 +1,7 @@
 import { type ParentProps } from "solid-js";
 import { A } from "@solidjs/router";
 import Footer from "./Footer";
+import Logo from "./Logo";
 
 export default function LandingLayout(props: ParentProps) {
   return (
@@ -8,7 +9,7 @@ export default function LandingLayout(props: ParentProps) {
       <header class="border-b border-xcord-landing-border">
         <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <A data-testid="landing-logo" href="/" class="text-xl font-bold text-white">
-            Xcord
+            <Logo />
           </A>
           <div class="hidden sm:flex items-center gap-6">
             <A data-testid="nav-pricing" href="/pricing" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">

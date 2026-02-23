@@ -1,6 +1,6 @@
 # xcord-hub
 
-Control plane / gateway module for [Xcord](https://github.com/xcord-net/xcord.net). Handles instance provisioning, lifecycle management, hub user authentication, billing, and instance discovery.
+Control plane / gateway module for [Xcord](https://github.com/xcord-net). Handles instance provisioning, lifecycle management, hub user authentication, billing, and instance discovery.
 
 ## Structure
 

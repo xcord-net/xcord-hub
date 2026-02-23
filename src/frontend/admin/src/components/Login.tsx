@@ -1,5 +1,6 @@
 import { createSignal } from 'solid-js';
 import { useAuth } from '../stores/auth.store';
+import Logo from './Logo';
 
 export function Login() {
   const auth = useAuth();
@@ -26,7 +27,7 @@ export function Login() {
   return (
     <div class="min-h-screen flex items-center justify-center bg-gray-100">
       <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-6 text-center">Xcord Hub Admin</h1>
+        <h1 class="text-2xl font-bold mb-6 text-center"><Logo /> Hub Admin</h1>
 
         <form onSubmit={handleSubmit} class="space-y-4">
           <div>
