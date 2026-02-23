@@ -78,30 +78,6 @@ public sealed class NamingConventionTests
     }
 
     [Fact]
-    public void Endpoints_ShouldEndWithEndpoint()
-    {
-        // Arrange
-        var assembly = typeof(XcordHub.Features.FeaturesAssemblyMarker).Assembly;
-
-        // Act
-        var endpointTypes = Types.InAssembly(assembly)
-            .That()
-            .ResideInNamespace(FeaturesNamespace)
-            .And()
-            .AreClasses()
-            .And()
-            .HaveNameMatching(".*Endpoint$")
-            .GetTypes();
-
-        // Assert - guard against vacuous pass when no types match
-        endpointTypes.Should().NotBeEmpty("expected to find types matching the Endpoint pattern");
-        foreach (var type in endpointTypes)
-        {
-            type.Name.Should().EndWith("Endpoint");
-        }
-    }
-
-    [Fact]
     public void Handlers_ShouldNotBeAbstract()
     {
         // Arrange
@@ -122,24 +98,21 @@ public sealed class NamingConventionTests
     }
 
     [Fact]
-    public void Endpoints_ShouldBeSealed()
+    public void EndpointImplementors_ShouldBeHandlers()
     {
-        // Arrange
+        // Arrange — all IEndpoint implementors should follow the Handler naming convention
         var assembly = typeof(XcordHub.Features.FeaturesAssemblyMarker).Assembly;
 
         // Act
-        var endpointTypes = Types.InAssembly(assembly)
-            .That()
-            .ResideInNamespace(FeaturesNamespace)
-            .And()
-            .HaveNameEndingWith("Endpoint")
-            .GetTypes();
+        var endpointTypes = assembly.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && t.IsAssignableTo(typeof(IEndpoint)));
 
-        // Assert - all endpoints should be sealed
-        endpointTypes.Should().NotBeEmpty("expected to find types matching the Endpoint pattern");
+        // Assert
+        endpointTypes.Should().NotBeEmpty("expected to find IEndpoint implementors");
         foreach (var type in endpointTypes)
         {
-            type.IsSealed.Should().BeTrue($"{type.Name} should be sealed");
+            type.Name.Should().EndWith("Handler", $"{type.Name} implements IEndpoint but doesn't follow Handler naming");
+            type.IsSealed.Should().BeTrue($"{type.Name} implements IEndpoint and should be sealed");
         }
     }
 

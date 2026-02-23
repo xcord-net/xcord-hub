@@ -193,6 +193,7 @@
         "tags": [
           "Instances"
         ],
+        "operationId": "DestroyInstance",
         "parameters": [
           {
             "name": "instanceId",
@@ -223,6 +224,7 @@
         "tags": [
           "Instances"
         ],
+        "operationId": "ResumeInstance",
         "parameters": [
           {
             "name": "instanceId",
@@ -253,6 +255,7 @@
         "tags": [
           "Instances"
         ],
+        "operationId": "SuspendInstance",
         "parameters": [
           {
             "name": "instanceId",
@@ -582,6 +585,7 @@
         "tags": [
           "Auth"
         ],
+        "operationId": "ChangePassword",
         "requestBody": {
           "content": {
             "application/json": {
@@ -634,6 +638,7 @@
         "tags": [
           "Auth"
         ],
+        "operationId": "Disable2FA",
         "requestBody": {
           "content": {
             "application/json": {
@@ -656,6 +661,7 @@
         "tags": [
           "Auth"
         ],
+        "operationId": "Enable2FA",
         "responses": {
           "200": {
             "description": "OK",
@@ -675,6 +681,7 @@
         "tags": [
           "Auth"
         ],
+        "operationId": "ForgotPassword",
         "requestBody": {
           "content": {
             "application/json": {
@@ -817,6 +824,7 @@
         "tags": [
           "Auth"
         ],
+        "operationId": "ResetPassword",
         "requestBody": {
           "content": {
             "application/json": {
@@ -839,6 +847,7 @@
         "tags": [
           "Auth"
         ],
+        "operationId": "Verify2FA",
         "requestBody": {
           "content": {
             "application/json": {

@@ -4,7 +4,7 @@ import { InstanceStatus } from '../types/instance';
 
 interface InstanceActionsProps {
   instanceId: string;
-  status: InstanceStatus;
+  status: string;
 }
 
 export function InstanceActions(props: InstanceActionsProps) {

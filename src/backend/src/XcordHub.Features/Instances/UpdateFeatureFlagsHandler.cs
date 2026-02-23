@@ -79,10 +79,6 @@ public sealed class UpdateFeatureFlagsHandler(HubDbContext dbContext)
         );
     }
 
-}
-
-public static class UpdateFeatureFlagsEndpoint
-{
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
         return app.MapPatch("/api/v1/admin/instances/{id}/feature-flags", async (

@@ -1,18 +1,4 @@
-export interface LoginRequest {
-  email: string;
-  password: string;
-  twoFactorCode?: string;
-}
+import type { components } from '@generated/api-types';
 
-export interface AuthTokens {
-  userId: string;
-  username: string;
-  accessToken: string;
-}
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  isAdmin: boolean;
-}
+export type LoginRequest = components['schemas']['LoginRequest'];
+export type AuthTokens = components['schemas']['LoginApiResponse'];

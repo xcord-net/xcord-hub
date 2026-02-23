@@ -90,10 +90,6 @@ public sealed class SuspendInstanceHandler(
         }
     }
 
-}
-
-public static class SuspendInstanceEndpoint
-{
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
         return app.MapPost("/api/v1/admin/instances/{instanceId:long}/suspend", async (
