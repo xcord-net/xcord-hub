@@ -30,6 +30,9 @@ dist/
 # Build artifacts
 .build/
 
+# Test results
+TestResults/
+
 # Secrets
 *.pfx
 *.key
