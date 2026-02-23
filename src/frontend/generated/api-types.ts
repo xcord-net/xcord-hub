@@ -213,7 +213,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/hub/billing/cancel": {
+    "/api/v1/hub/instances/{instanceId}/billing/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -222,7 +222,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["CancelSubscription"];
+        post: operations["CancelInstanceBilling"];
         delete?: never;
         options?: never;
         head?: never;
@@ -261,7 +261,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/hub/billing/upgrade": {
+    "/api/v1/hub/instances/{instanceId}/billing/change": {
         parameters: {
             query?: never;
             header?: never;
@@ -270,7 +270,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["UpgradeSubscription"];
+        post: operations["ChangePlan"];
         delete?: never;
         options?: never;
         head?: never;
@@ -534,7 +534,8 @@ export interface components {
             displayName: string;
             domain: string;
             status: string;
-            tier: string;
+            featureTier: string;
+            userCountTier: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -553,7 +554,8 @@ export interface components {
             subdomain: string;
             displayName: string;
             status: string;
-            tier: string;
+            featureTier: string;
+            userCountTier: string;
             /** Format: date-time */
             createdAt: string;
             ownerUsername: string;
@@ -588,33 +590,34 @@ export interface components {
             timestamp: string;
             instances: components["schemas"]["InstanceHealthDto"][];
         };
-        BillingTierFeature: {
-            name: string;
-            value: string;
-        };
-        BillingTierInfo: {
-            name: string;
-            price: string;
-            period: string;
-            /** Format: int32 */
-            maxInstances: number;
-            /** Format: int32 */
-            maxUsersPerInstance: number;
-            /** Format: int32 */
-            maxStorageMb: number;
-            features: components["schemas"]["BillingTierFeature"][];
-        };
-        CancelSubscriptionResponse: {
+        CancelInstanceBillingResponse: {
             message: string;
-            newTier: string;
+            featureTier: string;
+            userCountTier: string;
         };
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
         };
+        ChangePlanCommand: {
+            /** Format: int64 */
+            instanceId: number;
+            targetFeatureTier: components["schemas"]["FeatureTier2"];
+            targetUserCountTier: components["schemas"]["UserCountTier2"];
+        };
+        ChangePlanResponse: {
+            featureTier: string;
+            userCountTier: string;
+            /** Format: int32 */
+            priceCents: number;
+            checkoutUrl: string | null;
+            requiresCheckout: boolean;
+        };
         CreateInstanceCommand: {
             subdomain: string;
             displayName: string;
+            featureTier?: components["schemas"]["FeatureTier"];
+            userCountTier?: components["schemas"]["UserCountTier"];
             /** @default null */
             adminPassword: string | null;
         };
@@ -635,23 +638,14 @@ export interface components {
             secret: string;
             qrCodeUrl: string;
         };
+        /** @default 0 */
+        FeatureTier: number;
+        FeatureTier2: number;
         ForgotPasswordRequest: {
             email: string;
         };
         GetBillingResponse: {
-            tier: string;
-            status: string;
-            hasStripeSubscription: boolean;
-            /** Format: date-time */
-            currentPeriodEnd: string | null;
-            /** Format: date-time */
-            nextBillingDate: string | null;
-            /** Format: int32 */
-            instanceCount: number;
-            /** Format: int32 */
-            maxInstances: number;
-            currentTierInfo: components["schemas"]["BillingTierInfo"];
-            availableTiers: components["schemas"]["BillingTierInfo"][];
+            instances: components["schemas"]["InstanceBillingItem"][];
         };
         GetInstanceResponse: {
             id: string;
@@ -674,6 +668,16 @@ export interface components {
             username: string;
             displayName: string;
             email: string;
+        };
+        InstanceBillingItem: {
+            instanceId: string;
+            domain: string;
+            displayName: string;
+            featureTier: string;
+            userCountTier: string;
+            /** Format: int32 */
+            priceCents: number;
+            billingStatus: string;
         };
         InstanceHealthDto: {
             id: string;
@@ -704,7 +708,8 @@ export interface components {
             domain: string;
             displayName: string;
             status: string;
-            tier: string;
+            featureTier: string;
+            userCountTier: string;
             /** Format: date-time */
             createdAt: string;
         };
@@ -825,14 +830,9 @@ export interface components {
             instanceId: string;
             message: string;
         };
-        UpgradeSubscriptionCommand: {
-            targetTier: string;
-        };
-        UpgradeSubscriptionResponse: {
-            tier: string;
-            checkoutUrl: string | null;
-            requiresCheckout: boolean;
-        };
+        /** @default 10 */
+        UserCountTier: number;
+        UserCountTier2: number;
         Verify2FARequest: {
             code: string;
         };
@@ -1153,11 +1153,13 @@ export interface operations {
             };
         };
     };
-    CancelSubscription: {
+    CancelInstanceBilling: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                instanceId: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -1168,7 +1170,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CancelSubscriptionResponse"];
+                    "application/json": components["schemas"]["CancelInstanceBillingResponse"];
                 };
             };
         };
@@ -1215,16 +1217,18 @@ export interface operations {
             };
         };
     };
-    UpgradeSubscription: {
+    ChangePlan: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                instanceId: number;
+            };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpgradeSubscriptionCommand"];
+                "application/json": components["schemas"]["ChangePlanCommand"];
             };
         };
         responses: {
@@ -1234,7 +1238,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UpgradeSubscriptionResponse"];
+                    "application/json": components["schemas"]["ChangePlanResponse"];
                 };
             };
         };

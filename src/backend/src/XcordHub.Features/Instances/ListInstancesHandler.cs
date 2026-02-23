@@ -19,7 +19,8 @@ public sealed record InstanceSummary(
     string Domain,
     string DisplayName,
     string Status,
-    string Tier,
+    string FeatureTier,
+    string UserCountTier,
     DateTimeOffset CreatedAt
 );
 
@@ -51,7 +52,8 @@ public sealed class ListInstancesHandler(HubDbContext dbContext, ICurrentUserSer
                 i.Domain,
                 i.DisplayName,
                 i.Status.ToString(),
-                i.Billing!.Tier.ToString(),
+                i.Billing!.FeatureTier.ToString(),
+                i.Billing.UserCountTier.ToString(),
                 i.CreatedAt
             ))
             .ToListAsync(cancellationToken);

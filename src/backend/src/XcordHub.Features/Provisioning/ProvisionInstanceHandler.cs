@@ -109,12 +109,13 @@ public sealed class ProvisionInstanceHandler(
 
         dbContext.ManagedInstances.Add(instance);
 
-        // Create billing record (default to Free tier)
+        // Create billing record (default to free plan: Chat + Tier10)
         var billing = new InstanceBilling
         {
             Id = snowflakeGenerator.NextId(),
             ManagedInstanceId = instanceId,
-            Tier = BillingTier.Free,
+            FeatureTier = FeatureTier.Chat,
+            UserCountTier = UserCountTier.Tier10,
             BillingStatus = BillingStatus.Active,
             BillingExempt = false,
             NextBillingDate = now.AddMonths(1),
@@ -124,8 +125,8 @@ public sealed class ProvisionInstanceHandler(
         dbContext.InstanceBillings.Add(billing);
 
         // Get tier defaults
-        var resourceLimits = TierDefaults.GetResourceLimits(BillingTier.Free);
-        var featureFlags = TierDefaults.GetFeatureFlags(BillingTier.Free);
+        var resourceLimits = TierDefaults.GetResourceLimits(UserCountTier.Tier10);
+        var featureFlags = TierDefaults.GetFeatureFlags(FeatureTier.Chat);
 
         // Create config record with admin password (BCrypt hashed)
         var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, 12);

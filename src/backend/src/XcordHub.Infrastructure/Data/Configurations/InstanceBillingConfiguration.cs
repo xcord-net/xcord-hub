@@ -15,7 +15,10 @@ public sealed class InstanceBillingConfiguration : IEntityTypeConfiguration<Inst
         builder.Property(x => x.ManagedInstanceId)
             .IsRequired();
 
-        builder.Property(x => x.Tier)
+        builder.Property(x => x.FeatureTier)
+            .IsRequired();
+
+        builder.Property(x => x.UserCountTier)
             .IsRequired();
 
         builder.Property(x => x.BillingStatus)

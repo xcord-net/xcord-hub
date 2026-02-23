@@ -16,6 +16,8 @@ namespace XcordHub.Features.Instances;
 public sealed record CreateInstanceCommand(
     string Subdomain,
     string DisplayName,
+    FeatureTier FeatureTier = FeatureTier.Chat,
+    UserCountTier UserCountTier = UserCountTier.Tier10,
     string? AdminPassword = null
 );
 
@@ -53,6 +55,12 @@ public sealed class CreateInstanceHandler(
         if (request.DisplayName.Length > 255)
             return Error.Validation("VALIDATION_FAILED", "DisplayName must not exceed 255 characters");
 
+        if (!Enum.IsDefined(request.FeatureTier))
+            return Error.Validation("VALIDATION_FAILED", "Invalid feature tier");
+
+        if (!Enum.IsDefined(request.UserCountTier))
+            return Error.Validation("VALIDATION_FAILED", "Invalid user count tier");
+
         return null;
     }
 
@@ -79,19 +87,6 @@ public sealed class CreateInstanceHandler(
         if (user == null)
         {
             return Error.NotFound("USER_NOT_FOUND", "User not found");
-        }
-
-        // Check instance count against the user's account subscription tier quota
-        var currentInstanceCount = await dbContext.ManagedInstances
-            .CountAsync(i => i.OwnerId == userId, cancellationToken);
-
-        var userTier = user.SubscriptionTier;
-        var maxInstances = TierDefaults.GetMaxInstancesForTier(userTier);
-
-        if (maxInstances != -1 && currentInstanceCount >= maxInstances)
-        {
-            return Error.Forbidden("INSTANCE_LIMIT_REACHED",
-                $"You have reached the maximum number of instances ({maxInstances}) for your tier");
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -121,7 +116,8 @@ public sealed class CreateInstanceHandler(
         {
             Id = snowflakeGenerator.NextId(),
             ManagedInstanceId = instanceId,
-            Tier = userTier,
+            FeatureTier = request.FeatureTier,
+            UserCountTier = request.UserCountTier,
             BillingStatus = BillingStatus.Active,
             BillingExempt = false,
             NextBillingDate = now.AddMonths(1),
@@ -131,8 +127,8 @@ public sealed class CreateInstanceHandler(
         dbContext.InstanceBillings.Add(billing);
 
         // Create config with tier defaults and hashed admin password
-        var resourceLimits = TierDefaults.GetResourceLimits(userTier);
-        var featureFlags = TierDefaults.GetFeatureFlags(userTier);
+        var resourceLimits = TierDefaults.GetResourceLimits(request.UserCountTier);
+        var featureFlags = TierDefaults.GetFeatureFlags(request.FeatureTier);
         var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword, 12);
 
         var config = new InstanceConfig

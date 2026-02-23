@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, For } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { instanceStore } from '../../stores/instance.store';
 
@@ -11,6 +11,15 @@ export default function CreateInstance() {
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal('');
   const [subdomainStatus, setSubdomainStatus] = createSignal<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [featureTier, setFeatureTier] = createSignal('Chat');
+  const [userCountTier, setUserCountTier] = createSignal('Tier10');
+
+  const priceMatrix: Record<string, Record<string, string>> = {
+    'Chat':  { 'Tier10': 'Free', 'Tier50': '$20/mo', 'Tier100': '$40/mo', 'Tier500': '$130/mo' },
+    'Audio': { 'Tier10': '$20/mo', 'Tier50': '$45/mo', 'Tier100': '$85/mo', 'Tier500': '$260/mo' },
+    'Video': { 'Tier10': '$40/mo', 'Tier50': '$70/mo', 'Tier100': '$125/mo', 'Tier500': '$350/mo' },
+  };
+  const selectedPrice = () => priceMatrix[featureTier()]?.[userCountTier()] ?? '';
 
   let checkTimer: ReturnType<typeof setTimeout>;
 
@@ -56,7 +65,9 @@ export default function CreateInstance() {
       const result = await instanceStore.createInstance(
         subdomain(),
         displayName(),
-        adminPassword()
+        adminPassword(),
+        featureTier(),
+        userCountTier()
       );
       navigate('/dashboard');
     } catch (err: any) {
@@ -120,6 +131,56 @@ export default function CreateInstance() {
             required
             disabled={loading()}
           />
+        </div>
+
+        {/* Plan */}
+        <div>
+          <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
+            Plan
+          </label>
+
+          {/* Feature tier */}
+          <p class="text-xs text-xcord-text-muted mb-2">Features</p>
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <For each={['Chat', 'Audio', 'Video']}>
+              {(tier) => (
+                <button
+                  type="button"
+                  onClick={() => setFeatureTier(tier)}
+                  disabled={loading()}
+                  class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${featureTier() === tier ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'}`}
+                >
+                  <div class="font-semibold">{tier === 'Chat' ? 'Chat' : tier === 'Audio' ? '+Audio' : '+Video'}</div>
+                  <div class="text-xs text-xcord-text-muted mt-1">
+                    {tier === 'Chat' ? 'Text only' : tier === 'Audio' ? 'Text + voice' : 'Text + voice + video'}
+                  </div>
+                </button>
+              )}
+            </For>
+          </div>
+
+          {/* User count tier */}
+          <p class="text-xs text-xcord-text-muted mb-2">Users</p>
+          <div class="flex gap-2 mb-4">
+            <For each={[['Tier10', '10'], ['Tier50', '50'], ['Tier100', '100'], ['Tier500', '500']]}>
+              {([value, label]) => (
+                <button
+                  type="button"
+                  onClick={() => setUserCountTier(value)}
+                  disabled={loading()}
+                  class={`px-4 py-1.5 rounded-full text-sm font-medium transition ${userCountTier() === value ? 'ring-2 ring-xcord-brand bg-xcord-bg-tertiary text-xcord-text-primary' : 'bg-xcord-bg-tertiary text-xcord-text-muted hover:text-xcord-text-primary'}`}
+                >
+                  {label}
+                </button>
+              )}
+            </For>
+          </div>
+
+          {/* Price display */}
+          <div class="flex items-center justify-between px-3 py-2 bg-xcord-bg-accent rounded">
+            <span class="text-xs text-xcord-text-muted">Selected plan</span>
+            <span class="text-sm font-bold text-xcord-text-primary">{selectedPrice()}</span>
+          </div>
         </div>
 
         {/* Admin Password */}

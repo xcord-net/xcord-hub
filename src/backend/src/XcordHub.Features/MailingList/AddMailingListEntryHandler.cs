@@ -16,10 +16,15 @@ public sealed record AddMailingListEntryResponse(string Message);
 public sealed class AddMailingListEntryHandler(HubDbContext dbContext, SnowflakeId snowflakeGenerator)
     : IRequestHandler<AddMailingListEntryRequest, Result<AddMailingListEntryResponse>>, IValidatable<AddMailingListEntryRequest>
 {
-    private static readonly HashSet<string> ValidTiers = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Basic", "Pro"
-    };
+    private static readonly string[] FeatureNames = ["Chat", "Chat + Audio", "Chat + Audio + Video"];
+    private static readonly int[] UserCounts = [10, 50, 100, 500];
+
+    private static readonly HashSet<string> ValidTiers = new(
+        from f in FeatureNames
+        from u in UserCounts
+        select $"{f} ({u} users)",
+        StringComparer.OrdinalIgnoreCase
+    );
 
     public Error? Validate(AddMailingListEntryRequest request)
     {
@@ -36,7 +41,7 @@ public sealed class AddMailingListEntryHandler(HubDbContext dbContext, Snowflake
             return Error.Validation("VALIDATION_FAILED", "Tier is required.");
 
         if (!ValidTiers.Contains(request.Tier))
-            return Error.Validation("VALIDATION_FAILED", "Invalid tier. Must be one of: Basic, Pro.");
+            return Error.Validation("VALIDATION_FAILED", "Invalid tier.");
 
         return null;
     }

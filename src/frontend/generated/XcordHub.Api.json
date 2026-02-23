@@ -480,19 +480,30 @@
         }
       }
     },
-    "/api/v1/hub/billing/cancel": {
+    "/api/v1/hub/instances/{instanceId}/billing/cancel": {
       "post": {
         "tags": [
           "Billing"
         ],
-        "operationId": "CancelSubscription",
+        "operationId": "CancelInstanceBilling",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                  "$ref": "#/components/schemas/CancelInstanceBillingResponse"
                 }
               }
             }
@@ -550,17 +561,28 @@
         }
       }
     },
-    "/api/v1/hub/billing/upgrade": {
+    "/api/v1/hub/instances/{instanceId}/billing/change": {
       "post": {
         "tags": [
           "Billing"
         ],
-        "operationId": "UpgradeSubscription",
+        "operationId": "ChangePlan",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpgradeSubscriptionCommand"
+                "$ref": "#/components/schemas/ChangePlanCommand"
               }
             }
           },
@@ -572,7 +594,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UpgradeSubscriptionResponse"
+                  "$ref": "#/components/schemas/ChangePlanResponse"
                 }
               }
             }
@@ -999,7 +1021,8 @@
           "displayName",
           "domain",
           "status",
-          "tier",
+          "featureTier",
+          "userCountTier",
           "createdAt",
           "suspendedAt",
           "destroyedAt",
@@ -1027,7 +1050,10 @@
           "status": {
             "type": "string"
           },
-          "tier": {
+          "featureTier": {
+            "type": "string"
+          },
+          "userCountTier": {
             "type": "string"
           },
           "createdAt": {
@@ -1062,7 +1088,8 @@
           "subdomain",
           "displayName",
           "status",
-          "tier",
+          "featureTier",
+          "userCountTier",
           "createdAt",
           "ownerUsername"
         ],
@@ -1080,7 +1107,10 @@
           "status": {
             "type": "string"
           },
-          "tier": {
+          "featureTier": {
+            "type": "string"
+          },
+          "userCountTier": {
             "type": "string"
           },
           "createdAt": {
@@ -1188,73 +1218,21 @@
           }
         }
       },
-      "BillingTierFeature": {
-        "required": [
-          "name",
-          "value"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "value": {
-            "type": "string"
-          }
-        }
-      },
-      "BillingTierInfo": {
-        "required": [
-          "name",
-          "price",
-          "period",
-          "maxInstances",
-          "maxUsersPerInstance",
-          "maxStorageMb",
-          "features"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "price": {
-            "type": "string"
-          },
-          "period": {
-            "type": "string"
-          },
-          "maxInstances": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "maxUsersPerInstance": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "maxStorageMb": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "features": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BillingTierFeature"
-            }
-          }
-        }
-      },
-      "CancelSubscriptionResponse": {
+      "CancelInstanceBillingResponse": {
         "required": [
           "message",
-          "newTier"
+          "featureTier",
+          "userCountTier"
         ],
         "type": "object",
         "properties": {
           "message": {
             "type": "string"
           },
-          "newTier": {
+          "featureTier": {
+            "type": "string"
+          },
+          "userCountTier": {
             "type": "string"
           }
         }
@@ -1274,6 +1252,55 @@
           }
         }
       },
+      "ChangePlanCommand": {
+        "required": [
+          "instanceId",
+          "targetFeatureTier",
+          "targetUserCountTier"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "targetFeatureTier": {
+            "$ref": "#/components/schemas/FeatureTier2"
+          },
+          "targetUserCountTier": {
+            "$ref": "#/components/schemas/UserCountTier2"
+          }
+        }
+      },
+      "ChangePlanResponse": {
+        "required": [
+          "featureTier",
+          "userCountTier",
+          "priceCents",
+          "checkoutUrl",
+          "requiresCheckout"
+        ],
+        "type": "object",
+        "properties": {
+          "featureTier": {
+            "type": "string"
+          },
+          "userCountTier": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "requiresCheckout": {
+            "type": "boolean"
+          }
+        }
+      },
       "CreateInstanceCommand": {
         "required": [
           "subdomain",
@@ -1286,6 +1313,12 @@
           },
           "displayName": {
             "type": "string"
+          },
+          "featureTier": {
+            "$ref": "#/components/schemas/FeatureTier"
+          },
+          "userCountTier": {
+            "$ref": "#/components/schemas/UserCountTier"
           },
           "adminPassword": {
             "type": "string",
@@ -1358,6 +1391,13 @@
           }
         }
       },
+      "FeatureTier": {
+        "type": "integer",
+        "default": 0
+      },
+      "FeatureTier2": {
+        "type": "integer"
+      },
       "ForgotPasswordRequest": {
         "required": [
           "email"
@@ -1371,52 +1411,14 @@
       },
       "GetBillingResponse": {
         "required": [
-          "tier",
-          "status",
-          "hasStripeSubscription",
-          "currentPeriodEnd",
-          "nextBillingDate",
-          "instanceCount",
-          "maxInstances",
-          "currentTierInfo",
-          "availableTiers"
+          "instances"
         ],
         "type": "object",
         "properties": {
-          "tier": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "hasStripeSubscription": {
-            "type": "boolean"
-          },
-          "currentPeriodEnd": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "nextBillingDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "instanceCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "maxInstances": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentTierInfo": {
-            "$ref": "#/components/schemas/BillingTierInfo"
-          },
-          "availableTiers": {
+          "instances": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/BillingTierInfo"
+              "$ref": "#/components/schemas/InstanceBillingItem"
             }
           }
         }
@@ -1496,6 +1498,42 @@
             "type": "string"
           },
           "email": {
+            "type": "string"
+          }
+        }
+      },
+      "InstanceBillingItem": {
+        "required": [
+          "instanceId",
+          "domain",
+          "displayName",
+          "featureTier",
+          "userCountTier",
+          "priceCents",
+          "billingStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "featureTier": {
+            "type": "string"
+          },
+          "userCountTier": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "billingStatus": {
             "type": "string"
           }
         }
@@ -1588,7 +1626,8 @@
           "domain",
           "displayName",
           "status",
-          "tier",
+          "featureTier",
+          "userCountTier",
           "createdAt"
         ],
         "type": "object",
@@ -1605,7 +1644,10 @@
           "status": {
             "type": "string"
           },
-          "tier": {
+          "featureTier": {
+            "type": "string"
+          },
+          "userCountTier": {
             "type": "string"
           },
           "createdAt": {
@@ -2031,36 +2073,12 @@
           }
         }
       },
-      "UpgradeSubscriptionCommand": {
-        "required": [
-          "targetTier"
-        ],
-        "type": "object",
-        "properties": {
-          "targetTier": {
-            "type": "string"
-          }
-        }
+      "UserCountTier": {
+        "type": "integer",
+        "default": 10
       },
-      "UpgradeSubscriptionResponse": {
-        "required": [
-          "tier",
-          "checkoutUrl",
-          "requiresCheckout"
-        ],
-        "type": "object",
-        "properties": {
-          "tier": {
-            "type": "string"
-          },
-          "checkoutUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "requiresCheckout": {
-            "type": "boolean"
-          }
-        }
+      "UserCountTier2": {
+        "type": "integer"
       },
       "Verify2FARequest": {
         "required": [

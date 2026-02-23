@@ -1,93 +1,102 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using XcordHub.Entities;
+using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Billing;
 
-public sealed record CancelSubscriptionCommand();
+public sealed record CancelInstanceBillingCommand(long InstanceId);
 
-public sealed record CancelSubscriptionResponse(
+public sealed record CancelInstanceBillingResponse(
     string Message,
-    string NewTier
+    string FeatureTier,
+    string UserCountTier
 );
 
-public sealed class CancelSubscriptionHandler(
+public sealed class CancelInstanceBillingHandler(
     HubDbContext dbContext,
     ICurrentUserService currentUserService,
-    ILogger<CancelSubscriptionHandler> logger)
-    : IRequestHandler<CancelSubscriptionCommand, Result<CancelSubscriptionResponse>>
+    ILogger<CancelInstanceBillingHandler> logger)
+    : IRequestHandler<CancelInstanceBillingCommand, Result<CancelInstanceBillingResponse>>
 {
-    public async Task<Result<CancelSubscriptionResponse>> Handle(
-        CancelSubscriptionCommand request, CancellationToken cancellationToken)
+    public async Task<Result<CancelInstanceBillingResponse>> Handle(
+        CancelInstanceBillingCommand request, CancellationToken cancellationToken)
     {
         var userIdResult = currentUserService.GetCurrentUserId();
         if (userIdResult.IsFailure) return userIdResult.Error!;
         var userId = userIdResult.Value;
 
-        var user = await dbContext.HubUsers
-            .FirstOrDefaultAsync(u => u.Id == userId && u.DeletedAt == null, cancellationToken);
+        var instance = await dbContext.ManagedInstances
+            .Include(i => i.Billing)
+            .Include(i => i.Config)
+            .FirstOrDefaultAsync(i => i.Id == request.InstanceId && i.DeletedAt == null, cancellationToken);
 
-        if (user == null)
-            return Error.NotFound("USER_NOT_FOUND", "User not found");
+        if (instance == null)
+            return Error.NotFound("INSTANCE_NOT_FOUND", "Instance not found");
 
-        if (user.SubscriptionTier == BillingTier.Free)
-            return Error.BadRequest("ALREADY_FREE", "You are already on the Free plan");
+        if (instance.OwnerId != userId)
+            return Error.Forbidden("NOT_OWNER", "You do not own this instance");
+
+        if (instance.Billing == null)
+            return Error.NotFound("BILLING_NOT_FOUND", "Billing record not found for this instance");
+
+        if (instance.Billing.FeatureTier == FeatureTier.Chat &&
+            instance.Billing.UserCountTier == UserCountTier.Tier10)
+            return Error.BadRequest("ALREADY_FREE", "This instance is already on the free plan");
 
         logger.LogInformation(
-            "User {UserId} cancelling subscription (tier: {Tier}, stripeSubId: {SubId})",
-            userId, user.SubscriptionTier, user.StripeSubscriptionId ?? "none");
+            "User {UserId} cancelling billing for instance {InstanceId} (feature: {FeatureTier}, users: {UserCountTier})",
+            userId, request.InstanceId, instance.Billing.FeatureTier, instance.Billing.UserCountTier);
 
-        // TODO: Cancel via Stripe API when billing is wired up. Downgrades to Free directly.
-        var previousTier = user.SubscriptionTier;
-        user.SubscriptionTier = BillingTier.Free;
-        user.StripeSubscriptionId = null;
+        // TODO: Cancel via Stripe API when billing is wired up.
+        instance.Billing.FeatureTier = FeatureTier.Chat;
+        instance.Billing.UserCountTier = UserCountTier.Tier10;
+        instance.Billing.BillingStatus = BillingStatus.Cancelled;
+        instance.Billing.StripeSubscriptionId = null;
+        instance.Billing.CurrentPeriodEnd = null;
+        instance.Billing.NextBillingDate = null;
 
-        // Downgrade all instance billing records owned by this user to Free tier
-        var instances = await dbContext.ManagedInstances
-            .Include(i => i.Billing)
-            .Where(i => i.OwnerId == userId && i.DeletedAt == null)
-            .ToListAsync(cancellationToken);
-
-        foreach (var instance in instances)
+        // Update config with free tier defaults
+        if (instance.Config != null)
         {
-            if (instance.Billing != null)
-            {
-                instance.Billing.Tier = BillingTier.Free;
-                instance.Billing.BillingStatus = BillingStatus.Cancelled;
-                instance.Billing.StripeSubscriptionId = null;
-                instance.Billing.CurrentPeriodEnd = null;
-                instance.Billing.NextBillingDate = null;
-            }
+            instance.Config.ResourceLimitsJson = JsonSerializer.Serialize(
+                TierDefaults.GetResourceLimits(UserCountTier.Tier10));
+            instance.Config.FeatureFlagsJson = JsonSerializer.Serialize(
+                TierDefaults.GetFeatureFlags(FeatureTier.Chat));
+            instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "User {UserId} subscription cancelled, downgraded from {PreviousTier} to Free",
-            userId, previousTier);
+            "Instance {InstanceId} billing cancelled, downgraded to Chat + Tier10",
+            request.InstanceId);
 
-        return new CancelSubscriptionResponse(
-            Message: "Your subscription has been cancelled. You have been moved to the Free plan.",
-            NewTier: "Free"
+        return new CancelInstanceBillingResponse(
+            Message: "Instance billing has been cancelled. The instance has been moved to the free plan.",
+            FeatureTier: FeatureTier.Chat.ToString(),
+            UserCountTier: UserCountTier.Tier10.ToString()
         );
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
-        return app.MapPost("/api/v1/hub/billing/cancel", async (
-            CancelSubscriptionHandler handler,
+        return app.MapPost("/api/v1/hub/instances/{instanceId}/billing/cancel", async (
+            long instanceId,
+            CancelInstanceBillingHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new CancelSubscriptionCommand(), ct);
+            return await handler.ExecuteAsync(new CancelInstanceBillingCommand(instanceId), ct);
         })
         .RequireAuthorization(Policies.User)
-        .Produces<CancelSubscriptionResponse>(200)
-        .WithName("CancelSubscription")
+        .Produces<CancelInstanceBillingResponse>(200)
+        .WithName("CancelInstanceBilling")
         .WithTags("Billing");
     }
 }

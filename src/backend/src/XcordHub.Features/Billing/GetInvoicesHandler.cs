@@ -37,7 +37,7 @@ public sealed class GetInvoicesHandler(HubDbContext dbContext, ICurrentUserServi
         if (user == null)
             return Error.NotFound("USER_NOT_FOUND", "User not found");
 
-        // TODO: Fetch invoices from Stripe API using user.StripeCustomerId when billing is wired up.
+        // TODO: Fetch invoices from Stripe API when billing is wired up.
         var invoices = new List<InvoiceSummary>();
 
         return new GetInvoicesResponse(invoices);

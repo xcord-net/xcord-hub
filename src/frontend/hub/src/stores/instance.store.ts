@@ -89,13 +89,13 @@ export const instanceStore = {
     }
   },
 
-  async createInstance(subdomain: string, displayName: string, adminPassword: string): Promise<components['schemas']['CreateInstanceResponse']> {
+  async createInstance(subdomain: string, displayName: string, adminPassword: string, featureTier: string = 'Chat', userCountTier: string = 'Tier10'): Promise<components['schemas']['CreateInstanceResponse']> {
     try {
       const response = await fetch('/api/v1/hub/instances', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ subdomain, displayName, adminPassword }),
+        body: JSON.stringify({ subdomain, displayName, adminPassword, featureTier, userCountTier }),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({ message: 'Failed to create instance' }));

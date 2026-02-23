@@ -14,6 +14,7 @@ export default defineConfig({
   base: '/admin/',
   server: {
     port: 3002,
+    allowedHosts: ['xcord-dev.net'],
     proxy: {
       '/api': 'http://localhost:5100',
     },
