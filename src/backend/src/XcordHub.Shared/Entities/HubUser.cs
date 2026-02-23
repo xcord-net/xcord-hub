@@ -14,15 +14,6 @@ public sealed class HubUser
     public bool TwoFactorEnabled { get; set; }
     public string? TwoFactorSecret { get; set; }
 
-    /// <summary>The user's account-level subscription plan governing instance creation quotas and tier defaults.</summary>
-    public BillingTier SubscriptionTier { get; set; } = BillingTier.Free;
-
-    /// <summary>Stripe customer ID associated with this user's subscription, if any.</summary>
-    public string? StripeCustomerId { get; set; }
-
-    /// <summary>Stripe subscription ID for the user's account-level plan, if any.</summary>
-    public string? StripeSubscriptionId { get; set; }
-
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }

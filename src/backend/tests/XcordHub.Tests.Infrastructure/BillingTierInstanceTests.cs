@@ -12,8 +12,8 @@ namespace XcordHub.Tests.Infrastructure;
 
 /// <summary>
 /// Integration tests for billing tier assignment in CreateInstanceHandler.
-/// Verifies that the user's SubscriptionTier is correctly propagated to the
-/// InstanceBilling record and that per-tier instance quotas are enforced.
+/// Verifies that the FeatureTier and UserCountTier passed to CreateInstanceCommand
+/// are correctly propagated to the InstanceBilling record.
 /// Uses a real PostgreSQL instance via Testcontainers (no Docker-in-Docker required).
 /// </summary>
 [Trait("Category", "Integration")]
@@ -68,19 +68,18 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
         return new HubDbContext(options, new AesEncryptionService(TestEncryptionKey));
     }
 
-    private static HubUser MakeUser(long id, string username, BillingTier tier) => new HubUser
+    private static HubUser MakeUser(long id, string username) => new HubUser
     {
-        Id              = id,
-        Username        = username,
-        DisplayName     = username,
-        Email           = Encoding.UTF8.GetBytes($"encrypted-{username}@test.invalid"),
-        EmailHash       = Encoding.UTF8.GetBytes($"hash-{username}"),
-        PasswordHash    = "hashed_password",
-        IsAdmin         = false,
-        IsDisabled      = false,
-        SubscriptionTier = tier,
-        CreatedAt       = DateTimeOffset.UtcNow,
-        LastLoginAt     = DateTimeOffset.UtcNow
+        Id           = id,
+        Username     = username,
+        DisplayName  = username,
+        Email        = Encoding.UTF8.GetBytes($"encrypted-{username}@test.invalid"),
+        EmailHash    = Encoding.UTF8.GetBytes($"hash-{username}"),
+        PasswordHash = "hashed_password",
+        IsAdmin      = false,
+        IsDisabled   = false,
+        CreatedAt    = DateTimeOffset.UtcNow,
+        LastLoginAt  = DateTimeOffset.UtcNow
     };
 
     /// <summary>
@@ -127,23 +126,28 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task CreateInstance_FreeTierUser_AssignsFreeTierToBillingRecord()
+    public async Task CreateInstance_ChatPlusTier10_AssignsCorrectTiersToBillingRecord()
     {
         // Arrange
         await using var dbContext = CreateDbContext();
 
-        var user = MakeUser(UserIdBase + 1, "billing_free_user", BillingTier.Free);
+        var user = MakeUser(UserIdBase + 1, "billing_chat_tier10_user");
         dbContext.HubUsers.Add(user);
         await dbContext.SaveChangesAsync();
 
         var handler = BuildHandler(dbContext, StubCurrentUser(user.Id));
-        var command = new CreateInstanceCommand("billing-free-test", "Free Tier Instance");
+        var command = new CreateInstanceCommand(
+            "billing-chat-tier10-test",
+            "Chat Tier10 Instance",
+            FeatureTier.Chat,
+            UserCountTier.Tier10);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.IsSuccess.Should().BeTrue("a Free-tier user should be able to create their first instance");
+        result.IsSuccess.Should().BeTrue(
+            "creating an instance with Chat+Tier10 (free plan) should succeed");
 
         await using var verifyCtx = CreateDbContext();
         var instanceId = long.Parse(result.Value.InstanceId);
@@ -151,28 +155,35 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.Should().NotBeNull();
-        billing!.Tier.Should().Be(BillingTier.Free,
-            "the billing record tier must match the user's Free subscription tier");
+        billing!.FeatureTier.Should().Be(FeatureTier.Chat,
+            "the billing record must reflect the Chat feature tier passed to the command");
+        billing.UserCountTier.Should().Be(UserCountTier.Tier10,
+            "the billing record must reflect the Tier10 user count tier passed to the command");
     }
 
     [Fact]
-    public async Task CreateInstance_BasicTierUser_AssignsBasicTierToBillingRecord()
+    public async Task CreateInstance_AudioPlusTier50_AssignsCorrectTiersToBillingRecord()
     {
         // Arrange
         await using var dbContext = CreateDbContext();
 
-        var user = MakeUser(UserIdBase + 2, "billing_basic_user", BillingTier.Basic);
+        var user = MakeUser(UserIdBase + 2, "billing_audio_tier50_user");
         dbContext.HubUsers.Add(user);
         await dbContext.SaveChangesAsync();
 
         var handler = BuildHandler(dbContext, StubCurrentUser(user.Id));
-        var command = new CreateInstanceCommand("billing-basic-test", "Basic Tier Instance");
+        var command = new CreateInstanceCommand(
+            "billing-audio-tier50-test",
+            "Audio Tier50 Instance",
+            FeatureTier.Audio,
+            UserCountTier.Tier50);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        result.IsSuccess.Should().BeTrue("a Basic-tier user should be able to create an instance");
+        result.IsSuccess.Should().BeTrue(
+            "creating an instance with Audio+Tier50 (paid plan) should succeed");
 
         await using var verifyCtx = CreateDbContext();
         var instanceId = long.Parse(result.Value.InstanceId);
@@ -180,84 +191,10 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.Should().NotBeNull();
-        billing!.Tier.Should().Be(BillingTier.Basic,
-            "the billing record tier must match the user's Basic subscription tier");
-    }
-
-    [Fact]
-    public async Task CreateInstance_FreeTierUser_SecondInstanceIsRejectedWithForbidden()
-    {
-        // Arrange — create the user and pre-seed one existing instance at the DB level
-        await using var seedCtx = CreateDbContext();
-
-        var user = MakeUser(UserIdBase + 3, "billing_free_quota_user", BillingTier.Free);
-        seedCtx.HubUsers.Add(user);
-
-        // Manually insert the first instance to simulate the quota being consumed
-        // without going through the handler, so we avoid domain/subdomain conflicts.
-        var firstInstance = new ManagedInstance
-        {
-            Id          = InstanceIdBase + 1,
-            OwnerId     = user.Id,
-            Domain      = "billing-quota-existing.xcord-dev.net",
-            DisplayName = "Existing Instance",
-            Status      = InstanceStatus.Running,
-            SnowflakeWorkerId = 1,
-            CreatedAt   = DateTimeOffset.UtcNow
-        };
-        seedCtx.ManagedInstances.Add(firstInstance);
-        await seedCtx.SaveChangesAsync();
-
-        // Act — attempt to create a second instance which should exceed Free quota (max = 1)
-        await using var handlerCtx = CreateDbContext();
-        var handler = BuildHandler(handlerCtx, StubCurrentUser(user.Id));
-        var command = new CreateInstanceCommand("billing-quota-second", "Second Instance");
-
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.IsFailure.Should().BeTrue(
-            "a Free-tier user who already has 1 instance should be rejected when creating a second");
-        result.Error!.Code.Should().Be("INSTANCE_LIMIT_REACHED");
-        result.Error.StatusCode.Should().Be(403,
-            "exceeding an instance quota is a Forbidden (403) error");
-    }
-
-    [Fact]
-    public async Task CreateInstance_BasicTierUser_SecondInstanceIsRejectedWithForbidden()
-    {
-        // Arrange — all tiers allow max 1 instance; pre-seed one existing instance
-        await using var seedCtx = CreateDbContext();
-
-        var user = MakeUser(UserIdBase + 4, "billing_basic_quota_user", BillingTier.Basic);
-        seedCtx.HubUsers.Add(user);
-
-        seedCtx.ManagedInstances.Add(new ManagedInstance
-        {
-            Id          = InstanceIdBase + 10,
-            OwnerId     = user.Id,
-            Domain      = "billing-basic-existing.xcord-dev.net",
-            DisplayName = "Basic Existing",
-            Status      = InstanceStatus.Running,
-            SnowflakeWorkerId = 10,
-            CreatedAt   = DateTimeOffset.UtcNow
-        });
-
-        await seedCtx.SaveChangesAsync();
-
-        // Act — 2nd instance should be rejected (max = 1 for all tiers)
-        await using var handlerCtx = CreateDbContext();
-        var handler = BuildHandler(handlerCtx, StubCurrentUser(user.Id));
-        var command = new CreateInstanceCommand("billing-basic-second", "Basic Second Instance");
-
-        var result = await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.IsFailure.Should().BeTrue(
-            "a Basic-tier user who already has 1 instance should be rejected when creating a second");
-        result.Error!.Code.Should().Be("INSTANCE_LIMIT_REACHED");
-        result.Error.StatusCode.Should().Be(403,
-            "exceeding an instance quota is a Forbidden (403) error");
+        billing!.FeatureTier.Should().Be(FeatureTier.Audio,
+            "the billing record must reflect the Audio feature tier passed to the command");
+        billing.UserCountTier.Should().Be(UserCountTier.Tier50,
+            "the billing record must reflect the Tier50 user count tier passed to the command");
     }
 }
 

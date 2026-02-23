@@ -45,16 +45,6 @@ public sealed class HubUserConfiguration : IEntityTypeConfiguration<HubUser>
         builder.Property(x => x.TwoFactorSecret)
             .HasMaxLength(255);
 
-        builder.Property(x => x.SubscriptionTier)
-            .IsRequired()
-            .HasDefaultValue(BillingTier.Free);
-
-        builder.Property(x => x.StripeCustomerId)
-            .HasMaxLength(255);
-
-        builder.Property(x => x.StripeSubscriptionId)
-            .HasMaxLength(255);
-
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

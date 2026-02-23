@@ -37,7 +37,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
             <div class="mt-2 flex gap-4 text-sm">
               <span>ID: {instance()!.id}</span>
               <span>Owner: {instance()!.ownerUsername}</span>
-              <span>Tier: {instance()!.tier}</span>
+              <span>Plan: {instance()!.featureTier} / {instance()!.userCountTier}</span>
             </div>
           </div>
 

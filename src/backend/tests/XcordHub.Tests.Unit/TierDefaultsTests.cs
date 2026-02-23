@@ -5,165 +5,213 @@ using XcordHub.Features.Instances;
 namespace XcordHub.Tests.Unit;
 
 /// <summary>
-/// Unit tests for TierDefaults — the static class that maps BillingTier values to
-/// resource limits, feature flags, and per-tier instance quotas.
+/// Unit tests for TierDefaults — the static class that maps FeatureTier and UserCountTier
+/// values to resource limits, feature flags, and prices.
 /// </summary>
 public sealed class TierDefaultsTests
 {
     // ---------------------------------------------------------------------------
-    // GetMaxInstancesForTier
+    // GetResourceLimits — verify each UserCountTier returns sensible limits and
+    // that limits increase monotonically across tiers
     // ---------------------------------------------------------------------------
 
     [Theory]
-    [InlineData(BillingTier.Free, 1)]
-    [InlineData(BillingTier.Basic, 1)]
-    [InlineData(BillingTier.Pro, 1)]
-    public void GetMaxInstancesForTier_ReturnsExpectedLimit(BillingTier tier, int expectedMax)
+    [InlineData(UserCountTier.Tier10)]
+    [InlineData(UserCountTier.Tier50)]
+    [InlineData(UserCountTier.Tier100)]
+    [InlineData(UserCountTier.Tier500)]
+    public void GetResourceLimits_AllTiers_ReturnsNonNullWithPositiveValues(UserCountTier tier)
     {
-        var result = TierDefaults.GetMaxInstancesForTier(tier);
-        result.Should().Be(expectedMax,
-            $"{tier} tier should allow exactly {expectedMax} instance(s)");
-    }
-
-    [Fact]
-    public void GetMaxInstancesForTier_UnknownTier_ThrowsArgumentOutOfRange()
-    {
-        var act = () => TierDefaults.GetMaxInstancesForTier((BillingTier)99);
-        act.Should().Throw<ArgumentOutOfRangeException>();
-    }
-
-    // ---------------------------------------------------------------------------
-    // GetResourceLimits — verify each tier returns non-null limits with sensible ordering
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public void GetResourceLimits_FreeTier_ReturnsRestrictiveLimits()
-    {
-        var limits = TierDefaults.GetResourceLimits(BillingTier.Free);
+        var limits = TierDefaults.GetResourceLimits(tier);
 
         limits.Should().NotBeNull();
-        limits.MaxUsers.Should().BeGreaterThan(0, "Free tier must allow at least some users");
-        limits.MaxServers.Should().BeGreaterThan(0, "Free tier must allow at least some servers");
-        limits.MaxStorageMb.Should().BeGreaterThan(0, "Free tier must allow some storage");
-        limits.MaxCpuPercent.Should().BeGreaterThan(0);
-        limits.MaxMemoryMb.Should().BeGreaterThan(0);
-        limits.MaxRateLimit.Should().BeGreaterThan(0);
+        limits.MaxUsers.Should().BeGreaterThan(0, $"{tier} must allow at least some users");
+        limits.MaxServers.Should().BeGreaterThan(0, $"{tier} must allow at least some servers");
+        limits.MaxStorageMb.Should().BeGreaterThan(0, $"{tier} must allow some storage");
+        limits.MaxCpuPercent.Should().BeGreaterThan(0, $"{tier} must have a CPU limit");
+        limits.MaxMemoryMb.Should().BeGreaterThan(0, $"{tier} must have a memory limit");
+        limits.MaxRateLimit.Should().BeGreaterThan(0, $"{tier} must have a rate limit");
     }
 
     [Fact]
-    public void GetResourceLimits_BasicTier_ExceedsFreeOnAllLimits()
+    public void GetResourceLimits_MonotonicIncrease_AcrossAllTiers()
     {
-        var freeLimits = TierDefaults.GetResourceLimits(BillingTier.Free);
-        var basicLimits = TierDefaults.GetResourceLimits(BillingTier.Basic);
+        var t10 = TierDefaults.GetResourceLimits(UserCountTier.Tier10);
+        var t50 = TierDefaults.GetResourceLimits(UserCountTier.Tier50);
+        var t100 = TierDefaults.GetResourceLimits(UserCountTier.Tier100);
+        var t500 = TierDefaults.GetResourceLimits(UserCountTier.Tier500);
 
-        basicLimits.MaxUsers.Should().BeGreaterThan(freeLimits.MaxUsers,
-            "Basic tier should allow more users than Free");
-        basicLimits.MaxServers.Should().BeGreaterThan(freeLimits.MaxServers,
-            "Basic tier should allow more servers than Free");
-        basicLimits.MaxStorageMb.Should().BeGreaterThan(freeLimits.MaxStorageMb,
-            "Basic tier should have more storage than Free");
-        basicLimits.MaxCpuPercent.Should().BeGreaterThan(freeLimits.MaxCpuPercent,
-            "Basic tier should have higher CPU limit than Free");
-        basicLimits.MaxMemoryMb.Should().BeGreaterThan(freeLimits.MaxMemoryMb,
-            "Basic tier should have more memory than Free");
-        basicLimits.MaxRateLimit.Should().BeGreaterThan(freeLimits.MaxRateLimit,
-            "Basic tier should have higher rate limit than Free");
-    }
+        t50.MaxUsers.Should().BeGreaterThan(t10.MaxUsers, "Tier50 should allow more users than Tier10");
+        t100.MaxUsers.Should().BeGreaterThan(t50.MaxUsers, "Tier100 should allow more users than Tier50");
+        t500.MaxUsers.Should().BeGreaterThan(t100.MaxUsers, "Tier500 should allow more users than Tier100");
 
-    [Fact]
-    public void GetResourceLimits_ProTier_HasHighestBoundedLimits()
-    {
-        var basicLimits = TierDefaults.GetResourceLimits(BillingTier.Basic);
-        var proLimits = TierDefaults.GetResourceLimits(BillingTier.Pro);
+        t50.MaxServers.Should().BeGreaterThan(t10.MaxServers, "Tier50 should allow more servers than Tier10");
+        t100.MaxServers.Should().BeGreaterThan(t50.MaxServers, "Tier100 should allow more servers than Tier50");
+        t500.MaxServers.Should().BeGreaterThan(t100.MaxServers, "Tier500 should allow more servers than Tier100");
 
-        proLimits.MaxUsers.Should().BeGreaterThan(basicLimits.MaxUsers,
-            "Pro tier should allow more users than Basic");
-        proLimits.MaxServers.Should().BeGreaterThan(basicLimits.MaxServers,
-            "Pro tier should allow more servers than Basic");
-        proLimits.MaxStorageMb.Should().BeGreaterThan(basicLimits.MaxStorageMb,
-            "Pro tier should have more storage than Basic");
-        proLimits.MaxCpuPercent.Should().BeGreaterThan(basicLimits.MaxCpuPercent,
-            "Pro tier should have higher CPU limit than Basic");
-        proLimits.MaxMemoryMb.Should().BeGreaterThan(basicLimits.MaxMemoryMb,
-            "Pro tier should have more memory than Basic");
-        proLimits.MaxRateLimit.Should().BeGreaterThan(basicLimits.MaxRateLimit,
-            "Pro tier should have higher rate limit than Basic");
+        t50.MaxStorageMb.Should().BeGreaterThan(t10.MaxStorageMb, "Tier50 should have more storage than Tier10");
+        t100.MaxStorageMb.Should().BeGreaterThan(t50.MaxStorageMb, "Tier100 should have more storage than Tier50");
+        t500.MaxStorageMb.Should().BeGreaterThan(t100.MaxStorageMb, "Tier500 should have more storage than Tier100");
 
-        // Pro is bounded — no unlimited (-1) values
-        proLimits.MaxUsers.Should().BeGreaterThan(0, "Pro tier should have bounded (not unlimited) users");
-        proLimits.MaxServers.Should().BeGreaterThan(0, "Pro tier should have bounded (not unlimited) servers");
-        proLimits.MaxStorageMb.Should().BeGreaterThan(0, "Pro tier should have bounded (not unlimited) storage");
+        t50.MaxCpuPercent.Should().BeGreaterThan(t10.MaxCpuPercent, "Tier50 should have higher CPU than Tier10");
+        t100.MaxCpuPercent.Should().BeGreaterThan(t50.MaxCpuPercent, "Tier100 should have higher CPU than Tier50");
+        t500.MaxCpuPercent.Should().BeGreaterThan(t100.MaxCpuPercent, "Tier500 should have higher CPU than Tier100");
+
+        t50.MaxMemoryMb.Should().BeGreaterThan(t10.MaxMemoryMb, "Tier50 should have more memory than Tier10");
+        t100.MaxMemoryMb.Should().BeGreaterThan(t50.MaxMemoryMb, "Tier100 should have more memory than Tier50");
+        t500.MaxMemoryMb.Should().BeGreaterThan(t100.MaxMemoryMb, "Tier500 should have more memory than Tier100");
+
+        t50.MaxRateLimit.Should().BeGreaterThan(t10.MaxRateLimit, "Tier50 should have higher rate limit than Tier10");
+        t100.MaxRateLimit.Should().BeGreaterThan(t50.MaxRateLimit, "Tier100 should have higher rate limit than Tier50");
+        t500.MaxRateLimit.Should().BeGreaterThan(t100.MaxRateLimit, "Tier500 should have higher rate limit than Tier100");
     }
 
     [Fact]
     public void GetResourceLimits_UnknownTier_ThrowsArgumentOutOfRange()
     {
-        var act = () => TierDefaults.GetResourceLimits((BillingTier)99);
+        var act = () => TierDefaults.GetResourceLimits((UserCountTier)99);
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     // ---------------------------------------------------------------------------
-    // GetFeatureFlags — Free tier has no video; Basic/Pro have all features
+    // GetFeatureFlags — Chat has no voice/video; Audio has voice but no video;
+    // Video has all features enabled
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void GetFeatureFlags_FreeTier_DisablesVideo()
+    public void GetFeatureFlags_ChatTier_DisablesVoiceAndVideo()
     {
-        var flags = TierDefaults.GetFeatureFlags(BillingTier.Free);
+        var flags = TierDefaults.GetFeatureFlags(FeatureTier.Chat);
 
         flags.Should().NotBeNull();
-        flags.CanCreateBots.Should().BeTrue("Free should allow bots");
-        flags.CanUseWebhooks.Should().BeTrue("Free should allow webhooks");
-        flags.CanUseCustomEmoji.Should().BeTrue("Free should allow custom emoji");
-        flags.CanUseThreads.Should().BeTrue("Free should allow threads");
-        flags.CanUseVoiceChannels.Should().BeTrue("Free should allow voice channels");
-        flags.CanUseVideoChannels.Should().BeFalse("Free should not allow video channels");
-        flags.CanUseForumChannels.Should().BeTrue("Free should allow forum channels");
-        flags.CanUseScheduledEvents.Should().BeTrue("Free should allow scheduled events");
+        flags.CanCreateBots.Should().BeTrue("Chat tier should allow bots");
+        flags.CanUseWebhooks.Should().BeTrue("Chat tier should allow webhooks");
+        flags.CanUseCustomEmoji.Should().BeTrue("Chat tier should allow custom emoji");
+        flags.CanUseThreads.Should().BeTrue("Chat tier should allow threads");
+        flags.CanUseForumChannels.Should().BeTrue("Chat tier should allow forum channels");
+        flags.CanUseScheduledEvents.Should().BeTrue("Chat tier should allow scheduled events");
+        flags.CanUseVoiceChannels.Should().BeFalse("Chat tier should not allow voice channels");
+        flags.CanUseVideoChannels.Should().BeFalse("Chat tier should not allow video channels");
     }
 
-    [Theory]
-    [InlineData(BillingTier.Basic)]
-    [InlineData(BillingTier.Pro)]
-    public void GetFeatureFlags_PaidTiers_EnableAllFeatures(BillingTier tier)
+    [Fact]
+    public void GetFeatureFlags_AudioTier_EnablesVoiceButNotVideo()
     {
-        var flags = TierDefaults.GetFeatureFlags(tier);
+        var flags = TierDefaults.GetFeatureFlags(FeatureTier.Audio);
 
         flags.Should().NotBeNull();
-        flags.CanCreateBots.Should().BeTrue($"{tier} should allow bots");
-        flags.CanUseWebhooks.Should().BeTrue($"{tier} should allow webhooks");
-        flags.CanUseCustomEmoji.Should().BeTrue($"{tier} should allow custom emoji");
-        flags.CanUseThreads.Should().BeTrue($"{tier} should allow threads");
-        flags.CanUseVoiceChannels.Should().BeTrue($"{tier} should allow voice channels");
-        flags.CanUseVideoChannels.Should().BeTrue($"{tier} should allow video channels");
-        flags.CanUseForumChannels.Should().BeTrue($"{tier} should allow forum channels");
-        flags.CanUseScheduledEvents.Should().BeTrue($"{tier} should allow scheduled events");
+        flags.CanCreateBots.Should().BeTrue("Audio tier should allow bots");
+        flags.CanUseWebhooks.Should().BeTrue("Audio tier should allow webhooks");
+        flags.CanUseCustomEmoji.Should().BeTrue("Audio tier should allow custom emoji");
+        flags.CanUseThreads.Should().BeTrue("Audio tier should allow threads");
+        flags.CanUseForumChannels.Should().BeTrue("Audio tier should allow forum channels");
+        flags.CanUseScheduledEvents.Should().BeTrue("Audio tier should allow scheduled events");
+        flags.CanUseVoiceChannels.Should().BeTrue("Audio tier should allow voice channels");
+        flags.CanUseVideoChannels.Should().BeFalse("Audio tier should not allow video channels");
+    }
+
+    [Fact]
+    public void GetFeatureFlags_VideoTier_EnablesAllFeatures()
+    {
+        var flags = TierDefaults.GetFeatureFlags(FeatureTier.Video);
+
+        flags.Should().NotBeNull();
+        flags.CanCreateBots.Should().BeTrue("Video tier should allow bots");
+        flags.CanUseWebhooks.Should().BeTrue("Video tier should allow webhooks");
+        flags.CanUseCustomEmoji.Should().BeTrue("Video tier should allow custom emoji");
+        flags.CanUseThreads.Should().BeTrue("Video tier should allow threads");
+        flags.CanUseForumChannels.Should().BeTrue("Video tier should allow forum channels");
+        flags.CanUseScheduledEvents.Should().BeTrue("Video tier should allow scheduled events");
+        flags.CanUseVoiceChannels.Should().BeTrue("Video tier should allow voice channels");
+        flags.CanUseVideoChannels.Should().BeTrue("Video tier should allow video channels");
     }
 
     [Fact]
     public void GetFeatureFlags_UnknownTier_ThrowsArgumentOutOfRange()
     {
-        var act = () => TierDefaults.GetFeatureFlags((BillingTier)99);
+        var act = () => TierDefaults.GetFeatureFlags((FeatureTier)99);
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     // ---------------------------------------------------------------------------
-    // Cross-method consistency: verify all three methods agree on the tier list
+    // GetPriceCents — all 12 combinations of FeatureTier x UserCountTier
     // ---------------------------------------------------------------------------
 
     [Theory]
-    [InlineData(BillingTier.Free)]
-    [InlineData(BillingTier.Basic)]
-    [InlineData(BillingTier.Pro)]
-    public void AllThreeMethods_ReturnsValueForEveryDefinedTier(BillingTier tier)
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier10,  0)]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier50,  2000)]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier100, 4000)]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier500, 13000)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier10,  2000)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier50,  4500)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier100, 8500)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier500, 26000)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier10,  4000)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier50,  7000)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier100, 12500)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier500, 35000)]
+    public void GetPriceCents_ReturnsExpectedPrice(FeatureTier featureTier, UserCountTier userCountTier, int expectedCents)
     {
-        // Each method should return without throwing for all defined tiers.
-        var act1 = () => TierDefaults.GetMaxInstancesForTier(tier);
-        var act2 = () => TierDefaults.GetResourceLimits(tier);
-        var act3 = () => TierDefaults.GetFeatureFlags(tier);
+        var price = TierDefaults.GetPriceCents(featureTier, userCountTier);
+        price.Should().Be(expectedCents,
+            $"({featureTier}, {userCountTier}) should cost {expectedCents} cents");
+    }
 
-        act1.Should().NotThrow($"GetMaxInstancesForTier must handle {tier}");
-        act2.Should().NotThrow($"GetResourceLimits must handle {tier}");
-        act3.Should().NotThrow($"GetFeatureFlags must handle {tier}");
+    [Fact]
+    public void GetPriceCents_UnknownFeatureTier_ThrowsArgumentOutOfRange()
+    {
+        var act = () => TierDefaults.GetPriceCents((FeatureTier)99, UserCountTier.Tier10);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void GetPriceCents_UnknownUserCountTier_ThrowsArgumentOutOfRange()
+    {
+        var act = () => TierDefaults.GetPriceCents(FeatureTier.Chat, (UserCountTier)99);
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Cross-method consistency: all defined enum values work without throwing
+    // ---------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(UserCountTier.Tier10)]
+    [InlineData(UserCountTier.Tier50)]
+    [InlineData(UserCountTier.Tier100)]
+    [InlineData(UserCountTier.Tier500)]
+    public void GetResourceLimits_NeverThrows_ForAllDefinedUserCountTiers(UserCountTier tier)
+    {
+        var act = () => TierDefaults.GetResourceLimits(tier);
+        act.Should().NotThrow($"GetResourceLimits must handle {tier}");
+    }
+
+    [Theory]
+    [InlineData(FeatureTier.Chat)]
+    [InlineData(FeatureTier.Audio)]
+    [InlineData(FeatureTier.Video)]
+    public void GetFeatureFlags_NeverThrows_ForAllDefinedFeatureTiers(FeatureTier tier)
+    {
+        var act = () => TierDefaults.GetFeatureFlags(tier);
+        act.Should().NotThrow($"GetFeatureFlags must handle {tier}");
+    }
+
+    [Theory]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier10)]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier50)]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier100)]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier500)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier10)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier50)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier100)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier500)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier10)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier50)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier100)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier500)]
+    public void GetPriceCents_NeverThrows_ForAllDefinedCombinations(FeatureTier featureTier, UserCountTier userCountTier)
+    {
+        var act = () => TierDefaults.GetPriceCents(featureTier, userCountTier);
+        act.Should().NotThrow($"GetPriceCents must handle ({featureTier}, {userCountTier})");
     }
 }

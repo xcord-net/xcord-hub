@@ -1,85 +1,65 @@
 import { A } from '@solidjs/router';
 import { createSignal, For, Show } from 'solid-js';
 
-interface Tier {
+type UserCount = 10 | 50 | 100 | 500;
+
+interface FeatureCard {
   name: string;
   price: string;
-  period: string;
-  description: string;
-  features: string[];
-  cta: 'link' | 'notify';
-  ctaLabel: string;
-  ctaHref?: string;
-  highlighted: boolean;
+  isFree: boolean;
+  features: { label: string; included: boolean }[];
 }
 
-interface SplitCard {
-  top: {
-    name: string;
-    tagline: string;
-    description: string;
-    cta: string;
-    ctaHref: string;
-  };
-  bottom: {
-    name: string;
-    tagline: string;
-    description: string;
-    cta: string;
-    ctaHref: string;
-  };
-}
+const userCounts: UserCount[] = [10, 50, 100, 500];
 
-const tiers: Tier[] = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: '/month',
-    description: 'Perfect for getting started',
-    features: ['1 instance', '50 members', '1 GB storage', 'Voice channels', 'Community support'],
-    cta: 'link',
-    ctaLabel: 'Get Started',
-    ctaHref: '/register',
-    highlighted: false,
-  },
-  {
-    name: 'Basic',
-    price: 'TBD',
-    period: '/month',
-    description: 'For growing communities',
-    features: ['1 instance', '250 members', '10 GB storage', 'Video & screen sharing', 'Email support'],
-    cta: 'notify',
-    ctaLabel: 'Notify Me',
-    highlighted: false,
-  },
-  {
-    name: 'Pro',
-    price: 'TBD',
-    period: '/month',
-    description: 'For serious communities',
-    features: ['1 instance', '1,000 members', '50 GB storage', 'Video, screen sharing & Go Live', 'Priority support'],
-    cta: 'notify',
-    ctaLabel: 'Notify Me',
-    highlighted: true,
-  },
+const featureList = [
+  'Text messaging',
+  'Bots & webhooks',
+  'Custom emoji',
+  'Threads & forums',
+  'Voice channels',
+  'Video & screen share',
 ];
 
-const splitCard: SplitCard = {
-  top: {
-    name: 'Custom',
-    tagline: 'Need more?',
-    description: 'Custom limits, dedicated infrastructure, SLA',
-    cta: 'Request Quote',
-    ctaHref: 'mailto:sales@xcord.net',
-  },
-  bottom: {
-    name: 'Self-Hosted',
-    tagline: 'Full control',
-    description: 'Unlimited everything, your servers',
-    cta: 'View Docs',
-    ctaHref: '/docs/getting-started',
-  },
-};
+function getCards(users: UserCount): FeatureCard[] {
+  const prices: Record<UserCount, [string, string, string]> = {
+    10: ['Free', '$20', '$40'],
+    50: ['$20', '$45', '$70'],
+    100: ['$40', '$85', '$125'],
+    500: ['$130', '$260', '$350'],
+  };
+  const [chat, audio, video] = prices[users];
+
+  return [
+    {
+      name: 'Chat',
+      price: chat,
+      isFree: chat === 'Free',
+      features: [true, true, true, true, false, false].map((v, i) => ({
+        label: featureList[i],
+        included: v,
+      })),
+    },
+    {
+      name: 'Chat + Audio',
+      price: audio,
+      isFree: false,
+      features: [true, true, true, true, true, false].map((v, i) => ({
+        label: featureList[i],
+        included: v,
+      })),
+    },
+    {
+      name: 'Chat + Audio + Video',
+      price: video,
+      isFree: false,
+      features: [true, true, true, true, true, true].map((v, i) => ({
+        label: featureList[i],
+        included: v,
+      })),
+    },
+  ];
+}
 
 const faqs = [
   { q: 'Can I switch plans later?', a: 'Yes, you can upgrade or downgrade at any time. Changes take effect immediately and billing is prorated.' },
@@ -88,161 +68,197 @@ const faqs = [
   { q: 'Can I connect a self-hosted instance to the hub?', a: 'Absolutely. Self-hosted instances can connect to the hub for discovery and SSO, or run completely standalone.' },
 ];
 
-function NotifyMeButton(props: { tier: string; highlighted: boolean }) {
-  const [expanded, setExpanded] = createSignal(false);
-  const [email, setEmail] = createSignal('');
-  const [submitting, setSubmitting] = createSignal(false);
-  const [submitted, setSubmitted] = createSignal(false);
-  const [error, setError] = createSignal<string | null>(null);
+export default function Pricing() {
+  const [selectedUsers, setSelectedUsers] = createSignal<UserCount>(10);
+  const [openFaq, setOpenFaq] = createSignal<number | null>(null);
+  const [notifyCardKey, setNotifyCardKey] = createSignal<string | null>(null);
+  const [notifyEmail, setNotifyEmail] = createSignal('');
+  const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [notifyMessage, setNotifyMessage] = createSignal('');
 
-  const handleSubmit = async (e: Event) => {
+  async function handleNotify(e: Event) {
     e.preventDefault();
-    const value = email().trim();
-    if (!value) return;
-    setError(null);
-    setSubmitting(true);
+    const tier = notifyCardKey();
+    if (!tier) return;
+    setNotifyStatus('loading');
     try {
       const res = await fetch('/api/v1/mailing-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: value, tier: props.tier }),
+        body: JSON.stringify({ email: notifyEmail(), tier }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.detail || data?.message || 'Something went wrong.');
-        return;
+        setNotifyStatus('error');
+        setNotifyMessage(data.message ?? 'Something went wrong.');
+      } else {
+        setNotifyStatus('success');
+        setNotifyMessage(data.message);
+        setTimeout(() => {
+          setNotifyCardKey(null);
+          setNotifyEmail('');
+          setNotifyStatus('idle');
+          setNotifyMessage('');
+        }, 3000);
       }
-      setSubmitted(true);
     } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setSubmitting(false);
+      setNotifyStatus('error');
+      setNotifyMessage('Network error. Please try again.');
     }
-  };
+  }
 
-  return (
-    <Show when={!submitted()} fallback={
-      <p class="text-sm text-xcord-green text-center py-2">You're on the list!</p>
-    }>
-      <Show when={expanded()} fallback={
-        <button
-          onClick={() => setExpanded(true)}
-          class={`block w-full text-center py-2 rounded-lg font-medium transition ${
-            props.highlighted
-              ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
-              : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
-          }`}
-        >
-          Notify Me
-        </button>
-      }>
-        <form onSubmit={handleSubmit} class="flex flex-col gap-2">
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email()}
-            onInput={(e) => setEmail(e.currentTarget.value)}
-            class="w-full px-3 py-2 rounded-lg bg-xcord-bg-primary border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted focus:outline-none focus:border-xcord-brand"
-          />
-          <button
-            type="submit"
-            disabled={submitting()}
-            class={`w-full py-2 rounded-lg font-medium text-sm transition disabled:opacity-50 ${
-              props.highlighted
-                ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
-                : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
-            }`}
-          >
-            {submitting() ? 'Submitting...' : 'Submit'}
-          </button>
-          <Show when={error()}>
-            <p class="text-xs text-xcord-red">{error()}</p>
-          </Show>
-        </form>
-      </Show>
-    </Show>
-  );
-}
-
-export default function Pricing() {
-  const [openFaq, setOpenFaq] = createSignal<number | null>(null);
+  const cards = () => getCards(selectedUsers());
 
   return (
     <>
       <section class="max-w-7xl mx-auto px-6 py-20 text-center">
-        <h1 class="text-4xl font-bold mb-16">Pricing</h1>
+        <h1 class="text-4xl font-bold mb-4">Pricing</h1>
+        <p class="text-xcord-landing-text-muted mb-12">
+          Choose a plan based on your community size and the features you need.
+        </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
-          <For each={tiers}>
-            {(tier) => (
-              <div class={`rounded-xl p-6 text-left flex flex-col ${
-                tier.highlighted
-                  ? 'bg-xcord-brand/10 border-2 border-xcord-brand'
-                  : 'bg-xcord-landing-surface border border-xcord-landing-border'
-              }`}>
-                <h3 class="text-lg font-semibold text-white">{tier.name}</h3>
-                <div class="mt-4 mb-2">
-                  <span class="text-3xl font-bold text-white">{tier.price}</span>
-                  <span class="text-sm text-xcord-landing-text-muted">{tier.period}</span>
+        {/* User count tabs */}
+        <div class="flex justify-center gap-2 mb-12">
+          <For each={userCounts}>
+            {(count) => (
+              <button
+                onClick={() => setSelectedUsers(count)}
+                class={`px-5 py-2 rounded-lg text-sm font-medium transition ${
+                  selectedUsers() === count
+                    ? 'bg-xcord-brand text-white'
+                    : 'bg-xcord-landing-surface text-xcord-landing-text-muted hover:text-white hover:bg-xcord-landing-surface/80'
+                }`}
+              >
+                {count} users
+              </button>
+            )}
+          </For>
+        </div>
+
+        {/* Feature tier cards */}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-6">
+          <For each={cards()}>
+            {(card) => (
+              <div class="bg-xcord-landing-surface border border-xcord-landing-border rounded-xl p-6 flex flex-col text-left">
+                <h3 class="text-lg font-semibold text-white">{card.name}</h3>
+                <div class="mt-3 mb-6">
+                  <Show
+                    when={!card.isFree}
+                    fallback={<span class="text-3xl font-bold text-xcord-brand">Free</span>}
+                  >
+                    <span class="text-3xl font-bold text-white">{card.price}</span>
+                    <span class="text-sm text-xcord-landing-text-muted">/mo</span>
+                  </Show>
                 </div>
-                <p class="text-sm text-xcord-landing-text-muted mb-6">{tier.description}</p>
-                <ul class="space-y-2 mb-8 flex-1">
-                  <For each={tier.features}>
-                    {(feature) => (
-                      <li class="flex items-center gap-2 text-sm text-xcord-landing-text">
-                        <svg class="w-4 h-4 text-xcord-green shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {feature}
+
+                <ul class="space-y-3 flex-1 mb-6">
+                  <For each={card.features}>
+                    {(feat) => (
+                      <li class="flex items-center gap-2 text-sm">
+                        <Show
+                          when={feat.included}
+                          fallback={
+                            <svg class="w-4 h-4 text-xcord-landing-text-muted/40 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          }
+                        >
+                          <svg class="w-4 h-4 text-xcord-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </Show>
+                        <span class={feat.included ? 'text-xcord-landing-text' : 'text-xcord-landing-text-muted/40 line-through'}>
+                          {feat.label}
+                        </span>
                       </li>
                     )}
                   </For>
                 </ul>
-                <Show when={tier.cta === 'link'}>
+
+                <Show
+                  when={card.isFree}
+                  fallback={
+                    <Show
+                      when={notifyCardKey() === `${card.name} (${selectedUsers()} users)`}
+                      fallback={
+                        <button
+                          onClick={() => {
+                            setNotifyCardKey(`${card.name} (${selectedUsers()} users)`);
+                            setNotifyStatus('idle');
+                            setNotifyMessage('');
+                            setNotifyEmail('');
+                          }}
+                          class="w-full py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
+                        >
+                          Notify Me
+                        </button>
+                      }
+                    >
+                      <Show
+                        when={notifyStatus() !== 'success'}
+                        fallback={<p class="text-sm text-green-400 text-center py-2.5">{notifyMessage()}</p>}
+                      >
+                        <form onSubmit={handleNotify} class="flex gap-2">
+                          <input
+                            type="email"
+                            required
+                            placeholder="you@example.com"
+                            value={notifyEmail()}
+                            onInput={(e) => setNotifyEmail(e.currentTarget.value)}
+                            class="flex-1 px-3 py-2 rounded-lg bg-xcord-landing-bg border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
+                          />
+                          <button
+                            type="submit"
+                            disabled={notifyStatus() === 'loading'}
+                            class="px-4 py-2 rounded-lg font-medium bg-xcord-brand text-white text-sm hover:bg-xcord-brand-hover disabled:opacity-50"
+                          >
+                            {notifyStatus() === 'loading' ? '...' : 'Go'}
+                          </button>
+                        </form>
+                        <Show when={notifyStatus() === 'error'}>
+                          <p class="text-xs text-red-400 mt-1">{notifyMessage()}</p>
+                        </Show>
+                      </Show>
+                    </Show>
+                  }
+                >
                   <A
-                    href={tier.ctaHref!}
-                    class={`block text-center py-2 rounded-lg font-medium transition ${
-                      tier.highlighted
-                        ? 'bg-xcord-brand hover:bg-xcord-brand-hover text-white'
-                        : 'bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white'
-                    }`}
+                    href="/register"
+                    class="block text-center py-2.5 rounded-lg font-medium transition bg-xcord-brand hover:bg-xcord-brand-hover text-white"
                   >
-                    {tier.ctaLabel}
+                    Get Started
                   </A>
-                </Show>
-                <Show when={tier.cta === 'notify'}>
-                  <NotifyMeButton tier={tier.name} highlighted={tier.highlighted} />
                 </Show>
               </div>
             )}
           </For>
+        </div>
 
-          {/* Split card: Custom (top) + Self-Hosted (bottom) */}
-          <div class="rounded-xl text-left flex flex-col border border-xcord-landing-border overflow-hidden">
-            <div class="flex-1 p-6 bg-xcord-landing-surface flex flex-col">
-              <h3 class="text-lg font-semibold text-white">{splitCard.top.name}</h3>
-              <p class="text-sm text-xcord-brand font-medium mt-2">{splitCard.top.tagline}</p>
-              <p class="text-sm text-xcord-landing-text-muted mt-2 mb-6 flex-1">{splitCard.top.description}</p>
-              <a
-                href={splitCard.top.ctaHref}
-                class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
-              >
-                {splitCard.top.cta}
-              </a>
-            </div>
-            <div class="border-t border-xcord-landing-border" />
-            <div class="flex-1 p-6 bg-xcord-landing-surface flex flex-col">
-              <h3 class="text-lg font-semibold text-white">{splitCard.bottom.name}</h3>
-              <p class="text-sm text-xcord-brand font-medium mt-2">{splitCard.bottom.tagline}</p>
-              <p class="text-sm text-xcord-landing-text-muted mt-2 mb-6 flex-1">{splitCard.bottom.description}</p>
-              <A
-                href={splitCard.bottom.ctaHref}
-                class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
-              >
-                {splitCard.bottom.cta}
-              </A>
-            </div>
+        <p class="text-sm text-xcord-landing-text-muted mb-4">
+          All plans are billed monthly. No long-term contracts.
+        </p>
+        <p class="text-sm text-xcord-landing-text-muted mb-20">
+          Need more than 500 users?{' '}
+          <a href="mailto:sales@xcord.net" class="text-xcord-brand hover:underline">
+            Contact us
+          </a>{' '}
+          for a custom plan.
+        </p>
+
+        {/* Split card: Self-Hosted */}
+        <div class="max-w-3xl mx-auto rounded-xl text-left flex flex-col border border-xcord-landing-border overflow-hidden mb-20">
+          <div class="flex-1 p-6 bg-xcord-landing-surface flex flex-col">
+            <h3 class="text-lg font-semibold text-white">Self-Hosted</h3>
+            <p class="text-sm text-xcord-brand font-medium mt-2">Full control</p>
+            <p class="text-sm text-xcord-landing-text-muted mt-2 mb-6 flex-1">
+              Unlimited everything, your servers
+            </p>
+            <A
+              href="/docs/getting-started"
+              class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
+            >
+              View Docs
+            </A>
           </div>
         </div>
       </section>

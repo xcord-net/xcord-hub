@@ -111,7 +111,7 @@ export function InstanceList(props: InstanceListProps) {
                   Status
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Tier
+                  Plan
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Created
@@ -133,7 +133,7 @@ export function InstanceList(props: InstanceListProps) {
                         {instance.status}
                       </span>
                     </td>
-                    <td class="px-6 py-4 text-sm">{instance.tier}</td>
+                    <td class="px-6 py-4 text-sm">{instance.featureTier} / {instance.userCountTier}</td>
                     <td class="px-6 py-4 text-sm">
                       {new Date(instance.createdAt).toLocaleDateString()}
                     </td>

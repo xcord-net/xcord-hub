@@ -1,6 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using XcordHub.Entities;
-using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub;
 
@@ -28,31 +26,13 @@ public sealed class EnforceTierLimitsStep : IProvisioningStep
             return Error.NotFound("INSTANCE_NOT_FOUND", $"Instance {instanceId} or billing not found");
         }
 
-        // Get max instances for this tier
-        var maxInstances = TierDefaults.GetMaxInstancesForTier(instance.Billing.Tier);
-
-        // If unlimited (-1), allow
-        if (maxInstances == -1)
-        {
-            return true;
-        }
-
-        // Count active instances for this owner
-        var ownerInstanceCount = await _dbContext.ManagedInstances
-            .Where(i => i.OwnerId == instance.OwnerId && i.DeletedAt == null)
-            .CountAsync(cancellationToken);
-
-        if (ownerInstanceCount > maxInstances)
-        {
-            return Error.Forbidden("TIER_LIMIT_EXCEEDED", $"{instance.Billing.Tier} tier limit of {maxInstances} instances exceeded");
-        }
-
+        // No per-user instance limits in the new billing model.
+        // Billing is per-instance with FeatureTier + UserCountTier.
         return true;
     }
 
     public Task<Result<bool>> VerifyAsync(long instanceId, CancellationToken cancellationToken = default)
     {
-        // Tier enforcement is atomic, no separate verification needed
         return Task.FromResult<Result<bool>>(true);
     }
 }
