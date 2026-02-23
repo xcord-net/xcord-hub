@@ -22,14 +22,17 @@ export default function Landing() {
       {/* Hero Section */}
       <section class="py-20 sm:py-32">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div class="mb-4">
+            <span class="inline-block text-xs font-bold uppercase tracking-widest bg-xcord-brand/20 text-xcord-brand px-3 py-1 rounded-full">beta</span>
+          </div>
           <h1 class="text-4xl sm:text-6xl font-bold text-white tracking-tight">
-            Community chat that
+            Chat that's
             <br />
-            <span class="text-xcord-brand">scales with you.</span>
+            <span class="text-xcord-brand">actually yours.</span>
           </h1>
           <p class="mt-6 text-lg sm:text-xl text-xcord-landing-text-muted max-w-2xl mx-auto">
-            Start with a free hosted instance. Add your brand, your domain, membership tiers.
-            Go fully self-hosted when you need total control.
+            Open-source community platform with voice, video, and text.
+            Host it yourself or start free on our cloud.
           </p>
           <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <A

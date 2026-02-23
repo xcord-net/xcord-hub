@@ -112,7 +112,10 @@ export default function Pricing() {
   return (
     <>
       <section class="max-w-7xl mx-auto px-6 py-20 text-center">
-        <h1 class="text-4xl font-bold mb-4">Pricing</h1>
+        <h1 class="text-4xl font-bold mb-4">
+          Pricing
+          <span class="ml-2 align-middle text-xs font-bold uppercase tracking-widest bg-xcord-brand/20 text-xcord-brand px-2.5 py-1 rounded-full">beta</span>
+        </h1>
         <p class="text-xcord-landing-text-muted mb-12">
           Choose a plan based on your community size and the features you need.
         </p>

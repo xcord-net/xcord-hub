@@ -19,6 +19,7 @@ export default function Logo(props: { class?: string }) {
         <path d="M454,141 C366,209 366,303 454,371" />
       </svg>
       ord
+      <span class="ml-1 text-[0.45em] font-bold uppercase tracking-wider bg-xcord-brand/20 text-xcord-brand px-1.5 py-0.5 rounded-full leading-none">beta</span>
     </span>
   );
 }
