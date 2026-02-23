@@ -1,13 +1,4 @@
-export interface MailingListEntry {
-  id: string;
-  email: string;
-  tier: string;
-  createdAt: string;
-}
+import type { components } from '@generated/api-types';
 
-export interface MailingListResponse {
-  entries: MailingListEntry[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
+export type MailingListEntry = components['schemas']['MailingListItem'];
+export type MailingListResponse = components['schemas']['AdminListMailingListResponse'];

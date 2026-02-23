@@ -1,45 +1,23 @@
-export enum InstanceStatus {
-  Provisioning = 'Provisioning',
-  Running = 'Running',
-  Suspended = 'Suspended',
-  Destroyed = 'Destroyed',
-  Failed = 'Failed',
-}
+import type { components } from '@generated/api-types';
 
-export enum BillingTier {
-  Free = 'Free',
-  Basic = 'Basic',
-  Pro = 'Pro',
-}
+// Re-exported from generated OpenAPI types
+export type InstanceListItem = components['schemas']['AdminInstanceListItem'];
+export type InstanceListResponse = components['schemas']['AdminListInstancesResponse'];
+export type ProvisionInstanceRequest = components['schemas']['ProvisionInstanceCommand'];
 
-export interface InstanceListItem {
-  id: string;
-  subdomain: string;
-  displayName: string;
-  status: InstanceStatus;
-  tier: BillingTier;
-  createdAt: string;
-  ownerUsername: string;
-}
+// Enum as const object (openapi-typescript generates strings, not TS enums)
+export const InstanceStatus = {
+  Provisioning: 'Provisioning',
+  Running: 'Running',
+  Suspended: 'Suspended',
+  Destroyed: 'Destroyed',
+  Failed: 'Failed',
+} as const;
+export type InstanceStatus = (typeof InstanceStatus)[keyof typeof InstanceStatus];
 
-export interface InstanceDetail {
-  id: string;
-  subdomain: string;
-  displayName: string;
-  domain: string;
-  status: InstanceStatus;
-  tier: BillingTier;
-  createdAt: string;
-  suspendedAt?: string;
-  destroyedAt?: string;
-  ownerId: string;
-  ownerUsername: string;
-  resourceLimits: ResourceLimits;
-  featureFlags: FeatureFlags;
-  health?: HealthStatus;
-  infrastructure?: Infrastructure;
-}
-
+// Nested types not yet in generated spec — AdminGetInstanceResponse returns
+// resourceLimits/featureFlags/health/infrastructure as untyped JSON.
+// These stay local until the backend OpenAPI spec properly types those fields.
 export interface ResourceLimits {
   maxMembers: number;
   maxServers: number;
@@ -79,23 +57,20 @@ export interface Infrastructure {
   minioBucket: string;
 }
 
-export interface ProvisionInstanceRequest {
-  ownerId: number;
-  domain: string;
-  displayName: string;
-  adminPassword: string;
-}
-
-export interface InstanceListResponse {
-  instances: InstanceListItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
 export interface LogEntry {
   timestamp: string;
   level: string;
   message: string;
   source: string;
 }
+
+// Augmented version of the generated type with properly typed nested fields
+export type InstanceDetail = Omit<
+  components['schemas']['AdminGetInstanceResponse'],
+  'resourceLimits' | 'featureFlags' | 'health' | 'infrastructure'
+> & {
+  resourceLimits: ResourceLimits;
+  featureFlags: FeatureFlags;
+  health?: HealthStatus;
+  infrastructure?: Infrastructure;
+};

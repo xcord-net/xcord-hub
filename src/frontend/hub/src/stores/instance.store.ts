@@ -1,4 +1,5 @@
 import { createSignal } from 'solid-js';
+import type { components } from '@generated/api-types';
 
 export interface ConnectedInstance {
   url: string;
@@ -88,7 +89,7 @@ export const instanceStore = {
     }
   },
 
-  async createInstance(subdomain: string, displayName: string, adminPassword: string): Promise<any> {
+  async createInstance(subdomain: string, displayName: string, adminPassword: string): Promise<components['schemas']['CreateInstanceResponse']> {
     try {
       const response = await fetch('/api/v1/hub/instances', {
         method: 'POST',

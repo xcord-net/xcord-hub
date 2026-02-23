@@ -1,4 +1,6 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 
 namespace XcordHub.Api;
 
@@ -6,16 +8,21 @@ public static class EndpointExtensions
 {
     public static void MapHandlerEndpoints(this IEndpointRouteBuilder app, Assembly assembly)
     {
-        var handlerTypes = assembly.GetTypes()
-            .Where(t => t.IsClass && (!t.IsAbstract || t.IsSealed))
-            .Where(t => t.GetMethod("Map", BindingFlags.Public | BindingFlags.Static,
-                null, [typeof(IEndpointRouteBuilder)], null) is not null);
+        var endpointTypes = assembly.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && t.IsAssignableTo(typeof(IEndpoint)));
 
-        foreach (var type in handlerTypes)
+        foreach (var type in endpointTypes)
         {
-            type.GetMethod("Map", BindingFlags.Public | BindingFlags.Static,
-                null, [typeof(IEndpointRouteBuilder)], null)!
-                .Invoke(null, [app]);
+            var builder = (RouteHandlerBuilder)type.GetMethod(nameof(IEndpoint.Map),
+                BindingFlags.Public | BindingFlags.Static, null, [typeof(IEndpointRouteBuilder)], null)!
+                .Invoke(null, [app])!;
+
+            var autoName = type.Name.EndsWith("Handler") ? type.Name[..^7] : type.Name;
+            builder.Finally(b =>
+            {
+                if (!b.Metadata.OfType<IEndpointNameMetadata>().Any())
+                    b.Metadata.Add(new EndpointNameMetadata(autoName));
+            });
         }
     }
 

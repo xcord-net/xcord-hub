@@ -86,10 +86,6 @@ public sealed class ResumeInstanceHandler(
         }
     }
 
-}
-
-public static class ResumeInstanceEndpoint
-{
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
         return app.MapPost("/api/v1/admin/instances/{instanceId:long}/resume", async (

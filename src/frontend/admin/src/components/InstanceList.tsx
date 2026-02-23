@@ -32,7 +32,7 @@ export function InstanceList(props: InstanceListProps) {
     }
   };
 
-  const getStatusColor = (status: InstanceStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case InstanceStatus.Running:
         return 'bg-green-100 text-green-800';
