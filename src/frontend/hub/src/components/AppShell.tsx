@@ -5,6 +5,7 @@ import { unreadStore } from '../stores/unread.store';
 import { useAuth } from '../stores/auth.store';
 import InstanceIframe from './InstanceIframe';
 import DashboardSidebar from './DashboardSidebar';
+import Logo from './Logo';
 import type { JSX } from 'solid-js';
 
 export default function AppShell(props: { children: JSX.Element }) {
@@ -52,7 +53,7 @@ export default function AppShell(props: { children: JSX.Element }) {
               : 'text-xcord-text-muted hover:bg-xcord-bg-accent/50 hover:text-xcord-text-primary'
           }`}
         >
-          xcord
+          <Logo />
         </button>
 
         {/* Instance tabs */}

@@ -1,5 +1,6 @@
 import { JSX } from 'solid-js';
 import { useAuth } from '../stores/auth.store';
+import Logo from './Logo';
 
 interface LayoutProps {
   children: JSX.Element;
@@ -19,7 +20,7 @@ export function Layout(props: LayoutProps) {
     <div class="min-h-screen bg-gray-50">
       <nav class="bg-blue-600 text-white p-4 shadow-md">
         <div class="container mx-auto flex items-center justify-between">
-          <h1 class="text-xl font-bold">Xcord Hub Admin</h1>
+          <h1 class="text-xl font-bold"><Logo /> Hub Admin</h1>
           <div class="flex items-center gap-4">
             <span class="text-sm">{auth.username}</span>
             <button
