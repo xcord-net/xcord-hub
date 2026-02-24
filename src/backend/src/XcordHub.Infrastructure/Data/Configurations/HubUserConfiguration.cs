@@ -53,10 +53,12 @@ public sealed class HubUserConfiguration : IEntityTypeConfiguration<HubUser>
         builder.Property(x => x.DeletedAt);
 
         builder.HasIndex(x => x.Username)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("\"DeletedAt\" IS NULL");
 
         builder.HasIndex(x => x.EmailHash)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("\"DeletedAt\" IS NULL");
 
         builder.HasQueryFilter(x => x.DeletedAt == null);
     }
