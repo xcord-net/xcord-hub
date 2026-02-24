@@ -49,7 +49,8 @@ public sealed class ManagedInstanceConfiguration : IEntityTypeConfiguration<Mana
         builder.Property(x => x.DeletedAt);
 
         builder.HasIndex(x => x.Domain)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("\"DeletedAt\" IS NULL");
 
         builder.HasIndex(x => x.SnowflakeWorkerId)
             .IsUnique();
