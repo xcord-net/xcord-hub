@@ -180,6 +180,10 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 provider = "none",
                 apiKey = ""
             },
+            encryption = new
+            {
+                kek = infrastructure.InstanceKek
+            },
             outbox = new
             {
                 pollingIntervalMs = 500,

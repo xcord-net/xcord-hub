@@ -45,7 +45,10 @@ if [ -f "$CONFIG_PATH" ]; then
             Password: .admin.password
         },
         Encryption: {
-            Key: .secretEncryption.key
+            Key: .secretEncryption.key,
+            Kek: (.secretEncryption.kek // ""),
+            KekFile: (.secretEncryption.kekFile // ""),
+            WrappedKey: (.secretEncryption.wrappedKey // "")
         },
         Cors: {
             AllowedOrigins: (.cors.allowedOrigins // [])
