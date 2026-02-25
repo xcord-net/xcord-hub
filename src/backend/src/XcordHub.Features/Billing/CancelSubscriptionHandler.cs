@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using XcordHub.Entities;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Billing;
@@ -22,6 +24,8 @@ public sealed record CancelInstanceBillingResponse(
 public sealed class CancelInstanceBillingHandler(
     HubDbContext dbContext,
     ICurrentUserService currentUserService,
+    IOptions<StripeOptions> stripeOptions,
+    IStripeService stripeService,
     ILogger<CancelInstanceBillingHandler> logger)
     : IRequestHandler<CancelInstanceBillingCommand, Result<CancelInstanceBillingResponse>>
 {
@@ -47,18 +51,27 @@ public sealed class CancelInstanceBillingHandler(
             return Error.NotFound("BILLING_NOT_FOUND", "Billing record not found for this instance");
 
         if (instance.Billing.FeatureTier == FeatureTier.Chat &&
-            instance.Billing.UserCountTier == UserCountTier.Tier10)
+            instance.Billing.UserCountTier == UserCountTier.Tier10 &&
+            !instance.Billing.HdUpgrade)
             return Error.BadRequest("ALREADY_FREE", "This instance is already on the free plan");
 
         logger.LogInformation(
             "User {UserId} cancelling billing for instance {InstanceId} (feature: {FeatureTier}, users: {UserCountTier})",
             userId, request.InstanceId, instance.Billing.FeatureTier, instance.Billing.UserCountTier);
 
-        // TODO: Cancel via Stripe API when billing is wired up.
+        // Cancel Stripe subscription if one exists
+        if (stripeOptions.Value.IsConfigured &&
+            !string.IsNullOrWhiteSpace(instance.Billing.StripeSubscriptionId))
+        {
+            await stripeService.CancelSubscriptionAsync(instance.Billing.StripeSubscriptionId, cancellationToken);
+        }
+
         instance.Billing.FeatureTier = FeatureTier.Chat;
         instance.Billing.UserCountTier = UserCountTier.Tier10;
+        instance.Billing.HdUpgrade = false;
         instance.Billing.BillingStatus = BillingStatus.Cancelled;
         instance.Billing.StripeSubscriptionId = null;
+        instance.Billing.StripePriceId = null;
         instance.Billing.CurrentPeriodEnd = null;
         instance.Billing.NextBillingDate = null;
 

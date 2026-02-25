@@ -118,6 +118,12 @@ builder.Services.AddSingleton<IEncryptionService>(new AesEncryptionService(resol
 // Email
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
+// Stripe billing
+builder.Services.Configure<XcordHub.Infrastructure.Options.StripeOptions>(
+    builder.Configuration.GetSection(XcordHub.Infrastructure.Options.StripeOptions.SectionName));
+builder.Services.AddScoped<IStripeService, XcordHub.Infrastructure.Services.StripeService>();
+builder.Services.AddScoped<XcordHub.Features.Billing.StripeWebhookHandler>();
+
 // JWT
 var jwtSecretKey = builder.Configuration.GetSection("Jwt:SecretKey").Value
     ?? throw new InvalidOperationException("JWT secret key not configured");
@@ -412,6 +418,9 @@ app.MapHealthEndpoint();
 
 // Auto-register all handler endpoints
 app.MapHandlerEndpoints(typeof(FeaturesAssemblyMarker).Assembly);
+
+// Stripe webhook endpoint (non-standard handler — registered manually)
+XcordHub.Features.Billing.StripeWebhookHandler.Map(app);
 
 // OpenAPI endpoint (serves /openapi/v1.json)
 app.MapOpenApi();

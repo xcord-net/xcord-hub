@@ -18,6 +18,7 @@ public sealed record CreateInstanceCommand(
     string DisplayName,
     FeatureTier FeatureTier = FeatureTier.Chat,
     UserCountTier UserCountTier = UserCountTier.Tier10,
+    bool HdUpgrade = false,
     string? AdminPassword = null
 );
 
@@ -60,6 +61,9 @@ public sealed class CreateInstanceHandler(
 
         if (!Enum.IsDefined(request.UserCountTier))
             return Error.Validation("VALIDATION_FAILED", "Invalid user count tier");
+
+        if (request.HdUpgrade && request.FeatureTier != FeatureTier.Video)
+            return Error.Validation("VALIDATION_FAILED", "HD upgrade requires Video feature tier");
 
         return null;
     }
@@ -118,6 +122,7 @@ public sealed class CreateInstanceHandler(
             ManagedInstanceId = instanceId,
             FeatureTier = request.FeatureTier,
             UserCountTier = request.UserCountTier,
+            HdUpgrade = request.HdUpgrade,
             BillingStatus = BillingStatus.Active,
             BillingExempt = false,
             NextBillingDate = now.AddMonths(1),
@@ -128,7 +133,7 @@ public sealed class CreateInstanceHandler(
 
         // Create config with tier defaults and hashed admin password
         var resourceLimits = TierDefaults.GetResourceLimits(request.UserCountTier);
-        var featureFlags = TierDefaults.GetFeatureFlags(request.FeatureTier);
+        var featureFlags = TierDefaults.GetFeatureFlags(request.FeatureTier, request.HdUpgrade);
         var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword, 12);
 
         var config = new InstanceConfig

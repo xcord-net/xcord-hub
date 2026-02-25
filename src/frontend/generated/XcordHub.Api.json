@@ -531,6 +531,37 @@
         }
       }
     },
+    "/api/v1/hub/instances/{instanceId}/revenue": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "GetInstanceRevenue",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevenueSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hub/billing/invoices": {
       "get": {
         "tags": [
@@ -554,6 +585,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetInvoicesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/admin/revenue": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "GetPlatformRevenue",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformRevenueSummary"
                 }
               }
             }
@@ -984,6 +1035,19 @@
           }
         }
       }
+    },
+    "/api/v1/hub/billing/stripe-webhook": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "StripeWebhook",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1269,6 +1333,10 @@
           },
           "targetUserCountTier": {
             "$ref": "#/components/schemas/UserCountTier2"
+          },
+          "hdUpgrade": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -1319,6 +1387,10 @@
           },
           "userCountTier": {
             "$ref": "#/components/schemas/UserCountTier"
+          },
+          "hdUpgrade": {
+            "type": "boolean",
+            "default": false
           },
           "adminPassword": {
             "type": "string",
@@ -1509,6 +1581,7 @@
           "displayName",
           "featureTier",
           "userCountTier",
+          "hdUpgrade",
           "priceCents",
           "billingStatus"
         ],
@@ -1528,6 +1601,9 @@
           },
           "userCountTier": {
             "type": "string"
+          },
+          "hdUpgrade": {
+            "type": "boolean"
           },
           "priceCents": {
             "type": "integer",
@@ -1620,6 +1696,35 @@
           }
         }
       },
+      "InstanceRevenueLine": {
+        "required": [
+          "instanceId",
+          "domain",
+          "displayName",
+          "amountCents",
+          "platformFeeCents"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "amountCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "platformFeeCents": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "InstanceSummary": {
         "required": [
           "instanceId",
@@ -1672,7 +1777,8 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "amountCents": {
             "type": "integer",
@@ -1803,6 +1909,45 @@
           }
         }
       },
+      "PlatformRevenueSummary": {
+        "required": [
+          "totalAmountCents",
+          "totalPlatformFeeCents",
+          "currentMonthAmountCents",
+          "currentMonthPlatformFeeCents",
+          "activeInstanceCount",
+          "topInstances"
+        ],
+        "type": "object",
+        "properties": {
+          "totalAmountCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPlatformFeeCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentMonthAmountCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentMonthPlatformFeeCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeInstanceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "topInstances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstanceRevenueLine"
+            }
+          }
+        }
+      },
       "ProvisionInstanceCommand": {
         "required": [
           "ownerId",
@@ -1824,6 +1969,16 @@
           },
           "adminPassword": {
             "type": "string"
+          },
+          "featureTier": {
+            "$ref": "#/components/schemas/FeatureTier"
+          },
+          "userCountTier": {
+            "$ref": "#/components/schemas/UserCountTier"
+          },
+          "hdUpgrade": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -1956,6 +2111,57 @@
           }
         }
       },
+      "RevenueSummary": {
+        "required": [
+          "instanceId",
+          "totalAmountCents",
+          "totalPlatformFeeCents",
+          "totalOwnerPayoutCents",
+          "currentMonthAmountCents",
+          "currentMonthPlatformFeeCents",
+          "currentMonthOwnerPayoutCents",
+          "stripeConnectedAccountId",
+          "revenueSharePercent"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "totalAmountCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPlatformFeeCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalOwnerPayoutCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentMonthAmountCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentMonthPlatformFeeCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentMonthOwnerPayoutCents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stripeConnectedAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "revenueSharePercent": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SuccessResponse": {
         "required": [
           "success"
@@ -2055,6 +2261,16 @@
           "maxRateLimit": {
             "type": "integer",
             "format": "int32"
+          },
+          "maxVoiceConcurrency": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "maxVideoConcurrency": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
           }
         }
       },

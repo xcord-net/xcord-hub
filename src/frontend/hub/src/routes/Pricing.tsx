@@ -22,11 +22,12 @@ const featureList = [
 ];
 
 function getCards(users: UserCount): FeatureCard[] {
+  // Prices must match backend TierDefaults.GetPriceCents
   const prices: Record<UserCount, [string, string, string]> = {
     10: ['Free', '$20', '$40'],
     50: ['$20', '$45', '$70'],
-    100: ['$40', '$85', '$125'],
-    500: ['$130', '$260', '$350'],
+    100: ['$60', '$110', '$160'],
+    500: ['$200', '$400', '$550'],
   };
   const [chat, audio, video] = prices[users];
 

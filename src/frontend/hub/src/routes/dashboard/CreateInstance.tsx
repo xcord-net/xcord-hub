@@ -14,12 +14,18 @@ export default function CreateInstance() {
   const [featureTier, setFeatureTier] = createSignal('Chat');
   const [userCountTier, setUserCountTier] = createSignal('Tier10');
 
-  const priceMatrix: Record<string, Record<string, string>> = {
-    'Chat':  { 'Tier10': 'Free', 'Tier50': '$20/mo', 'Tier100': '$40/mo', 'Tier500': '$130/mo' },
-    'Audio': { 'Tier10': '$20/mo', 'Tier50': '$45/mo', 'Tier100': '$85/mo', 'Tier500': '$260/mo' },
-    'Video': { 'Tier10': '$40/mo', 'Tier50': '$70/mo', 'Tier100': '$125/mo', 'Tier500': '$350/mo' },
+  // Prices in cents — must match backend TierDefaults.GetPriceCents
+  const priceMatrixCents: Record<string, Record<string, number>> = {
+    'Chat':  { 'Tier10': 0,    'Tier50': 2000, 'Tier100': 6000,  'Tier500': 20000 },
+    'Audio': { 'Tier10': 2000, 'Tier50': 4500, 'Tier100': 11000, 'Tier500': 40000 },
+    'Video': { 'Tier10': 4000, 'Tier50': 7000, 'Tier100': 16000, 'Tier500': 55000 },
   };
-  const selectedPrice = () => priceMatrix[featureTier()]?.[userCountTier()] ?? '';
+  const formatPrice = (cents: number) => {
+    if (cents === 0) return 'Free';
+    const dollars = cents / 100;
+    return dollars % 1 === 0 ? `$${dollars}/mo` : `$${dollars.toFixed(2)}/mo`;
+  };
+  const selectedPrice = () => formatPrice(priceMatrixCents[featureTier()]?.[userCountTier()] ?? 0);
 
   let checkTimer: ReturnType<typeof setTimeout>;
 

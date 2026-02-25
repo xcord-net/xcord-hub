@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Billing;
@@ -11,7 +13,7 @@ public sealed record GetInvoicesQuery(int Limit = 25);
 
 public sealed record InvoiceSummary(
     string Id,
-    string Description,
+    string? Description,
     long AmountCents,
     string Currency,
     string Status,
@@ -21,7 +23,11 @@ public sealed record InvoiceSummary(
 
 public sealed record GetInvoicesResponse(List<InvoiceSummary> Invoices);
 
-public sealed class GetInvoicesHandler(HubDbContext dbContext, ICurrentUserService currentUserService)
+public sealed class GetInvoicesHandler(
+    HubDbContext dbContext,
+    ICurrentUserService currentUserService,
+    IOptions<StripeOptions> stripeOptions,
+    IStripeService stripeService)
     : IRequestHandler<GetInvoicesQuery, Result<GetInvoicesResponse>>
 {
     public async Task<Result<GetInvoicesResponse>> Handle(
@@ -37,8 +43,24 @@ public sealed class GetInvoicesHandler(HubDbContext dbContext, ICurrentUserServi
         if (user == null)
             return Error.NotFound("USER_NOT_FOUND", "User not found");
 
-        // TODO: Fetch invoices from Stripe API when billing is wired up.
-        var invoices = new List<InvoiceSummary>();
+        // If Stripe is not configured or user has no customer ID, return empty
+        if (!stripeOptions.Value.IsConfigured || string.IsNullOrWhiteSpace(user.StripeCustomerId))
+        {
+            return new GetInvoicesResponse(new List<InvoiceSummary>());
+        }
+
+        var stripeInvoices = await stripeService.GetInvoicesAsync(
+            user.StripeCustomerId, request.Limit, cancellationToken);
+
+        var invoices = stripeInvoices.Select(i => new InvoiceSummary(
+            Id: i.Id,
+            Description: i.Description,
+            AmountCents: i.AmountCents,
+            Currency: i.Currency,
+            Status: i.Status,
+            CreatedAt: i.CreatedAt,
+            PdfUrl: i.PdfUrl
+        )).ToList();
 
         return new GetInvoicesResponse(invoices);
     }

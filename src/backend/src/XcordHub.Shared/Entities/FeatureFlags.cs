@@ -10,4 +10,7 @@ public sealed record FeatureFlags
     public bool CanUseVideoChannels { get; init; }
     public bool CanUseForumChannels { get; init; }
     public bool CanUseScheduledEvents { get; init; }
+    public bool CanUseHdVideo { get; init; }
+    public bool CanUseSimulcast { get; init; }
+    public bool CanUseRecording { get; init; }
 }
