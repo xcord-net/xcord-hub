@@ -245,6 +245,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hub/instances/{instanceId}/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetInstanceRevenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hub/billing/invoices": {
         parameters: {
             query?: never;
@@ -253,6 +269,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetInvoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hub/admin/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetPlatformRevenue"];
         put?: never;
         post?: never;
         delete?: never;
@@ -517,6 +549,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hub/billing/stripe-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StripeWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -604,6 +652,8 @@ export interface components {
             instanceId: number;
             targetFeatureTier: components["schemas"]["FeatureTier2"];
             targetUserCountTier: components["schemas"]["UserCountTier2"];
+            /** @default false */
+            hdUpgrade: boolean;
         };
         ChangePlanResponse: {
             featureTier: string;
@@ -618,6 +668,8 @@ export interface components {
             displayName: string;
             featureTier?: components["schemas"]["FeatureTier"];
             userCountTier?: components["schemas"]["UserCountTier"];
+            /** @default false */
+            hdUpgrade: boolean;
             /** @default null */
             adminPassword: string | null;
         };
@@ -675,6 +727,7 @@ export interface components {
             displayName: string;
             featureTier: string;
             userCountTier: string;
+            hdUpgrade: boolean;
             /** Format: int32 */
             priceCents: number;
             billingStatus: string;
@@ -703,6 +756,15 @@ export interface components {
             /** Format: int32 */
             onlineCount: number;
         };
+        InstanceRevenueLine: {
+            instanceId: string;
+            domain: string;
+            displayName: string;
+            /** Format: int32 */
+            amountCents: number;
+            /** Format: int32 */
+            platformFeeCents: number;
+        };
         InstanceSummary: {
             instanceId: string;
             domain: string;
@@ -715,7 +777,7 @@ export interface components {
         };
         InvoiceSummary: {
             id: string;
-            description: string;
+            description: string | null;
             /** Format: int64 */
             amountCents: number;
             currency: string;
@@ -754,12 +816,29 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        PlatformRevenueSummary: {
+            /** Format: int32 */
+            totalAmountCents: number;
+            /** Format: int32 */
+            totalPlatformFeeCents: number;
+            /** Format: int32 */
+            currentMonthAmountCents: number;
+            /** Format: int32 */
+            currentMonthPlatformFeeCents: number;
+            /** Format: int32 */
+            activeInstanceCount: number;
+            topInstances: components["schemas"]["InstanceRevenueLine"][];
+        };
         ProvisionInstanceCommand: {
             /** Format: int64 */
             ownerId: number;
             domain: string;
             displayName: string;
             adminPassword: string;
+            featureTier?: components["schemas"]["FeatureTier"];
+            userCountTier?: components["schemas"]["UserCountTier"];
+            /** @default false */
+            hdUpgrade: boolean;
         };
         ProvisionInstanceResponse: {
             instanceId: string;
@@ -795,6 +874,24 @@ export interface components {
             token: string;
             newPassword: string;
         };
+        RevenueSummary: {
+            instanceId: string;
+            /** Format: int32 */
+            totalAmountCents: number;
+            /** Format: int32 */
+            totalPlatformFeeCents: number;
+            /** Format: int32 */
+            totalOwnerPayoutCents: number;
+            /** Format: int32 */
+            currentMonthAmountCents: number;
+            /** Format: int32 */
+            currentMonthPlatformFeeCents: number;
+            /** Format: int32 */
+            currentMonthOwnerPayoutCents: number;
+            stripeConnectedAccountId: string | null;
+            /** Format: int32 */
+            revenueSharePercent: number;
+        };
         SuccessResponse: {
             success: boolean;
         };
@@ -825,6 +922,16 @@ export interface components {
             maxMemoryMb: number;
             /** Format: int32 */
             maxRateLimit: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            maxVoiceConcurrency: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            maxVideoConcurrency: number;
         };
         UpdateResourceLimitsResponse: {
             instanceId: string;
@@ -1195,6 +1302,28 @@ export interface operations {
             };
         };
     };
+    GetInstanceRevenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevenueSummary"];
+                };
+            };
+        };
+    };
     GetInvoices: {
         parameters: {
             query?: {
@@ -1213,6 +1342,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GetInvoicesResponse"];
+                };
+            };
+        };
+    };
+    GetPlatformRevenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformRevenueSummary"];
                 };
             };
         };
@@ -1568,6 +1717,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AggregatedHealthResponse"];
                 };
+            };
+        };
+    };
+    StripeWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

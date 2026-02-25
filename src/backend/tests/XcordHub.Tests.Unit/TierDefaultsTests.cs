@@ -31,6 +31,8 @@ public sealed class TierDefaultsTests
         limits.MaxCpuPercent.Should().BeGreaterThan(0, $"{tier} must have a CPU limit");
         limits.MaxMemoryMb.Should().BeGreaterThan(0, $"{tier} must have a memory limit");
         limits.MaxRateLimit.Should().BeGreaterThan(0, $"{tier} must have a rate limit");
+        limits.MaxVoiceConcurrency.Should().BeGreaterThan(0, $"{tier} must have a voice concurrency limit");
+        limits.MaxVideoConcurrency.Should().BeGreaterThan(0, $"{tier} must have a video concurrency limit");
     }
 
     [Fact]
@@ -64,6 +66,14 @@ public sealed class TierDefaultsTests
         t50.MaxRateLimit.Should().BeGreaterThan(t10.MaxRateLimit, "Tier50 should have higher rate limit than Tier10");
         t100.MaxRateLimit.Should().BeGreaterThan(t50.MaxRateLimit, "Tier100 should have higher rate limit than Tier50");
         t500.MaxRateLimit.Should().BeGreaterThan(t100.MaxRateLimit, "Tier500 should have higher rate limit than Tier100");
+
+        t50.MaxVoiceConcurrency.Should().BeGreaterThan(t10.MaxVoiceConcurrency, "Tier50 should allow more voice concurrency than Tier10");
+        t100.MaxVoiceConcurrency.Should().BeGreaterThan(t50.MaxVoiceConcurrency, "Tier100 should allow more voice concurrency than Tier50");
+        t500.MaxVoiceConcurrency.Should().BeGreaterThan(t100.MaxVoiceConcurrency, "Tier500 should allow more voice concurrency than Tier100");
+
+        t50.MaxVideoConcurrency.Should().BeGreaterThan(t10.MaxVideoConcurrency, "Tier50 should allow more video concurrency than Tier10");
+        t100.MaxVideoConcurrency.Should().BeGreaterThan(t50.MaxVideoConcurrency, "Tier100 should allow more video concurrency than Tier50");
+        t500.MaxVideoConcurrency.Should().BeGreaterThan(t100.MaxVideoConcurrency, "Tier500 should allow more video concurrency than Tier100");
     }
 
     [Fact]
@@ -124,6 +134,34 @@ public sealed class TierDefaultsTests
         flags.CanUseScheduledEvents.Should().BeTrue("Video tier should allow scheduled events");
         flags.CanUseVoiceChannels.Should().BeTrue("Video tier should allow voice channels");
         flags.CanUseVideoChannels.Should().BeTrue("Video tier should allow video channels");
+        flags.CanUseHdVideo.Should().BeFalse("Video tier without HD upgrade should not allow HD video");
+        flags.CanUseSimulcast.Should().BeFalse("Video tier without HD upgrade should not allow simulcast");
+        flags.CanUseRecording.Should().BeFalse("Video tier without HD upgrade should not allow recording");
+    }
+
+    [Fact]
+    public void GetFeatureFlags_VideoTierWithHd_EnablesHdFeatures()
+    {
+        var flags = TierDefaults.GetFeatureFlags(FeatureTier.Video, hdUpgrade: true);
+
+        flags.Should().NotBeNull();
+        flags.CanUseVoiceChannels.Should().BeTrue("Video+HD should allow voice");
+        flags.CanUseVideoChannels.Should().BeTrue("Video+HD should allow video");
+        flags.CanUseHdVideo.Should().BeTrue("Video+HD should allow HD video");
+        flags.CanUseSimulcast.Should().BeTrue("Video+HD should allow simulcast");
+        flags.CanUseRecording.Should().BeTrue("Video+HD should allow recording");
+    }
+
+    [Theory]
+    [InlineData(FeatureTier.Chat)]
+    [InlineData(FeatureTier.Audio)]
+    public void GetFeatureFlags_NonVideoTierWithHd_IgnoresHdUpgrade(FeatureTier tier)
+    {
+        var flags = TierDefaults.GetFeatureFlags(tier, hdUpgrade: true);
+
+        flags.CanUseHdVideo.Should().BeFalse($"{tier}+HD should not allow HD video (requires Video tier)");
+        flags.CanUseSimulcast.Should().BeFalse($"{tier}+HD should not allow simulcast (requires Video tier)");
+        flags.CanUseRecording.Should().BeFalse($"{tier}+HD should not allow recording (requires Video tier)");
     }
 
     [Fact]
@@ -140,21 +178,55 @@ public sealed class TierDefaultsTests
     [Theory]
     [InlineData(FeatureTier.Chat,  UserCountTier.Tier10,  0)]
     [InlineData(FeatureTier.Chat,  UserCountTier.Tier50,  2000)]
-    [InlineData(FeatureTier.Chat,  UserCountTier.Tier100, 4000)]
-    [InlineData(FeatureTier.Chat,  UserCountTier.Tier500, 13000)]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier100, 6000)]
+    [InlineData(FeatureTier.Chat,  UserCountTier.Tier500, 20000)]
     [InlineData(FeatureTier.Audio, UserCountTier.Tier10,  2000)]
     [InlineData(FeatureTier.Audio, UserCountTier.Tier50,  4500)]
-    [InlineData(FeatureTier.Audio, UserCountTier.Tier100, 8500)]
-    [InlineData(FeatureTier.Audio, UserCountTier.Tier500, 26000)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier100, 11000)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier500, 40000)]
     [InlineData(FeatureTier.Video, UserCountTier.Tier10,  4000)]
     [InlineData(FeatureTier.Video, UserCountTier.Tier50,  7000)]
-    [InlineData(FeatureTier.Video, UserCountTier.Tier100, 12500)]
-    [InlineData(FeatureTier.Video, UserCountTier.Tier500, 35000)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier100, 16000)]
+    [InlineData(FeatureTier.Video, UserCountTier.Tier500, 55000)]
     public void GetPriceCents_ReturnsExpectedPrice(FeatureTier featureTier, UserCountTier userCountTier, int expectedCents)
     {
         var price = TierDefaults.GetPriceCents(featureTier, userCountTier);
         price.Should().Be(expectedCents,
             $"({featureTier}, {userCountTier}) should cost {expectedCents} cents");
+    }
+
+    [Theory]
+    [InlineData(UserCountTier.Tier10, 6500)]   // 4000 + 2500
+    [InlineData(UserCountTier.Tier50, 12000)]   // 7000 + 5000
+    [InlineData(UserCountTier.Tier100, 23500)]  // 16000 + 7500
+    [InlineData(UserCountTier.Tier500, 70000)]  // 55000 + 15000
+    public void GetPriceCents_VideoWithHd_IncludesHdSurcharge(UserCountTier userCountTier, int expectedCents)
+    {
+        var price = TierDefaults.GetPriceCents(FeatureTier.Video, userCountTier, hdUpgrade: true);
+        price.Should().Be(expectedCents,
+            $"Video+HD ({userCountTier}) should cost {expectedCents} cents");
+    }
+
+    [Theory]
+    [InlineData(FeatureTier.Chat, UserCountTier.Tier50)]
+    [InlineData(FeatureTier.Audio, UserCountTier.Tier50)]
+    public void GetPriceCents_NonVideoWithHd_IgnoresHdSurcharge(FeatureTier featureTier, UserCountTier userCountTier)
+    {
+        var withHd = TierDefaults.GetPriceCents(featureTier, userCountTier, hdUpgrade: true);
+        var withoutHd = TierDefaults.GetPriceCents(featureTier, userCountTier, hdUpgrade: false);
+        withHd.Should().Be(withoutHd, "Non-Video tiers should not be affected by HD upgrade flag");
+    }
+
+    [Theory]
+    [InlineData(UserCountTier.Tier10, 2500)]
+    [InlineData(UserCountTier.Tier50, 5000)]
+    [InlineData(UserCountTier.Tier100, 7500)]
+    [InlineData(UserCountTier.Tier500, 15000)]
+    public void GetHdUpgradePriceCents_ReturnsExpectedPrice(UserCountTier userCountTier, int expectedCents)
+    {
+        var price = TierDefaults.GetHdUpgradePriceCents(userCountTier);
+        price.Should().Be(expectedCents,
+            $"HD upgrade for {userCountTier} should cost {expectedCents} cents");
     }
 
     [Fact]

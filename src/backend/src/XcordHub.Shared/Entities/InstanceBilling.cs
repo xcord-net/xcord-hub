@@ -6,6 +6,7 @@ public sealed class InstanceBilling
     public long ManagedInstanceId { get; set; }
     public FeatureTier FeatureTier { get; set; }
     public UserCountTier UserCountTier { get; set; }
+    public bool HdUpgrade { get; set; }
     public BillingStatus BillingStatus { get; set; }
     public bool BillingExempt { get; set; }
     public string? StripePriceId { get; set; }

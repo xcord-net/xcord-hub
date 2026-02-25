@@ -17,7 +17,10 @@ public sealed record ProvisionInstanceCommand(
     long OwnerId,
     string Domain,
     string DisplayName,
-    string AdminPassword
+    string AdminPassword,
+    FeatureTier FeatureTier = FeatureTier.Chat,
+    UserCountTier UserCountTier = UserCountTier.Tier10,
+    bool HdUpgrade = false
 );
 
 public sealed record ProvisionInstanceResponse(
@@ -58,6 +61,15 @@ public sealed class ProvisionInstanceHandler(
 
         if (request.AdminPassword.Length < 8)
             return Error.Validation("VALIDATION_FAILED", "Admin password must be at least 8 characters");
+
+        if (!Enum.IsDefined(request.FeatureTier))
+            return Error.Validation("VALIDATION_FAILED", "Invalid feature tier");
+
+        if (!Enum.IsDefined(request.UserCountTier))
+            return Error.Validation("VALIDATION_FAILED", "Invalid user count tier");
+
+        if (request.HdUpgrade && request.FeatureTier != FeatureTier.Video)
+            return Error.Validation("VALIDATION_FAILED", "HD upgrade requires Video feature tier");
 
         return null;
     }
@@ -109,13 +121,14 @@ public sealed class ProvisionInstanceHandler(
 
         dbContext.ManagedInstances.Add(instance);
 
-        // Create billing record (default to free plan: Chat + Tier10)
+        // Create billing record with requested tier
         var billing = new InstanceBilling
         {
             Id = snowflakeGenerator.NextId(),
             ManagedInstanceId = instanceId,
-            FeatureTier = FeatureTier.Chat,
-            UserCountTier = UserCountTier.Tier10,
+            FeatureTier = request.FeatureTier,
+            UserCountTier = request.UserCountTier,
+            HdUpgrade = request.HdUpgrade,
             BillingStatus = BillingStatus.Active,
             BillingExempt = false,
             NextBillingDate = now.AddMonths(1),
@@ -125,8 +138,8 @@ public sealed class ProvisionInstanceHandler(
         dbContext.InstanceBillings.Add(billing);
 
         // Get tier defaults
-        var resourceLimits = TierDefaults.GetResourceLimits(UserCountTier.Tier10);
-        var featureFlags = TierDefaults.GetFeatureFlags(FeatureTier.Chat);
+        var resourceLimits = TierDefaults.GetResourceLimits(request.UserCountTier);
+        var featureFlags = TierDefaults.GetFeatureFlags(request.FeatureTier, request.HdUpgrade);
 
         // Create config record with admin password (BCrypt hashed)
         var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, 12);

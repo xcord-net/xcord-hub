@@ -17,6 +17,7 @@ public sealed record InstanceBillingItem(
     string DisplayName,
     string FeatureTier,
     string UserCountTier,
+    bool HdUpgrade,
     int PriceCents,
     string BillingStatus
 );
@@ -51,6 +52,7 @@ public sealed class GetBillingHandler(HubDbContext dbContext, ICurrentUserServic
                 i.DisplayName,
                 i.Billing!.FeatureTier,
                 i.Billing.UserCountTier,
+                i.Billing.HdUpgrade,
                 i.Billing.BillingStatus
             })
             .ToListAsync(cancellationToken);
@@ -61,7 +63,8 @@ public sealed class GetBillingHandler(HubDbContext dbContext, ICurrentUserServic
             i.DisplayName,
             i.FeatureTier.ToString(),
             i.UserCountTier.ToString(),
-            TierDefaults.GetPriceCents(i.FeatureTier, i.UserCountTier),
+            i.HdUpgrade,
+            TierDefaults.GetPriceCents(i.FeatureTier, i.UserCountTier, i.HdUpgrade),
             i.BillingStatus.ToString()
         )).ToList();
 

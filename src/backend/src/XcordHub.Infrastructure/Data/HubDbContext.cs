@@ -28,6 +28,10 @@ public sealed class HubDbContext : DbContext
     public DbSet<FederationToken> FederationTokens => Set<FederationToken>();
     public DbSet<MailingListEntry> MailingListEntries => Set<MailingListEntry>();
 
+    // Revenue tracking
+    public DbSet<InstanceRevenueConfig> InstanceRevenueConfigs => Set<InstanceRevenueConfig>();
+    public DbSet<PlatformRevenue> PlatformRevenues => Set<PlatformRevenue>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

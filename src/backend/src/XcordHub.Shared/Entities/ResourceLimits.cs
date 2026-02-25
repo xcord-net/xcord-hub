@@ -8,4 +8,6 @@ public sealed record ResourceLimits
     public int MaxCpuPercent { get; init; }
     public int MaxMemoryMb { get; init; }
     public int MaxRateLimit { get; init; }
+    public int MaxVoiceConcurrency { get; init; }
+    public int MaxVideoConcurrency { get; init; }
 }

@@ -1,5 +1,5 @@
 import { A } from '@solidjs/router';
-import { createResource, For, Show } from 'solid-js';
+import { createResource, createSignal, For, Show } from 'solid-js';
 
 interface InstanceBillingItem {
   instanceId: string;
@@ -7,6 +7,7 @@ interface InstanceBillingItem {
   displayName: string;
   featureTier: string;
   userCountTier: string;
+  hdUpgrade: boolean;
   priceCents: number;
   billingStatus: string;
 }
@@ -29,9 +30,37 @@ interface InvoicesData {
   invoices: InvoiceSummary[];
 }
 
+interface ChangePlanResponse {
+  featureTier: string;
+  userCountTier: string;
+  priceCents: number;
+  checkoutUrl: string | null;
+  requiresCheckout: boolean;
+}
+
+type FeatureTier = 'Chat' | 'Audio' | 'Video';
+type UserCountTier = 'Tier10' | 'Tier50' | 'Tier100' | 'Tier500';
+
+// Price matrix matching backend TierDefaults.GetPriceCents (in cents)
+const PRICE_MATRIX: Record<FeatureTier, Record<UserCountTier, number>> = {
+  Chat:  { Tier10: 0,    Tier50: 2000, Tier100: 6000,  Tier500: 20000 },
+  Audio: { Tier10: 2000, Tier50: 4500, Tier100: 11000, Tier500: 40000 },
+  Video: { Tier10: 4000, Tier50: 7000, Tier100: 16000, Tier500: 55000 },
+};
+
+const HD_UPGRADE_PRICE: Record<UserCountTier, number> = {
+  Tier10: 2500, Tier50: 5000, Tier100: 7500, Tier500: 15000,
+};
+
+function getPriceCents(feature: FeatureTier, users: UserCountTier, hd: boolean): number {
+  const base = PRICE_MATRIX[feature]?.[users] ?? 0;
+  const hdCost = (hd && feature === 'Video') ? (HD_UPGRADE_PRICE[users] ?? 0) : 0;
+  return base + hdCost;
+}
+
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem('xcord_hub_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : {};
 }
 
 async function fetchBilling(): Promise<BillingData> {
@@ -88,18 +117,372 @@ function formatUserCount(tier: string): string {
   return map[tier] ?? tier;
 }
 
-function formatFeature(tier: string): string {
+function formatFeature(tier: string, hd: boolean): string {
   const map: Record<string, string> = {
     Chat: 'Chat',
     Audio: 'Chat + Audio',
     Video: 'Chat + Audio + Video',
   };
-  return map[tier] ?? tier;
+  const base = map[tier] ?? tier;
+  return hd && tier === 'Video' ? `${base} + HD` : base;
+}
+
+const USER_TIERS: [UserCountTier, string][] = [
+  ['Tier10', '10'],
+  ['Tier50', '50'],
+  ['Tier100', '100'],
+  ['Tier500', '500'],
+];
+
+const FEATURE_TIERS: { id: FeatureTier; label: string; desc: string }[] = [
+  { id: 'Chat', label: 'Chat', desc: 'Text only' },
+  { id: 'Audio', label: '+Audio', desc: 'Text + voice' },
+  { id: 'Video', label: '+Video', desc: 'Text + voice + video' },
+];
+
+function PlanEditor(props: {
+  instance: InstanceBillingItem;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [feature, setFeature] = createSignal<FeatureTier>(props.instance.featureTier as FeatureTier);
+  const [users, setUsers] = createSignal<UserCountTier>(props.instance.userCountTier as UserCountTier);
+  const [hd, setHd] = createSignal(props.instance.hdUpgrade);
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal('');
+  const [confirmingDowngrade, setConfirmingDowngrade] = createSignal(false);
+  const [confirmingCancel, setConfirmingCancel] = createSignal(false);
+
+  const newPrice = () => getPriceCents(feature(), users(), hd());
+  const currentPrice = () => props.instance.priceCents;
+  const isChanged = () =>
+    feature() !== props.instance.featureTier ||
+    users() !== props.instance.userCountTier ||
+    hd() !== props.instance.hdUpgrade;
+  const isUpgrade = () => newPrice() > currentPrice();
+  const isDowngrade = () => newPrice() < currentPrice();
+  const isFree = () => newPrice() === 0;
+
+  // Reset HD when not on Video tier
+  const handleFeatureChange = (tier: FeatureTier) => {
+    setFeature(tier);
+    if (tier !== 'Video') setHd(false);
+  };
+
+  const lostFeatures = (): string[] => {
+    const lost: string[] = [];
+    const cur = props.instance.featureTier;
+    const next = feature();
+    if ((cur === 'Video' || cur === 'Audio') && next === 'Chat')
+      lost.push('Voice channels');
+    if (cur === 'Video' && next !== 'Video')
+      lost.push('Video channels');
+    if (props.instance.hdUpgrade && !hd())
+      lost.push('HD video, simulcast, recording');
+    const curUsers = parseInt(props.instance.userCountTier.replace('Tier', ''));
+    const nextUsers = parseInt(users().replace('Tier', ''));
+    if (nextUsers < curUsers)
+      lost.push(`User capacity reduced from ${curUsers} to ${nextUsers}`);
+    return lost;
+  };
+
+  const submitChange = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(
+        `/api/v1/hub/instances/${props.instance.instanceId}/billing/change`,
+        {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            instanceId: parseInt(props.instance.instanceId),
+            targetFeatureTier: feature(),
+            targetUserCountTier: users(),
+            hdUpgrade: hd(),
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || err?.message || 'Failed to change plan');
+      }
+
+      const data: ChangePlanResponse = await res.json();
+
+      if (data.requiresCheckout && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      props.onSuccess();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to change plan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitCancel = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(
+        `/api/v1/hub/instances/${props.instance.instanceId}/billing/cancel`,
+        {
+          method: 'POST',
+          headers: authHeaders(),
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || err?.message || 'Failed to cancel subscription');
+      }
+
+      props.onSuccess();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to cancel subscription');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApply = () => {
+    if (isDowngrade() && lostFeatures().length > 0 && !confirmingDowngrade()) {
+      setConfirmingDowngrade(true);
+      return;
+    }
+    submitChange();
+  };
+
+  return (
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-xcord-bg-primary rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-bold text-xcord-text-primary">
+              Change Plan — {props.instance.displayName}
+            </h2>
+            <button
+              onClick={props.onClose}
+              class="text-xcord-text-muted hover:text-xcord-text-primary text-xl leading-none"
+            >
+              &times;
+            </button>
+          </div>
+
+          {/* Feature tier */}
+          <div class="mb-5">
+            <p class="text-xs font-bold uppercase text-xcord-text-muted mb-2">Features</p>
+            <div class="grid grid-cols-3 gap-2">
+              <For each={FEATURE_TIERS}>
+                {(tier) => (
+                  <button
+                    type="button"
+                    onClick={() => handleFeatureChange(tier.id)}
+                    disabled={loading()}
+                    class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${
+                      feature() === tier.id
+                        ? 'ring-2 ring-xcord-brand'
+                        : 'hover:bg-xcord-bg-accent'
+                    }`}
+                  >
+                    <div class="font-semibold">{tier.label}</div>
+                    <div class="text-xs text-xcord-text-muted mt-1">{tier.desc}</div>
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+
+          {/* User count */}
+          <div class="mb-5">
+            <p class="text-xs font-bold uppercase text-xcord-text-muted mb-2">User Capacity</p>
+            <div class="flex gap-2">
+              <For each={USER_TIERS}>
+                {([value, label]) => (
+                  <button
+                    type="button"
+                    onClick={() => setUsers(value)}
+                    disabled={loading()}
+                    class={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+                      users() === value
+                        ? 'ring-2 ring-xcord-brand bg-xcord-bg-tertiary text-xcord-text-primary'
+                        : 'bg-xcord-bg-tertiary text-xcord-text-muted hover:text-xcord-text-primary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+
+          {/* HD upgrade toggle */}
+          <Show when={feature() === 'Video'}>
+            <div class="mb-5">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hd()}
+                  onChange={(e) => setHd(e.currentTarget.checked)}
+                  disabled={loading()}
+                  class="w-4 h-4 rounded border-xcord-bg-tertiary text-xcord-brand focus:ring-xcord-brand"
+                />
+                <div>
+                  <span class="text-sm font-medium text-xcord-text-primary">HD Upgrade</span>
+                  <span class="text-xs text-xcord-text-muted ml-2">
+                    +{formatPrice(HD_UPGRADE_PRICE[users()] ?? 0)}
+                  </span>
+                  <div class="text-xs text-xcord-text-muted mt-0.5">
+                    1080p video, simulcast, recording
+                  </div>
+                </div>
+              </label>
+            </div>
+          </Show>
+
+          {/* Price summary */}
+          <div class="bg-xcord-bg-secondary rounded-lg p-4 mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-xcord-text-muted">Current plan</span>
+              <span class="text-sm text-xcord-text-muted">{formatPrice(currentPrice())}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-xcord-text-muted">New plan</span>
+              <span class="text-sm font-bold text-xcord-text-primary">{formatPrice(newPrice())}</span>
+            </div>
+            <Show when={isChanged() && newPrice() !== currentPrice()}>
+              <div class="border-t border-xcord-bg-tertiary mt-2 pt-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-xcord-text-muted">Difference</span>
+                  <span
+                    class={`text-sm font-medium ${
+                      isUpgrade() ? 'text-xcord-green' : 'text-yellow-400'
+                    }`}
+                  >
+                    {isUpgrade() ? '+' : ''}{formatPrice(newPrice() - currentPrice()).replace('/mo', '')}/mo
+                  </span>
+                </div>
+              </div>
+            </Show>
+          </div>
+
+          {/* Downgrade warning */}
+          <Show when={confirmingDowngrade()}>
+            <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-5">
+              <p class="text-sm font-medium text-yellow-400 mb-2">
+                Downgrading will remove:
+              </p>
+              <ul class="text-xs text-yellow-300 space-y-1">
+                <For each={lostFeatures()}>
+                  {(item) => <li>- {item}</li>}
+                </For>
+              </ul>
+              <p class="text-xs text-yellow-400 mt-2">
+                This takes effect immediately. Are you sure?
+              </p>
+            </div>
+          </Show>
+
+          {/* Cancel subscription confirmation */}
+          <Show when={confirmingCancel()}>
+            <div class="bg-xcord-red/10 border border-xcord-red/20 rounded-lg p-4 mb-5">
+              <p class="text-sm font-medium text-xcord-red mb-1">
+                Cancel subscription?
+              </p>
+              <p class="text-xs text-xcord-red/80">
+                This will downgrade your instance to the free plan (Chat + 10 users).
+                All paid features will be removed immediately.
+              </p>
+            </div>
+          </Show>
+
+          <Show when={error()}>
+            <div class="text-sm text-xcord-red mb-4">{error()}</div>
+          </Show>
+
+          {/* Actions */}
+          <div class="flex gap-3">
+            <button
+              onClick={props.onClose}
+              disabled={loading()}
+              class="px-4 py-2 text-sm text-xcord-text-muted hover:text-xcord-text-primary transition"
+            >
+              Cancel
+            </button>
+
+            <div class="flex-1" />
+
+            {/* Cancel subscription button */}
+            <Show when={currentPrice() > 0 && !confirmingCancel()}>
+              <button
+                onClick={() => setConfirmingCancel(true)}
+                disabled={loading()}
+                class="px-4 py-2 text-sm font-medium text-xcord-red bg-xcord-red/10 rounded hover:bg-xcord-red/20 transition"
+              >
+                Cancel Subscription
+              </button>
+            </Show>
+
+            <Show when={confirmingCancel()}>
+              <button
+                onClick={() => setConfirmingCancel(false)}
+                disabled={loading()}
+                class="px-4 py-2 text-sm text-xcord-text-muted hover:text-xcord-text-primary transition"
+              >
+                Keep Plan
+              </button>
+              <button
+                onClick={submitCancel}
+                disabled={loading()}
+                class="px-4 py-2 text-sm font-medium text-white bg-xcord-red rounded hover:bg-xcord-red/80 transition disabled:opacity-50"
+              >
+                {loading() ? 'Cancelling...' : 'Confirm Cancel'}
+              </button>
+            </Show>
+
+            {/* Apply change button */}
+            <Show when={isChanged() && !confirmingCancel()}>
+              <button
+                onClick={handleApply}
+                disabled={loading()}
+                class={`px-4 py-2 text-sm font-medium text-white rounded transition disabled:opacity-50 ${
+                  confirmingDowngrade()
+                    ? 'bg-yellow-600 hover:bg-yellow-700'
+                    : 'bg-xcord-brand hover:bg-xcord-brand-hover'
+                }`}
+              >
+                {loading()
+                  ? 'Applying...'
+                  : confirmingDowngrade()
+                    ? 'Confirm Downgrade'
+                    : isUpgrade()
+                      ? isFree()
+                        ? 'Apply Change'
+                        : 'Upgrade'
+                      : 'Change Plan'}
+              </button>
+            </Show>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function Billing() {
-  const [billing] = createResource(fetchBilling);
-  const [invoices] = createResource(fetchInvoices);
+  const [billing, { refetch }] = createResource(fetchBilling);
+  const [invoices, { refetch: refetchInvoices }] = createResource(fetchInvoices);
+  const [editingInstance, setEditingInstance] = createSignal<InstanceBillingItem | null>(null);
+
+  const handlePlanSuccess = () => {
+    setEditingInstance(null);
+    refetch();
+    refetchInvoices();
+  };
 
   return (
     <div class="p-8 max-w-3xl">
@@ -157,7 +540,7 @@ export default function Billing() {
                         <div>
                           <div class="text-xs text-xcord-text-muted mb-1">Features</div>
                           <div class="text-sm text-xcord-text-primary font-medium">
-                            {formatFeature(instance.featureTier)}
+                            {formatFeature(instance.featureTier, instance.hdUpgrade)}
                           </div>
                         </div>
                         <div>
@@ -174,23 +557,31 @@ export default function Billing() {
                         </div>
                       </div>
 
-                      <Show when={instance.priceCents > 0}>
-                        <div class="pt-3 border-t border-xcord-bg-tertiary">
-                          <button
-                            disabled
-                            class="px-3 py-1.5 text-xs font-medium text-xcord-red bg-xcord-red/10 rounded opacity-50 cursor-not-allowed"
-                            title="Coming soon"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </Show>
+                      <div class="pt-3 border-t border-xcord-bg-tertiary">
+                        <button
+                          onClick={() => setEditingInstance(instance)}
+                          class="px-3 py-1.5 text-xs font-medium text-xcord-text-link bg-xcord-brand/10 rounded hover:bg-xcord-brand/20 transition"
+                        >
+                          Change Plan
+                        </button>
+                      </div>
                     </div>
                   )}
                 </For>
               </div>
             </Show>
           </div>
+        )}
+      </Show>
+
+      {/* Plan editor modal */}
+      <Show when={editingInstance()}>
+        {(instance) => (
+          <PlanEditor
+            instance={instance()}
+            onClose={() => setEditingInstance(null)}
+            onSuccess={handlePlanSuccess}
+          />
         )}
       </Show>
 

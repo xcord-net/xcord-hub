@@ -44,25 +44,36 @@ public sealed class StartApiContainerStep : IProvisioningStep
 
         try
         {
-            // Generate config JSON in xcord-config.json format (read by xcord-fed entrypoint)
-            var configJson = GenerateConfigJson(instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId, _hubConnectionString, _minioAccessKey, _minioSecretKey);
+            // Deserialize tier data from InstanceConfig (set by EnforceTierLimitsStep)
+            FeatureFlags? featureFlags = null;
+            ResourceLimits? limits = null;
+            ContainerResourceLimits? containerResourceLimits = null;
 
-            // Resolve resource limits from InstanceConfig (set by EnforceTierLimitsStep)
-            ContainerResourceLimits? resourceLimits = null;
+            if (instance.Config?.FeatureFlagsJson != null)
+            {
+                featureFlags = JsonSerializer.Deserialize<FeatureFlags>(instance.Config.FeatureFlagsJson);
+            }
+
             if (instance.Config?.ResourceLimitsJson != null)
             {
-                var limits = JsonSerializer.Deserialize<ResourceLimits>(instance.Config.ResourceLimitsJson);
+                limits = JsonSerializer.Deserialize<ResourceLimits>(instance.Config.ResourceLimitsJson);
                 if (limits != null)
                 {
-                    resourceLimits = new ContainerResourceLimits(
+                    containerResourceLimits = new ContainerResourceLimits(
                         MemoryBytes: (long)limits.MaxMemoryMb * 1024 * 1024,
                         CpuQuota: (long)limits.MaxCpuPercent * 1000
                     );
                 }
             }
 
+            // Generate config JSON in xcord-config.json format (read by xcord-fed entrypoint)
+            var configJson = GenerateConfigJson(
+                instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId,
+                _hubConnectionString, _minioAccessKey, _minioSecretKey,
+                featureFlags, limits);
+
             // Start container with config injected via XCORD_CONFIG_INLINE env var
-            var containerId = await _dockerService.StartContainerAsync(instance.Domain, configJson, resourceLimits, cancellationToken);
+            var containerId = await _dockerService.StartContainerAsync(instance.Domain, configJson, containerResourceLimits, cancellationToken);
 
             // Update infrastructure with container ID
             instance.Infrastructure.DockerContainerId = containerId;
@@ -112,7 +123,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
         long workerId,
         string hubConnectionString,
         string minioAccessKey,
-        string minioSecretKey)
+        string minioSecretKey,
+        FeatureFlags? featureFlags = null,
+        ResourceLimits? resourceLimits = null)
     {
         // Domain format for the instance: subdomain is used as-is (no suffix appended here —
         // the full domain (e.g. "test.localhost") is stored in ManagedInstance.Domain).
@@ -205,6 +218,38 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 batchSize = 100,
                 cleanupIntervalMinutes = 60,
                 retentionHours = 24
+            },
+            tier = new
+            {
+                canUseVoiceChannels = featureFlags?.CanUseVoiceChannels ?? true,
+                canUseVideoChannels = featureFlags?.CanUseVideoChannels ?? true,
+                canCreateBots = featureFlags?.CanCreateBots ?? true,
+                canUseWebhooks = featureFlags?.CanUseWebhooks ?? true,
+                canUseCustomEmoji = featureFlags?.CanUseCustomEmoji ?? true,
+                canUseThreads = featureFlags?.CanUseThreads ?? true,
+                canUseForumChannels = featureFlags?.CanUseForumChannels ?? true,
+                canUseScheduledEvents = featureFlags?.CanUseScheduledEvents ?? true,
+                canUseHdVideo = featureFlags?.CanUseHdVideo ?? false,
+                canUseSimulcast = featureFlags?.CanUseSimulcast ?? false,
+                canUseRecording = featureFlags?.CanUseRecording ?? false,
+                maxUsers = resourceLimits?.MaxUsers ?? 0,
+                maxServers = resourceLimits?.MaxServers ?? 0,
+                maxStorageMb = resourceLimits?.MaxStorageMb ?? 0,
+                maxRateLimit = resourceLimits?.MaxRateLimit ?? 0,
+                maxVoiceConcurrency = resourceLimits?.MaxVoiceConcurrency ?? 0,
+                maxVideoConcurrency = resourceLimits?.MaxVideoConcurrency ?? 0,
+                // Quality limits derived from feature tier
+                maxAudioBitrateKbps = (featureFlags?.CanUseVoiceChannels ?? true) ? 50 : 0,
+                maxVideoBitrateKbps = (featureFlags?.CanUseVideoChannels ?? false)
+                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 4000 : 1500) : 0,
+                maxVideoWidth = (featureFlags?.CanUseVideoChannels ?? false)
+                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 1920 : 1280) : 0,
+                maxVideoHeight = (featureFlags?.CanUseVideoChannels ?? false)
+                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 1080 : 720) : 0,
+                maxVideoFps = (featureFlags?.CanUseVideoChannels ?? false)
+                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 60 : 30) : 0,
+                maxScreenShareBitrateKbps = (featureFlags?.CanUseVideoChannels ?? false)
+                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 3000 : 1000) : 0
             }
         };
 

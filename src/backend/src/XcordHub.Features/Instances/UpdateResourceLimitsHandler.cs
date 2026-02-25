@@ -15,7 +15,9 @@ public sealed record UpdateResourceLimitsCommand(
     int MaxStorageMb,
     int MaxCpuPercent,
     int MaxMemoryMb,
-    int MaxRateLimit
+    int MaxRateLimit,
+    int MaxVoiceConcurrency = 0,
+    int MaxVideoConcurrency = 0
 );
 
 public sealed record UpdateResourceLimitsResponse(
@@ -29,7 +31,9 @@ public sealed record UpdateResourceLimitsRequest(
     int MaxStorageMb,
     int MaxCpuPercent,
     int MaxMemoryMb,
-    int MaxRateLimit
+    int MaxRateLimit,
+    int MaxVoiceConcurrency = 0,
+    int MaxVideoConcurrency = 0
 );
 
 public sealed class UpdateResourceLimitsHandler(HubDbContext dbContext)
@@ -58,7 +62,9 @@ public sealed class UpdateResourceLimitsHandler(HubDbContext dbContext)
             MaxStorageMb = request.MaxStorageMb,
             MaxCpuPercent = request.MaxCpuPercent,
             MaxMemoryMb = request.MaxMemoryMb,
-            MaxRateLimit = request.MaxRateLimit
+            MaxRateLimit = request.MaxRateLimit,
+            MaxVoiceConcurrency = request.MaxVoiceConcurrency,
+            MaxVideoConcurrency = request.MaxVideoConcurrency
         };
 
         instance.Config.ResourceLimitsJson = JsonSerializer.Serialize(resourceLimits);
@@ -99,7 +105,9 @@ public sealed class UpdateResourceLimitsHandler(HubDbContext dbContext)
                 request.MaxStorageMb,
                 request.MaxCpuPercent,
                 request.MaxMemoryMb,
-                request.MaxRateLimit
+                request.MaxRateLimit,
+                request.MaxVoiceConcurrency,
+                request.MaxVideoConcurrency
             );
 
             var result = await handler.Handle(command, ct);

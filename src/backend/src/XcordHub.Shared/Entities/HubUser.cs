@@ -13,6 +13,7 @@ public sealed class HubUser
     public bool IsDisabled { get; set; }
     public bool TwoFactorEnabled { get; set; }
     public string? TwoFactorSecret { get; set; }
+    public string? StripeCustomerId { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }

@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using XcordHub.Entities;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Billing;
@@ -14,7 +16,8 @@ namespace XcordHub.Features.Billing;
 public sealed record ChangePlanCommand(
     long InstanceId,
     FeatureTier TargetFeatureTier,
-    UserCountTier TargetUserCountTier
+    UserCountTier TargetUserCountTier,
+    bool HdUpgrade = false
 );
 
 public sealed record ChangePlanResponse(
@@ -28,6 +31,9 @@ public sealed record ChangePlanResponse(
 public sealed class ChangePlanHandler(
     HubDbContext dbContext,
     ICurrentUserService currentUserService,
+    IOptions<StripeOptions> stripeOptions,
+    IStripeService stripeService,
+    IEncryptionService encryptionService,
     IConfiguration configuration)
     : IRequestHandler<ChangePlanCommand, Result<ChangePlanResponse>>,
       IValidatable<ChangePlanCommand>
@@ -42,6 +48,9 @@ public sealed class ChangePlanHandler(
 
         if (!Enum.IsDefined(request.TargetUserCountTier))
             return Error.Validation("VALIDATION_FAILED", "Invalid user count tier");
+
+        if (request.HdUpgrade && request.TargetFeatureTier != FeatureTier.Video)
+            return Error.Validation("VALIDATION_FAILED", "HD upgrade requires Video feature tier");
 
         return null;
     }
@@ -68,24 +77,47 @@ public sealed class ChangePlanHandler(
             return Error.NotFound("BILLING_NOT_FOUND", "Billing record not found for this instance");
 
         if (instance.Billing.FeatureTier == request.TargetFeatureTier &&
-            instance.Billing.UserCountTier == request.TargetUserCountTier)
+            instance.Billing.UserCountTier == request.TargetUserCountTier &&
+            instance.Billing.HdUpgrade == request.HdUpgrade)
             return Error.BadRequest("SAME_PLAN", "Instance is already on this plan");
 
-        var priceCents = TierDefaults.GetPriceCents(request.TargetFeatureTier, request.TargetUserCountTier);
+        var priceCents = TierDefaults.GetPriceCents(request.TargetFeatureTier, request.TargetUserCountTier, request.HdUpgrade);
 
-        // Check if Stripe checkout is needed for paid plans
-        var stripeKey = configuration.GetValue<string>("Stripe:SecretKey");
-        if (!string.IsNullOrWhiteSpace(stripeKey) && priceCents > 0)
+        // If Stripe is configured and this is a paid plan, create a checkout session
+        var options = stripeOptions.Value;
+        if (options.IsConfigured && priceCents > 0)
         {
-            // TODO: Create Stripe checkout session when billing is wired up.
+            // Ensure Stripe customer exists for this user
+            var user = await dbContext.HubUsers.FindAsync([userId], cancellationToken);
+            if (user == null)
+                return Error.NotFound("USER_NOT_FOUND", "User not found");
+
+            var email = encryptionService.Decrypt(user.Email);
+
+            if (string.IsNullOrWhiteSpace(user.StripeCustomerId))
+            {
+                user.StripeCustomerId = await stripeService.EnsureCustomerAsync(
+                    userId, email, user.DisplayName, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            // Build a Stripe Price ID from the plan combination
+            var priceId = BuildStripePriceId(request.TargetFeatureTier, request.TargetUserCountTier, request.HdUpgrade);
+
             var baseUrl = configuration.GetValue<string>("Hub:BaseUrl") ?? "https://xcord-dev.net";
-            var checkoutUrl = $"{baseUrl}/dashboard/billing?checkout=pending";
+            var checkout = await stripeService.CreateCheckoutSessionAsync(new CreateCheckoutRequest(
+                CustomerId: user.StripeCustomerId,
+                PriceId: priceId,
+                InstanceId: instance.Id,
+                SuccessUrl: $"{baseUrl}/dashboard/billing?checkout=success&instance={instance.Id}",
+                CancelUrl: $"{baseUrl}/dashboard/billing?checkout=cancelled"
+            ), cancellationToken);
 
             return new ChangePlanResponse(
                 FeatureTier: request.TargetFeatureTier.ToString(),
                 UserCountTier: request.TargetUserCountTier.ToString(),
                 PriceCents: priceCents,
-                CheckoutUrl: checkoutUrl,
+                CheckoutUrl: checkout.CheckoutUrl,
                 RequiresCheckout: true
             );
         }
@@ -93,6 +125,7 @@ public sealed class ChangePlanHandler(
         // No Stripe configured (dev/self-hosted): apply plan change directly
         instance.Billing.FeatureTier = request.TargetFeatureTier;
         instance.Billing.UserCountTier = request.TargetUserCountTier;
+        instance.Billing.HdUpgrade = request.HdUpgrade;
 
         // Update config with new resource limits + feature flags
         if (instance.Config != null)
@@ -100,7 +133,7 @@ public sealed class ChangePlanHandler(
             instance.Config.ResourceLimitsJson = JsonSerializer.Serialize(
                 TierDefaults.GetResourceLimits(request.TargetUserCountTier));
             instance.Config.FeatureFlagsJson = JsonSerializer.Serialize(
-                TierDefaults.GetFeatureFlags(request.TargetFeatureTier));
+                TierDefaults.GetFeatureFlags(request.TargetFeatureTier, request.HdUpgrade));
             instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
@@ -113,6 +146,14 @@ public sealed class ChangePlanHandler(
             CheckoutUrl: null,
             RequiresCheckout: false
         );
+    }
+
+    private static string BuildStripePriceId(FeatureTier feature, UserCountTier users, bool hdUpgrade)
+    {
+        // Convention: price_xcord_{feature}_{users}[_hd]
+        // e.g. price_xcord_video_50_hd, price_xcord_chat_100
+        var suffix = hdUpgrade ? "_hd" : "";
+        return $"price_xcord_{feature.ToString().ToLowerInvariant()}_{(int)users}{suffix}";
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
