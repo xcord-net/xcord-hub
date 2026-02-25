@@ -23,9 +23,9 @@ public sealed class NoopDockerService : IDockerService
         return Task.FromResult(true);
     }
 
-    public Task<string> StartContainerAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default)
+    public Task<string> StartContainerAsync(string instanceDomain, string configJson, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("NOOP: Would start container for {Domain}", instanceDomain);
+        _logger.LogInformation("NOOP: Would start container for {Domain} with limits {Limits}", instanceDomain, resourceLimits);
         return Task.FromResult($"container_{instanceDomain}");
     }
 
