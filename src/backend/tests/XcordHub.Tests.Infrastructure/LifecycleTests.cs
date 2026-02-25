@@ -137,6 +137,28 @@ public sealed class LifecycleTests : IAsyncLifetime
         }
     }
 
+    private sealed class SpyMinioProvisioningService : IMinioProvisioningService
+    {
+        private readonly List<string> _callLog;
+
+        public SpyMinioProvisioningService(List<string> callLog) => _callLog = callLog;
+
+        public Task ProvisionBucketAsync(string bucketName, string accessKey, string secretKey, CancellationToken cancellationToken = default)
+        {
+            _callLog.Add($"ProvisionBucket:{bucketName}");
+            return Task.CompletedTask;
+        }
+
+        public Task DeprovisionBucketAsync(string bucketName, string accessKey, CancellationToken cancellationToken = default)
+        {
+            _callLog.Add($"DeprovisionBucket:{bucketName}");
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> VerifyBucketAsync(string bucketName, string accessKey, string secretKey, CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
+    }
+
     // ---------------------------------------------------------------------------
     // Helper — seeds a standard test user + instance + infrastructure.
     // ---------------------------------------------------------------------------
@@ -297,9 +319,10 @@ public sealed class LifecycleTests : IAsyncLifetime
         var dockerSpy = new SpyDockerService(callLog);
         var caddySpy = new SpyCaddyProxyManager(callLog);
         var dnsSpy = new SpyDnsProvider(callLog);
+        var minioSpy = new SpyMinioProvisioningService(callLog);
 
         var handler = new DestroyInstanceHandler(
-            _dbContext!, dockerSpy, caddySpy, dnsSpy,
+            _dbContext!, dockerSpy, caddySpy, dnsSpy, minioSpy,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -321,6 +344,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         callLog.Should().Contain(s => s.StartsWith("DeleteDns:"), "DNS record should be removed");
         callLog.Should().Contain(s => s.StartsWith("RemoveContainer:"), "container should be removed");
         callLog.Should().Contain(s => s.StartsWith("RemoveNetwork:"), "network should be removed");
+        callLog.Should().Contain(s => s.StartsWith("DeprovisionBucket:"), "MinIO bucket should be removed");
 
         // Verify cleanup order: stop before remove
         var stopIdx = callLog.FindIndex(s => s.StartsWith("Stop:"));
@@ -337,9 +361,10 @@ public sealed class LifecycleTests : IAsyncLifetime
         var dockerSpy = new SpyDockerService(callLog);
         var caddySpy = new SpyCaddyProxyManager(callLog);
         var dnsSpy = new SpyDnsProvider(callLog);
+        var minioSpy = new SpyMinioProvisioningService(callLog);
 
         var handler = new DestroyInstanceHandler(
-            _dbContext!, dockerSpy, caddySpy, dnsSpy,
+            _dbContext!, dockerSpy, caddySpy, dnsSpy, minioSpy,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -363,7 +388,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         var callLog = new List<string>();
         var handler = new DestroyInstanceHandler(
             _dbContext!, new SpyDockerService(callLog), new SpyCaddyProxyManager(callLog),
-            new SpyDnsProvider(callLog),
+            new SpyDnsProvider(callLog), new SpyMinioProvisioningService(callLog),
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
