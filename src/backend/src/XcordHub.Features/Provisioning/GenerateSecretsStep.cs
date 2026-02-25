@@ -42,6 +42,7 @@ public sealed class GenerateSecretsStep : IProvisioningStep
         var minioSecretKey = GenerateSecurePassword(40);
         var liveKitApiKey = GenerateAccessKey(20);
         var liveKitSecretKey = GenerateSecurePassword(40);
+        var instanceKek = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var bootstrapToken = TokenHelper.GenerateToken();
 
         var infrastructure = new InstanceInfrastructure
@@ -57,6 +58,7 @@ public sealed class GenerateSecretsStep : IProvisioningStep
             CaddyRouteId = string.Empty, // Will be set in ConfigureDnsAndProxy step
             LiveKitApiKey = liveKitApiKey,
             LiveKitSecretKey = liveKitSecretKey,
+            InstanceKek = instanceKek,
             BootstrapTokenHash = TokenHelper.HashToken(bootstrapToken),
             CreatedAt = DateTimeOffset.UtcNow
         };

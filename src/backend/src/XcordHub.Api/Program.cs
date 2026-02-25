@@ -56,10 +56,64 @@ builder.Services.AddDbContext<HubDbContext>(options =>
 // Snowflake ID generator
 builder.Services.AddSingleton(sp => new SnowflakeId(1)); // workerId 1 for hub
 
-// Encryption
-var encryptionKey = builder.Configuration.GetSection("Encryption:Key").Value
-    ?? throw new InvalidOperationException("Encryption key not configured");
-builder.Services.AddSingleton<IEncryptionService>(new AesEncryptionService(encryptionKey));
+// Encryption — resolve KEK, then DEK
+builder.Services.AddSingleton<IKekProvider, FileKekProvider>();
+
+// Resolve KEK inline (before DI container is built)
+byte[]? hubKek = null;
+{
+    var kekFile = builder.Configuration.GetSection("Encryption:KekFile").Value ?? "/run/secrets/xcord-kek";
+    var kekBase64 = builder.Configuration.GetSection("Encryption:Kek").Value;
+    if (File.Exists(kekFile))
+    {
+        hubKek = Convert.FromBase64String(File.ReadAllText(kekFile).Trim());
+        Log.Information("Hub KEK loaded from file {KekFile}", kekFile);
+    }
+    else if (!string.IsNullOrEmpty(kekBase64))
+    {
+        hubKek = Convert.FromBase64String(kekBase64);
+        Log.Information("Hub KEK loaded from configuration");
+    }
+}
+var encryptionKeyRaw = builder.Configuration.GetSection("Encryption:Key").Value;
+var wrappedKeyRaw = builder.Configuration.GetSection("Encryption:WrappedKey").Value;
+
+string resolvedEncryptionKey;
+if (hubKek != null)
+{
+    if (!string.IsNullOrEmpty(wrappedKeyRaw))
+    {
+        // Unwrap the wrapped DEK
+        var wrappedBytes = Convert.FromBase64String(wrappedKeyRaw);
+        var dekBytes = KeyWrappingService.UnwrapDek(wrappedBytes, hubKek);
+        resolvedEncryptionKey = Convert.ToBase64String(dekBytes);
+        Log.Information("Hub encryption key unwrapped using KEK");
+    }
+    else if (!string.IsNullOrEmpty(encryptionKeyRaw))
+    {
+        // Plaintext key + KEK — use plaintext for now, log warning
+        resolvedEncryptionKey = encryptionKeyRaw;
+        Log.Warning("Hub has KEK configured but encryption key is plaintext — wrap the key for production use");
+    }
+    else
+    {
+        throw new InvalidOperationException("KEK is configured but no encryption key (Key or WrappedKey) is provided");
+    }
+}
+else
+{
+    if (!string.IsNullOrEmpty(wrappedKeyRaw))
+    {
+        throw new InvalidOperationException(
+            "Wrapped encryption key configured but no KEK is available. " +
+            "Provide the KEK via /run/secrets/xcord-kek or Encryption:Kek config.");
+    }
+
+    resolvedEncryptionKey = encryptionKeyRaw
+        ?? throw new InvalidOperationException("Encryption key not configured");
+    Log.Warning("Hub encryption key loaded WITHOUT envelope encryption — configure a KEK for production use");
+}
+builder.Services.AddSingleton<IEncryptionService>(new AesEncryptionService(resolvedEncryptionKey));
 
 // Email
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();

@@ -71,6 +71,12 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
             .HasColumnType("bytea")
             .HasConversion(_encryptedStringConverter);
 
+        // Per-instance KEK — stored encrypted so only the hub can decrypt it
+        builder.Property(x => x.InstanceKek)
+            .IsRequired()
+            .HasColumnType("bytea")
+            .HasConversion(_encryptedStringConverter);
+
         builder.Property(x => x.BootstrapTokenHash)
             .HasMaxLength(64);
 
