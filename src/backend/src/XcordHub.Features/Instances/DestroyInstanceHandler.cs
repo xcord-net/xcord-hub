@@ -18,6 +18,7 @@ public sealed class DestroyInstanceHandler(
     IDockerService dockerService,
     ICaddyProxyManager proxyManager,
     IDnsProvider dnsProvider,
+    IMinioProvisioningService minioService,
     ILogger<DestroyInstanceHandler> logger)
     : IRequestHandler<DestroyInstanceCommand, Result<bool>>
 {
@@ -152,6 +153,19 @@ public sealed class DestroyInstanceHandler(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to remove network, continuing cleanup");
+        }
+
+        // 6. Remove MinIO bucket and per-instance user
+        try
+        {
+            var subdomain = instance.Domain.Split('.')[0];
+            var bucketName = $"xcord-{subdomain}";
+            logger.LogInformation("Removing MinIO bucket {Bucket} for {Domain}", bucketName, instance.Domain);
+            await minioService.DeprovisionBucketAsync(bucketName, infrastructure.MinioAccessKey, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to remove MinIO bucket, continuing cleanup");
         }
     }
 

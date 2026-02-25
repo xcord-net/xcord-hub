@@ -13,8 +13,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
     private readonly HubDbContext _dbContext;
     private readonly IDockerService _dockerService;
     private readonly string _hubConnectionString;
-    private readonly string _minioAccessKey;
-    private readonly string _minioSecretKey;
 
     public string StepName => "StartApiContainer";
 
@@ -24,10 +22,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
         _dockerService = dockerService;
         _hubConnectionString = configuration.GetSection("Database:ConnectionString").Value
             ?? throw new InvalidOperationException("Database:ConnectionString not configured");
-        // Instances use the hub's root MinIO credentials (per-instance MinIO users
-        // are not yet provisioned).
-        _minioAccessKey = configuration.GetSection("Storage:AccessKey").Value ?? "minioadmin";
-        _minioSecretKey = configuration.GetSection("Storage:SecretKey").Value ?? "minioadmin";
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -66,10 +60,11 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 }
             }
 
-            // Generate config JSON in xcord-config.json format (read by xcord-fed entrypoint)
+            // Generate config JSON in xcord-config.json format (read by xcord-fed entrypoint).
+            // Use per-instance MinIO credentials provisioned by ProvisionMinioStep.
             var configJson = GenerateConfigJson(
                 instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId,
-                _hubConnectionString, _minioAccessKey, _minioSecretKey,
+                _hubConnectionString, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
                 featureFlags, limits);
 
             // Start container with config injected via XCORD_CONFIG_INLINE env var

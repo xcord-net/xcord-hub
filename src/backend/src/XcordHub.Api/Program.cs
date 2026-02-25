@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Minio;
 using Serilog;
 using StackExchange.Redis;
 using XcordHub.Api;
@@ -45,6 +46,7 @@ builder.Services.Configure<CloudflareOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<DockerOptions>(builder.Configuration.GetSection("Docker"));
 builder.Services.Configure<CaddyOptions>(builder.Configuration.GetSection("Caddy"));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection(MinioOptions.SectionName));
 
 // Database
 var connectionString = builder.Configuration.GetSection("Database:ConnectionString").Value
@@ -158,6 +160,35 @@ builder.Services.AddHttpClient("Cloudflare", client =>
     client.Timeout = TimeSpan.FromSeconds(15);
 });
 
+// MinIO — root client and provisioning service
+var minioOptions = builder.Configuration.GetSection(MinioOptions.SectionName).Get<MinioOptions>() ?? new MinioOptions();
+var minioEndpoint = minioOptions.Endpoint;
+if (minioEndpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+    minioEndpoint = minioEndpoint[7..];
+else if (minioEndpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+    minioEndpoint = minioEndpoint[8..];
+
+builder.Services.AddMinio(configure =>
+{
+    configure
+        .WithEndpoint(minioEndpoint)
+        .WithCredentials(minioOptions.AccessKey, minioOptions.SecretKey)
+        .WithSSL(minioOptions.UseSsl);
+});
+
+var minioConsoleEndpoint = minioOptions.ConsoleEndpoint;
+var minioConsoleUrl = minioConsoleEndpoint.Contains("://")
+    ? minioConsoleEndpoint
+    : $"http{(minioOptions.UseSsl ? "s" : "")}://{minioConsoleEndpoint}";
+
+builder.Services.AddHttpClient("MinioConsole", client =>
+{
+    client.BaseAddress = new Uri(minioConsoleUrl);
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
+builder.Services.AddSingleton<IMinioProvisioningService, MinioProvisioningService>();
+
 // Provisioning infrastructure services
 builder.Services.AddScoped<IProvisioningQueue, DatabaseProvisioningQueue>();
 
@@ -219,6 +250,7 @@ builder.Services.AddScoped<IProvisioningStep, GenerateSecretsStep>();
 builder.Services.AddScoped<IProvisioningStep, AllocateWorkerIdStep>();
 builder.Services.AddScoped<IProvisioningStep, CreateNetworkStep>();
 builder.Services.AddScoped<IProvisioningStep, ProvisionDatabaseStep>();
+builder.Services.AddScoped<IProvisioningStep, ProvisionMinioStep>();
 builder.Services.AddScoped<IProvisioningStep, StartApiContainerStep>();
 builder.Services.AddScoped<IProvisioningStep, ConfigureDnsAndProxyStep>();
 
