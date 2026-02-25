@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub;
 
@@ -19,6 +20,7 @@ public sealed class EnforceTierLimitsStep : IProvisioningStep
     {
         var instance = await _dbContext.ManagedInstances
             .Include(i => i.Billing)
+            .Include(i => i.Config)
             .FirstOrDefaultAsync(i => i.Id == instanceId, cancellationToken);
 
         if (instance?.Billing == null)
@@ -26,13 +28,46 @@ public sealed class EnforceTierLimitsStep : IProvisioningStep
             return Error.NotFound("INSTANCE_NOT_FOUND", $"Instance {instanceId} or billing not found");
         }
 
-        // No per-user instance limits in the new billing model.
-        // Billing is per-instance with FeatureTier + UserCountTier.
+        // Resolve resource limits from the billing tier
+        var resourceLimits = TierDefaults.GetResourceLimits(instance.Billing.UserCountTier);
+        var featureFlags = TierDefaults.GetFeatureFlags(instance.Billing.FeatureTier);
+
+        // Store resolved limits in InstanceConfig so StartApiContainerStep can apply them
+        if (instance.Config == null)
+        {
+            instance.Config = new Entities.InstanceConfig
+            {
+                ManagedInstanceId = instanceId,
+                ConfigJson = "{}",
+                ResourceLimitsJson = System.Text.Json.JsonSerializer.Serialize(resourceLimits),
+                FeatureFlagsJson = System.Text.Json.JsonSerializer.Serialize(featureFlags),
+                Version = 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            _dbContext.InstanceConfigs.Add(instance.Config);
+        }
+        else
+        {
+            instance.Config.ResourceLimitsJson = System.Text.Json.JsonSerializer.Serialize(resourceLimits);
+            instance.Config.FeatureFlagsJson = System.Text.Json.JsonSerializer.Serialize(featureFlags);
+            instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
         return true;
     }
 
-    public Task<Result<bool>> VerifyAsync(long instanceId, CancellationToken cancellationToken = default)
+    public async Task<Result<bool>> VerifyAsync(long instanceId, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<Result<bool>>(true);
+        var config = await _dbContext.InstanceConfigs
+            .FirstOrDefaultAsync(c => c.ManagedInstanceId == instanceId, cancellationToken);
+
+        if (config == null || string.IsNullOrWhiteSpace(config.ResourceLimitsJson))
+        {
+            return Error.Failure("LIMITS_NOT_SET", "Resource limits have not been stored");
+        }
+
+        return true;
     }
 }

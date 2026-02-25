@@ -69,7 +69,7 @@ public sealed class HttpDockerService : IDockerService
         }
     }
 
-    public async Task<string> StartContainerAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default)
+    public async Task<string> StartContainerAsync(string instanceDomain, string configJson, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
     {
         var subdomain = instanceDomain.Split('.')[0];
         var containerName = $"xcord-{subdomain}-api";
@@ -78,30 +78,35 @@ public sealed class HttpDockerService : IDockerService
         // Create container; inject config JSON via XCORD_CONFIG_INLINE so the
         // xcord-fed entrypoint can generate appsettings.Production.json without
         // needing a Docker secret mount (which requires compose-style secrets).
-        var createPayload = new
+        var hostConfig = new Dictionary<string, object>
         {
-            Image = _instanceImage,
-            Name = containerName,
-            Hostname = containerName,
-            Env = new[]
+            ["NetworkMode"] = networkName,
+            ["RestartPolicy"] = new { Name = "unless-stopped" }
+        };
+
+        if (resourceLimits != null)
+        {
+            hostConfig["Memory"] = resourceLimits.MemoryBytes;
+            hostConfig["CpuQuota"] = resourceLimits.CpuQuota;
+            hostConfig["CpuPeriod"] = 100_000L;
+        }
+
+        var createPayload = new Dictionary<string, object>
+        {
+            ["Image"] = _instanceImage,
+            ["Hostname"] = containerName,
+            ["Env"] = new[]
             {
                 "ASPNETCORE_ENVIRONMENT=Production",
                 $"XCORD_CONFIG_INLINE={configJson}"
             },
-            Labels = new Dictionary<string, string>
+            ["Labels"] = new Dictionary<string, string>
             {
                 ["xcord.instance.domain"] = instanceDomain,
                 ["xcord.instance.subdomain"] = subdomain,
                 ["xcord.instance.type"] = "api"
             },
-            HostConfig = new
-            {
-                NetworkMode = networkName,
-                RestartPolicy = new
-                {
-                    Name = "unless-stopped"
-                }
-            }
+            ["HostConfig"] = hostConfig
         };
 
         _logger.LogInformation("Creating Docker container {ContainerName} for instance {Domain}", containerName, instanceDomain);

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
+using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 using XcordHub;
@@ -46,8 +47,22 @@ public sealed class StartApiContainerStep : IProvisioningStep
             // Generate config JSON in xcord-config.json format (read by xcord-fed entrypoint)
             var configJson = GenerateConfigJson(instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId, _hubConnectionString, _minioAccessKey, _minioSecretKey);
 
+            // Resolve resource limits from InstanceConfig (set by EnforceTierLimitsStep)
+            ContainerResourceLimits? resourceLimits = null;
+            if (instance.Config?.ResourceLimitsJson != null)
+            {
+                var limits = JsonSerializer.Deserialize<ResourceLimits>(instance.Config.ResourceLimitsJson);
+                if (limits != null)
+                {
+                    resourceLimits = new ContainerResourceLimits(
+                        MemoryBytes: (long)limits.MaxMemoryMb * 1024 * 1024,
+                        CpuQuota: (long)limits.MaxCpuPercent * 1000
+                    );
+                }
+            }
+
             // Start container with config injected via XCORD_CONFIG_INLINE env var
-            var containerId = await _dockerService.StartContainerAsync(instance.Domain, configJson, cancellationToken);
+            var containerId = await _dockerService.StartContainerAsync(instance.Domain, configJson, resourceLimits, cancellationToken);
 
             // Update infrastructure with container ID
             instance.Infrastructure.DockerContainerId = containerId;
