@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -34,6 +35,13 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+// JSON serialization — enums as strings, snowflake IDs as strings
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.Converters.Add(new SnowflakeJsonConverter());
+});
 
 // Options
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("Database"));

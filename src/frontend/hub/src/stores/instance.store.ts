@@ -89,13 +89,15 @@ export const instanceStore = {
     }
   },
 
-  async createInstance(subdomain: string, displayName: string, adminPassword: string, featureTier: string = 'Chat', userCountTier: string = 'Tier10'): Promise<components['schemas']['CreateInstanceResponse']> {
+  async createInstance(subdomain: string, displayName: string, adminPassword: string, featureTier: string = 'Chat', userCountTier: string = 'Tier10', hdUpgrade: boolean = false): Promise<components['schemas']['CreateInstanceResponse']> {
     try {
+      const token = localStorage.getItem('xcord_hub_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const response = await fetch('/api/v1/hub/instances', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ subdomain, displayName, adminPassword, featureTier, userCountTier }),
+        headers,
+        body: JSON.stringify({ subdomain, displayName, adminPassword, featureTier, userCountTier, hdUpgrade }),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({ message: 'Failed to create instance' }));

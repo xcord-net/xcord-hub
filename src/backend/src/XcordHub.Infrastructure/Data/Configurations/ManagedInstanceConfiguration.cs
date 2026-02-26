@@ -53,7 +53,8 @@ public sealed class ManagedInstanceConfiguration : IEntityTypeConfiguration<Mana
             .HasFilter("\"DeletedAt\" IS NULL");
 
         builder.HasIndex(x => x.SnowflakeWorkerId)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("\"SnowflakeWorkerId\" > 0 AND \"DeletedAt\" IS NULL");
 
         builder.HasIndex(x => x.OwnerId);
 

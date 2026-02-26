@@ -1464,11 +1464,19 @@
         }
       },
       "FeatureTier": {
-        "type": "integer",
-        "default": 0
+        "enum": [
+          "Chat",
+          "Audio",
+          "Video"
+        ],
+        "default": "Chat"
       },
       "FeatureTier2": {
-        "type": "integer"
+        "enum": [
+          "Chat",
+          "Audio",
+          "Video"
+        ]
       },
       "ForgotPasswordRequest": {
         "required": [
@@ -2290,11 +2298,21 @@
         }
       },
       "UserCountTier": {
-        "type": "integer",
-        "default": 10
+        "enum": [
+          "Tier10",
+          "Tier50",
+          "Tier100",
+          "Tier500"
+        ],
+        "default": "Tier10"
       },
       "UserCountTier2": {
-        "type": "integer"
+        "enum": [
+          "Tier10",
+          "Tier50",
+          "Tier100",
+          "Tier500"
+        ]
       },
       "Verify2FARequest": {
         "required": [
