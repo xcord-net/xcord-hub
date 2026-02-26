@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 
@@ -13,7 +14,9 @@ public sealed record RegisterRequest(
     string Username,
     string DisplayName,
     string Email,
-    string Password
+    string Password,
+    string? CaptchaId = null,
+    string? CaptchaAnswer = null
 );
 
 public sealed record RegisterResponse(string UserId, string Username, string DisplayName, string Email, string AccessToken, string RefreshToken);
@@ -24,7 +27,9 @@ public sealed class RegisterHandler(
     HubDbContext dbContext,
     IEncryptionService encryptionService,
     IJwtService jwtService,
-    SnowflakeId snowflakeGenerator)
+    SnowflakeId snowflakeGenerator,
+    ICaptchaService captchaService,
+    IHttpContextAccessor httpContextAccessor)
     : IRequestHandler<RegisterRequest, Result<RegisterResponse>>, IValidatable<RegisterRequest>
 {
     public Error? Validate(RegisterRequest request)
@@ -64,6 +69,12 @@ public sealed class RegisterHandler(
 
     public async Task<Result<RegisterResponse>> Handle(RegisterRequest request, CancellationToken cancellationToken)
     {
+        // Validate captcha
+        if (!await captchaService.ValidateAsync(request.CaptchaId ?? "", request.CaptchaAnswer ?? ""))
+        {
+            return Error.BadRequest("CAPTCHA_FAILED", "Invalid or expired captcha");
+        }
+
         // Check if username already exists
         var usernameExists = await dbContext.HubUsers
             .AnyAsync(u => u.Username == request.Username, cancellationToken);
@@ -122,6 +133,20 @@ public sealed class RegisterHandler(
         };
 
         dbContext.RefreshTokens.Add(refreshToken);
+
+        // Record login attempt (registration counts as a successful login)
+        var httpContext = httpContextAccessor.HttpContext;
+        var loginAttempt = new LoginAttempt
+        {
+            Id = snowflakeGenerator.NextId(),
+            Email = request.Email,
+            IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            UserAgent = httpContext?.Request.Headers.UserAgent.ToString() ?? "",
+            Success = true,
+            UserId = userId,
+            CreatedAt = now
+        };
+        dbContext.LoginAttempts.Add(loginAttempt);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

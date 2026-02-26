@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using System.Text;
 using Testcontainers.PostgreSql;
 using XcordHub.Entities;
+using XcordHub.Features.Auth;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
@@ -118,7 +119,8 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
             new SnowflakeId(workerId: 254),
             currentUserService,
             NoOpProvisioningQueue(),
-            BuildConfiguration());
+            BuildConfiguration(),
+            new NoOpCaptchaService());
     }
 
     // ---------------------------------------------------------------------------

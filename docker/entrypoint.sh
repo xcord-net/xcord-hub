@@ -68,6 +68,9 @@ if [ -f "$CONFIG_PATH" ]; then
             UseSsl: (.email.useSsl // false),
             DevMode: (.email.devMode // false),
             HubBaseUrl: (.email.hubBaseUrl // "")
+        },
+        Captcha: {
+            Enabled: (if .captcha.enabled == false then false else true end)
         }
     }' "$CONFIG_PATH" > "$APPSETTINGS_PATH"
 

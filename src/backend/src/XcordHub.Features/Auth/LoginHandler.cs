@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 
@@ -22,7 +23,8 @@ public sealed class LoginHandler(
     HubDbContext dbContext,
     IEncryptionService encryptionService,
     IJwtService jwtService,
-    SnowflakeId snowflakeGenerator)
+    SnowflakeId snowflakeGenerator,
+    IHttpContextAccessor httpContextAccessor)
     : IRequestHandler<LoginRequest, Result<LoginResponse>>, IValidatable<LoginRequest>
 {
     public Error? Validate(LoginRequest request)
@@ -39,6 +41,22 @@ public sealed class LoginHandler(
         return null;
     }
 
+    private LoginAttempt CreateLoginAttempt(string email, string? failureReason = null, long? userId = null)
+    {
+        var httpContext = httpContextAccessor.HttpContext;
+        return new LoginAttempt
+        {
+            Id = snowflakeGenerator.NextId(),
+            Email = email,
+            IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            UserAgent = httpContext?.Request.Headers.UserAgent.ToString() ?? "",
+            Success = failureReason == null,
+            FailureReason = failureReason,
+            UserId = userId,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+    }
+
     public async Task<Result<LoginResponse>> Handle(LoginRequest request, CancellationToken cancellationToken)
     {
         // Find user by EmailHash
@@ -48,24 +66,32 @@ public sealed class LoginHandler(
 
         if (user == null)
         {
+            dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_CREDENTIALS"));
+            await dbContext.SaveChangesAsync(cancellationToken);
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
         // Verify password
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
+            dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_CREDENTIALS", user.Id));
+            await dbContext.SaveChangesAsync(cancellationToken);
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
         // Check if account is disabled
         if (user.IsDisabled)
         {
+            dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "ACCOUNT_DISABLED", user.Id));
+            await dbContext.SaveChangesAsync(cancellationToken);
             return Error.Forbidden("ACCOUNT_DISABLED", "Account is disabled");
         }
 
         // If 2FA is enabled, reject with a code the client uses to prompt for TOTP
         if (user.TwoFactorEnabled)
         {
+            dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "2FA_REQUIRED", user.Id));
+            await dbContext.SaveChangesAsync(cancellationToken);
             return Error.Forbidden("2FA_REQUIRED", "Two-factor authentication is required");
         }
 
@@ -87,6 +113,10 @@ public sealed class LoginHandler(
         };
 
         dbContext.RefreshTokens.Add(refreshToken);
+
+        // Record successful login attempt
+        dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, null, user.Id));
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // Generate JWT access token

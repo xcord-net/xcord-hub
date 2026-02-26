@@ -11,6 +11,7 @@ using Serilog;
 using StackExchange.Redis;
 using XcordHub.Api;
 using XcordHub.Api.Options;
+using XcordHub.Features.Auth;
 using XcordHub.Entities;
 using XcordHub.Features;
 using XcordHub.Features.Monitoring;
@@ -55,6 +56,7 @@ builder.Services.Configure<DockerOptions>(builder.Configuration.GetSection("Dock
 builder.Services.Configure<CaddyOptions>(builder.Configuration.GetSection("Caddy"));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
 builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection(MinioOptions.SectionName));
+builder.Services.Configure<CaptchaOptions>(builder.Configuration.GetSection("Captcha"));
 
 // Database
 var connectionString = builder.Configuration.GetSection("Database:ConnectionString").Value
@@ -124,6 +126,17 @@ else
     Log.Warning("Hub encryption key loaded WITHOUT envelope encryption — configure a KEK for production use");
 }
 builder.Services.AddSingleton<IEncryptionService>(new AesEncryptionService(resolvedEncryptionKey));
+
+// Captcha
+var captchaEnabled = builder.Configuration.GetValue<bool>("Captcha:Enabled", true);
+if (captchaEnabled)
+{
+    builder.Services.AddScoped<ICaptchaService, CaptchaService>();
+}
+else
+{
+    builder.Services.AddSingleton<ICaptchaService, NoOpCaptchaService>();
+}
 
 // Email
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();
