@@ -7,6 +7,8 @@ import LandingLayout from './components/LandingLayout';
 const Landing = lazy(() => import('./routes/Landing'));
 const Pricing = lazy(() => import('./routes/Pricing'));
 const SelfHosting = lazy(() => import('./routes/SelfHosting'));
+const TermsOfService = lazy(() => import('./routes/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./routes/PrivacyPolicy'));
 const Login = lazy(() => import('./routes/auth/Login'));
 const Register = lazy(() => import('./routes/auth/Register'));
 const ForgotPassword = lazy(() => import('./routes/auth/ForgotPassword'));
@@ -23,6 +25,8 @@ export default function App() {
       <Route path="/" component={() => <LandingLayout><Landing /></LandingLayout>} />
       <Route path="/pricing" component={() => <LandingLayout><Pricing /></LandingLayout>} />
       <Route path="/docs/self-hosting" component={() => <LandingLayout><SelfHosting /></LandingLayout>} />
+      <Route path="/terms" component={() => <LandingLayout><TermsOfService /></LandingLayout>} />
+      <Route path="/privacy" component={() => <LandingLayout><PrivacyPolicy /></LandingLayout>} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
