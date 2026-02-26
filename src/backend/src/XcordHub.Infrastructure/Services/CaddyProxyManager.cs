@@ -18,7 +18,7 @@ public sealed class CaddyProxyManager : ICaddyProxyManager
 
     public async Task<string> CreateRouteAsync(string instanceDomain, string containerName, CancellationToken cancellationToken = default)
     {
-        var subdomain = instanceDomain.Split('.')[0];
+        var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var routeId = $"xcord-{subdomain}-route";
 
         // Caddy Admin API route configuration with @id for later retrieval/deletion.

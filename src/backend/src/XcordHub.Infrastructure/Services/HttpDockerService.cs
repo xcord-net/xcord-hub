@@ -25,7 +25,7 @@ public sealed class HttpDockerService : IDockerService
 
     public async Task<string> CreateNetworkAsync(string instanceDomain, CancellationToken cancellationToken = default)
     {
-        var subdomain = instanceDomain.Split('.')[0];
+        var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var networkName = $"xcord-{subdomain}-net";
 
         var payload = new
@@ -71,7 +71,7 @@ public sealed class HttpDockerService : IDockerService
 
     public async Task<string> StartContainerAsync(string instanceDomain, string configJson, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
     {
-        var subdomain = instanceDomain.Split('.')[0];
+        var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var containerName = $"xcord-{subdomain}-api";
         var networkName = $"xcord-{subdomain}-net";
 
@@ -161,7 +161,7 @@ public sealed class HttpDockerService : IDockerService
 
     public async Task RunMigrationContainerAsync(string instanceDomain, CancellationToken cancellationToken = default)
     {
-        var subdomain = instanceDomain.Split('.')[0];
+        var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var containerName = $"xcord-{subdomain}-migrations";
         var networkName = $"xcord-{subdomain}-net";
 

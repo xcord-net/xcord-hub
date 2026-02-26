@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -34,7 +33,7 @@ public sealed class AddMailingListEntryHandler(HubDbContext dbContext, Snowflake
         if (request.Email.Length > 255)
             return Error.Validation("VALIDATION_FAILED", "Email must not exceed 255 characters.");
 
-        if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        if (!ValidationHelpers.IsValidEmail(request.Email))
             return Error.Validation("VALIDATION_FAILED", "Invalid email format.");
 
         if (string.IsNullOrWhiteSpace(request.Tier))

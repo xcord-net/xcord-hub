@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Testcontainers.PostgreSql;
 using XcordHub.Entities;
+using XcordHub.Features.Destruction;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
@@ -320,9 +321,10 @@ public sealed class LifecycleTests : IAsyncLifetime
         var caddySpy = new SpyCaddyProxyManager(callLog);
         var dnsSpy = new SpyDnsProvider(callLog);
         var minioSpy = new SpyMinioProvisioningService(callLog);
+        var pipeline = CreateDestructionPipeline(dockerSpy, caddySpy, dnsSpy, minioSpy);
 
         var handler = new DestroyInstanceHandler(
-            _dbContext!, dockerSpy, caddySpy, dnsSpy, minioSpy,
+            _dbContext!, pipeline,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -362,9 +364,10 @@ public sealed class LifecycleTests : IAsyncLifetime
         var caddySpy = new SpyCaddyProxyManager(callLog);
         var dnsSpy = new SpyDnsProvider(callLog);
         var minioSpy = new SpyMinioProvisioningService(callLog);
+        var pipeline = CreateDestructionPipeline(dockerSpy, caddySpy, dnsSpy, minioSpy);
 
         var handler = new DestroyInstanceHandler(
-            _dbContext!, dockerSpy, caddySpy, dnsSpy, minioSpy,
+            _dbContext!, pipeline,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -386,9 +389,11 @@ public sealed class LifecycleTests : IAsyncLifetime
         var (owner, instance, _) = await SeedInstanceAsync(9_258_100_000L, "destroy_dup", InstanceStatus.Destroyed);
 
         var callLog = new List<string>();
+        var pipeline = CreateDestructionPipeline(
+            new SpyDockerService(callLog), new SpyCaddyProxyManager(callLog),
+            new SpyDnsProvider(callLog), new SpyMinioProvisioningService(callLog));
         var handler = new DestroyInstanceHandler(
-            _dbContext!, new SpyDockerService(callLog), new SpyCaddyProxyManager(callLog),
-            new SpyDnsProvider(callLog), new SpyMinioProvisioningService(callLog),
+            _dbContext!, pipeline,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -397,5 +402,21 @@ public sealed class LifecycleTests : IAsyncLifetime
         result.IsSuccess.Should().BeFalse("cannot destroy an already-destroyed instance");
         result.Error!.Code.Should().Be("ALREADY_DESTROYED");
         callLog.Should().BeEmpty("no cleanup should be attempted for destroyed instances");
+    }
+
+    private static DestructionPipeline CreateDestructionPipeline(
+        IDockerService dockerService, ICaddyProxyManager caddyProxy,
+        IDnsProvider dnsProvider, IMinioProvisioningService minioService)
+    {
+        var steps = new IDestructionStep[]
+        {
+            new StopContainerStep(dockerService, NullLogger<StopContainerStep>.Instance),
+            new RemoveProxyRouteStep(caddyProxy, NullLogger<RemoveProxyRouteStep>.Instance),
+            new RemoveDnsRecordStep(dnsProvider, NullLogger<RemoveDnsRecordStep>.Instance),
+            new RemoveContainerStep(dockerService, NullLogger<RemoveContainerStep>.Instance),
+            new RemoveNetworkStep(dockerService, NullLogger<RemoveNetworkStep>.Instance),
+            new RemoveMinioBucketStep(minioService, NullLogger<RemoveMinioBucketStep>.Instance),
+        };
+        return new DestructionPipeline(steps, NullLogger<DestructionPipeline>.Instance);
     }
 }

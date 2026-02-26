@@ -24,7 +24,7 @@ public sealed class CloudflareDnsProvider : IDnsProvider
     public async Task CreateARecordAsync(string subdomain, string ipAddress, CancellationToken cancellationToken = default)
     {
         // Extract subdomain from full domain (e.g., "myserver.xcord.net" -> "myserver")
-        var recordName = subdomain.Contains('.') ? subdomain.Split('.')[0] : subdomain;
+        var recordName = ValidationHelpers.ExtractSubdomain(subdomain);
 
         var payload = new
         {
@@ -55,7 +55,7 @@ public sealed class CloudflareDnsProvider : IDnsProvider
     {
         try
         {
-            var recordName = subdomain.Contains('.') ? subdomain.Split('.')[0] : subdomain;
+            var recordName = ValidationHelpers.ExtractSubdomain(subdomain);
 
             var response = await _httpClient.GetAsync(
                 $"/client/v4/zones/{_options.ZoneId}/dns_records?type=A&name={recordName}.{_options.DomainName}",
@@ -78,7 +78,7 @@ public sealed class CloudflareDnsProvider : IDnsProvider
 
     public async Task DeleteARecordAsync(string subdomain, CancellationToken cancellationToken = default)
     {
-        var recordName = subdomain.Contains('.') ? subdomain.Split('.')[0] : subdomain;
+        var recordName = ValidationHelpers.ExtractSubdomain(subdomain);
 
         _logger.LogInformation("Deleting Cloudflare A record {RecordName}", recordName);
 

@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -32,7 +31,7 @@ public sealed class LoginHandler(
         if (string.IsNullOrWhiteSpace(request.Email))
             return Error.Validation("VALIDATION_FAILED", "Email is required");
 
-        if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        if (!ValidationHelpers.IsValidEmail(request.Email))
             return Error.Validation("VALIDATION_FAILED", "Invalid email format");
 
         if (string.IsNullOrWhiteSpace(request.Password))
@@ -42,20 +41,7 @@ public sealed class LoginHandler(
     }
 
     private LoginAttempt CreateLoginAttempt(string email, string? failureReason = null, long? userId = null)
-    {
-        var httpContext = httpContextAccessor.HttpContext;
-        return new LoginAttempt
-        {
-            Id = snowflakeGenerator.NextId(),
-            Email = email,
-            IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            UserAgent = httpContext?.Request.Headers.UserAgent.ToString() ?? "",
-            Success = failureReason == null,
-            FailureReason = failureReason,
-            UserId = userId,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-    }
+        => LoginAttemptRecorder.Create(snowflakeGenerator, httpContextAccessor, email, failureReason, userId);
 
     public async Task<Result<LoginResponse>> Handle(LoginRequest request, CancellationToken cancellationToken)
     {

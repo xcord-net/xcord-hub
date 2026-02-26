@@ -7,8 +7,6 @@ using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Auth;
 
-public sealed record RefreshTokenRequest;
-
 public sealed record RefreshTokenResponse(string AccessToken, string RefreshToken);
 
 public sealed record RefreshTokenApiResponse(string AccessToken);
@@ -17,14 +15,8 @@ public sealed class RefreshTokenHandler(
     HubDbContext dbContext,
     IJwtService jwtService,
     SnowflakeId snowflakeGenerator)
-    : IRequestHandler<RefreshTokenRequest, Result<RefreshTokenResponse>>
+    : IEndpoint
 {
-    public Task<Result<RefreshTokenResponse>> Handle(RefreshTokenRequest request, CancellationToken cancellationToken)
-    {
-        // Note: The refresh token value will be passed from the endpoint via HandleWithToken
-        return Task.FromResult<Result<RefreshTokenResponse>>(Error.Validation("INVALID_TOKEN", "Invalid or expired refresh token"));
-    }
-
     public async Task<Result<RefreshTokenResponse>> HandleWithToken(string refreshTokenValue, CancellationToken cancellationToken)
     {
         // Hash the token

@@ -52,7 +52,7 @@ public sealed class RegisterHandler(
         if (string.IsNullOrWhiteSpace(request.Email))
             return Error.Validation("VALIDATION_FAILED", "Email is required");
 
-        if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        if (!ValidationHelpers.IsValidEmail(request.Email))
             return Error.Validation("VALIDATION_FAILED", "Invalid email format");
 
         if (request.Email.Length > 255)
@@ -135,18 +135,8 @@ public sealed class RegisterHandler(
         dbContext.RefreshTokens.Add(refreshToken);
 
         // Record login attempt (registration counts as a successful login)
-        var httpContext = httpContextAccessor.HttpContext;
-        var loginAttempt = new LoginAttempt
-        {
-            Id = snowflakeGenerator.NextId(),
-            Email = request.Email,
-            IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            UserAgent = httpContext?.Request.Headers.UserAgent.ToString() ?? "",
-            Success = true,
-            UserId = userId,
-            CreatedAt = now
-        };
-        dbContext.LoginAttempts.Add(loginAttempt);
+        dbContext.LoginAttempts.Add(
+            LoginAttemptRecorder.Create(snowflakeGenerator, httpContextAccessor, request.Email, null, userId));
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

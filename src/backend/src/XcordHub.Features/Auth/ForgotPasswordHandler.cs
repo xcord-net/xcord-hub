@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -32,7 +31,7 @@ public sealed class ForgotPasswordHandler(
         if (string.IsNullOrWhiteSpace(request.Email))
             return Error.Validation("VALIDATION_FAILED", "Email is required");
 
-        if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        if (!ValidationHelpers.IsValidEmail(request.Email))
             return Error.Validation("VALIDATION_FAILED", "Invalid email format");
 
         return null;

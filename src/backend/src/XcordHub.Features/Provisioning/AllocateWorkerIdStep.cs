@@ -37,10 +37,11 @@ public sealed class AllocateWorkerIdStep : IProvisioningStep
         }
 
         // Find the next available worker ID
-        var allocatedWorkerIds = await _dbContext.Set<WorkerIdRegistry>()
+        var allocatedWorkerIds = (await _dbContext.Set<WorkerIdRegistry>()
             .Where(w => !w.IsTombstoned)
             .Select(w => w.WorkerId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
 
         int? availableWorkerId = null;
         for (int i = MinWorkerId; i <= MaxWorkerId; i++)
