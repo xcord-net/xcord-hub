@@ -124,7 +124,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
     {
         // Domain format for the instance: subdomain is used as-is (no suffix appended here —
         // the full domain (e.g. "test.localhost") is stored in ManagedInstance.Domain).
-        var subdomain = domain.Split('.')[0];
+        var subdomain = ValidationHelpers.ExtractSubdomain(domain);
 
         // Build instance DB connection using the same host/user/password as the hub DB
         // so we can connect to the newly created instance database. In production the

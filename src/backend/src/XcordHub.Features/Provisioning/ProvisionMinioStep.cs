@@ -46,7 +46,7 @@ public sealed class ProvisionMinioStep : IProvisioningStep
         }
 
         var infra = instance.Infrastructure;
-        var subdomain = instance.Domain.Split('.')[0];
+        var subdomain = ValidationHelpers.ExtractSubdomain(instance.Domain);
         var bucketName = $"xcord-{subdomain}";
 
         _logger.LogInformation(
@@ -103,7 +103,7 @@ public sealed class ProvisionMinioStep : IProvisioningStep
         }
 
         var infra = instance.Infrastructure;
-        var subdomain = instance.Domain.Split('.')[0];
+        var subdomain = ValidationHelpers.ExtractSubdomain(instance.Domain);
         var bucketName = $"xcord-{subdomain}";
 
         try

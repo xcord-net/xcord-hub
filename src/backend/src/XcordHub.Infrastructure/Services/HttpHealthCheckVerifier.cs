@@ -24,7 +24,7 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
         {
             // Use the container's internal Docker hostname (xcord-{subdomain}-api:80)
             // instead of the public domain, so the check works from inside the Docker network.
-            var subdomain = domain.Split('.')[0];
+            var subdomain = ValidationHelpers.ExtractSubdomain(domain);
             var containerHost = $"xcord-{subdomain}-api";
             var healthUrl = $"http://{containerHost}:80/api/v1/health";
             var response = await _httpClient.GetAsync(healthUrl, cancellationToken);

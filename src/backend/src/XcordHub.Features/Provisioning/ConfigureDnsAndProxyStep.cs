@@ -42,7 +42,7 @@ public sealed class ConfigureDnsAndProxyStep : IProvisioningStep
 
             // Create Caddy proxy route using the deterministic container name
             // (Docker DNS resolves by container name, not container ID)
-            var subdomain = instance.Domain.Split('.')[0];
+            var subdomain = ValidationHelpers.ExtractSubdomain(instance.Domain);
             var containerName = $"xcord-{subdomain}-api";
             var routeId = await _proxyManager.CreateRouteAsync(instance.Domain, containerName, cancellationToken);
 

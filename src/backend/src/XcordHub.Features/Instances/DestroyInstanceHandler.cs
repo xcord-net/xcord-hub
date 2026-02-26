@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using XcordHub.Entities;
+using XcordHub.Features.Destruction;
 using XcordHub.Infrastructure.Data;
-using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Instances;
 
@@ -15,10 +15,7 @@ public sealed record DestroyInstanceCommand(long InstanceId, long UserId);
 
 public sealed class DestroyInstanceHandler(
     HubDbContext dbContext,
-    IDockerService dockerService,
-    ICaddyProxyManager proxyManager,
-    IDnsProvider dnsProvider,
-    IMinioProvisioningService minioService,
+    DestructionPipeline destructionPipeline,
     ILogger<DestroyInstanceHandler> logger)
     : IRequestHandler<DestroyInstanceCommand, Result<bool>>
 {
@@ -52,7 +49,14 @@ public sealed class DestroyInstanceHandler(
                 instance.Id, instance.Domain);
 
             // Cleanup resources in reverse order of provisioning
-            await CleanupInstanceAsync(instance, cancellationToken);
+            if (instance.Infrastructure != null)
+            {
+                await destructionPipeline.RunAsync(instance, instance.Infrastructure, cancellationToken);
+            }
+            else
+            {
+                logger.LogWarning("Instance {InstanceId} has no infrastructure to clean up", instance.Id);
+            }
 
             // Tombstone the worker ID (never reuse)
             await TombstoneWorkerIdAsync(instance.SnowflakeWorkerId, cancellationToken);
@@ -75,97 +79,6 @@ public sealed class DestroyInstanceHandler(
                 instance.Id, instance.Domain, ex.Message);
 
             return Error.Failure("DESTROY_FAILED", $"Failed to destroy instance: {ex.Message}");
-        }
-    }
-
-    private async Task CleanupInstanceAsync(
-        ManagedInstance instance,
-        CancellationToken cancellationToken)
-    {
-        var infrastructure = instance.Infrastructure;
-        if (infrastructure == null)
-        {
-            logger.LogWarning(
-                "Instance {InstanceId} has no infrastructure to clean up",
-                instance.Id);
-            return;
-        }
-
-        // 1. Stop container
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(infrastructure.DockerContainerId))
-            {
-                logger.LogInformation("Stopping container {ContainerId}", infrastructure.DockerContainerId);
-                await dockerService.StopContainerAsync(infrastructure.DockerContainerId, cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to stop container, continuing cleanup");
-        }
-
-        // 2. Remove proxy route
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(infrastructure.CaddyRouteId))
-            {
-                logger.LogInformation("Removing proxy route {RouteId}", infrastructure.CaddyRouteId);
-                await proxyManager.DeleteRouteAsync(infrastructure.CaddyRouteId, cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to remove proxy route, continuing cleanup");
-        }
-
-        // 3. Remove DNS record
-        try
-        {
-            logger.LogInformation("Removing DNS record for {Domain}", instance.Domain);
-            await dnsProvider.DeleteARecordAsync(instance.Domain, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to remove DNS record, continuing cleanup");
-        }
-
-        // 4. Remove container
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(infrastructure.DockerContainerId))
-            {
-                logger.LogInformation("Removing container {ContainerId}", infrastructure.DockerContainerId);
-                await dockerService.RemoveContainerAsync(infrastructure.DockerContainerId, cancellationToken);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to remove container, continuing cleanup");
-        }
-
-        // 5. Remove network
-        try
-        {
-            logger.LogInformation("Removing network for {Domain}", instance.Domain);
-            await dockerService.RemoveNetworkAsync(instance.Domain, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to remove network, continuing cleanup");
-        }
-
-        // 6. Remove MinIO bucket and per-instance user
-        try
-        {
-            var subdomain = instance.Domain.Split('.')[0];
-            var bucketName = $"xcord-{subdomain}";
-            logger.LogInformation("Removing MinIO bucket {Bucket} for {Domain}", bucketName, instance.Domain);
-            await minioService.DeprovisionBucketAsync(bucketName, infrastructure.MinioAccessKey, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to remove MinIO bucket, continuing cleanup");
         }
     }
 

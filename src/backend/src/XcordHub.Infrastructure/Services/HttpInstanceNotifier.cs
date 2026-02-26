@@ -26,7 +26,7 @@ public sealed class HttpInstanceNotifier : IInstanceNotifier
         string reason,
         CancellationToken cancellationToken = default)
     {
-        var subdomain = instanceDomain.Split('.')[0];
+        var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var containerHost = $"xcord-{subdomain}-api";
         var url = $"http://{containerHost}:80/api/v1/internal/shutdown";
 
