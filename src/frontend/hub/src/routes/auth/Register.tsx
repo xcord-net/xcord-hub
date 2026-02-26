@@ -13,6 +13,8 @@ export default function Register() {
   const [password, setPassword] = createSignal('');
   const [confirmPassword, setConfirmPassword] = createSignal('');
   const [agreed, setAgreed] = createSignal(false);
+  const [ageConfirmed, setAgeConfirmed] = createSignal(false);
+  const [encryptionConfirmed, setEncryptionConfirmed] = createSignal(false);
   const [loading, setLoading] = createSignal(false);
   const [localError, setLocalError] = createSignal('');
 
@@ -29,8 +31,8 @@ export default function Register() {
       setLocalError('Password must be at least 8 characters');
       return;
     }
-    if (!agreed()) {
-      setLocalError('You must agree to the terms');
+    if (!agreed() || !ageConfirmed() || !encryptionConfirmed()) {
+      setLocalError('You must agree to all requirements');
       return;
     }
 
@@ -114,18 +116,44 @@ export default function Register() {
             />
           </div>
 
-          <label class="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agreed()}
-              onChange={(e) => setAgreed(e.currentTarget.checked)}
-              class="mt-1 accent-xcord-brand"
-            />
-            <span class="text-xs text-xcord-text-muted">
-              I agree to the <a href="#" class="text-xcord-text-link hover:underline">Terms of Service</a> and{' '}
-              <a href="#" class="text-xcord-text-link hover:underline">Privacy Policy</a>
-            </span>
-          </label>
+          <div class="space-y-2">
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreed()}
+                onChange={(e) => setAgreed(e.currentTarget.checked)}
+                class="mt-1 accent-xcord-brand"
+              />
+              <span class="text-xs text-xcord-text-muted">
+                I agree to the <A href="/terms" class="text-xcord-text-link hover:underline" target="_blank">Terms of Service</A> and{' '}
+                <A href="/privacy" class="text-xcord-text-link hover:underline" target="_blank">Privacy Policy</A>
+              </span>
+            </label>
+
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={ageConfirmed()}
+                onChange={(e) => setAgeConfirmed(e.currentTarget.checked)}
+                class="mt-1 accent-xcord-brand"
+              />
+              <span class="text-xs text-xcord-text-muted">
+                I confirm that I am at least 18 years old
+              </span>
+            </label>
+
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={encryptionConfirmed()}
+                onChange={(e) => setEncryptionConfirmed(e.currentTarget.checked)}
+                class="mt-1 accent-xcord-brand"
+              />
+              <span class="text-xs text-xcord-text-muted">
+                I confirm that the use of encryption is permitted in my jurisdiction
+              </span>
+            </label>
+          </div>
 
           <Show when={displayError()}>
             <div class="text-sm text-xcord-red">{displayError()}</div>

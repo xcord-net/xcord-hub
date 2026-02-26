@@ -21,8 +21,8 @@ export default function Footer() {
           <div>
             <h3 class="text-sm font-semibold text-white mb-3">Legal</h3>
             <ul class="space-y-2">
-              <li><a href="#" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Terms of Service</a></li>
+              <li><A href="/privacy" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Privacy Policy</A></li>
+              <li><A href="/terms" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Terms of Service</A></li>
             </ul>
           </div>
           <div>
