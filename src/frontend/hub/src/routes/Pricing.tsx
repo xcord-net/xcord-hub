@@ -7,6 +7,7 @@ interface FeatureCard {
   name: string;
   price: string;
   isFree: boolean;
+  hdAddon?: string;
   features: { label: string; included: boolean }[];
 }
 
@@ -22,14 +23,14 @@ const featureList = [
 ];
 
 function getCards(users: UserCount): FeatureCard[] {
-  // Prices must match backend TierDefaults.GetPriceCents
-  const prices: Record<UserCount, [string, string, string]> = {
-    10: ['Free', '$20', '$40'],
-    50: ['$20', '$45', '$70'],
-    100: ['$60', '$110', '$160'],
-    500: ['$200', '$400', '$550'],
+  // Prices must match backend TierDefaults.GetPriceCents and PRICING.md
+  const prices: Record<UserCount, [string, string, string, string]> = {
+    10: ['Free', '$20', '$40', '+$25'],
+    50: ['$20', '$45', '$70', '+$50'],
+    100: ['$60', '$110', '$160', '+$75'],
+    500: ['$200', '$400', '$550', '+$150'],
   };
-  const [chat, audio, video] = prices[users];
+  const [chat, audio, video, hd] = prices[users];
 
   return [
     {
@@ -54,6 +55,7 @@ function getCards(users: UserCount): FeatureCard[] {
       name: 'Chat + Audio + Video',
       price: video,
       isFree: false,
+      hdAddon: hd,
       features: [true, true, true, true, true, true].map((v, i) => ({
         label: featureList[i],
         included: v,
@@ -152,6 +154,9 @@ export default function Pricing() {
                   >
                     <span class="text-3xl font-bold text-white">{card.price}</span>
                     <span class="text-sm text-xcord-landing-text-muted">/mo</span>
+                  </Show>
+                  <Show when={card.hdAddon}>
+                    <span class="ml-2 text-sm font-medium text-xcord-brand">{card.hdAddon} HD</span>
                   </Show>
                 </div>
 
