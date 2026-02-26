@@ -263,7 +263,7 @@ export default function Pricing() {
               Unlimited everything, your servers
             </p>
             <A
-              href="/docs/getting-started"
+              href="/docs/self-hosting"
               class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
             >
               View Docs
