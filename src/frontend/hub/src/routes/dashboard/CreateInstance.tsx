@@ -19,6 +19,7 @@ export default function CreateInstance() {
     'Chat':  { 'Tier10': 0,    'Tier50': 2000, 'Tier100': 6000,  'Tier500': 20000 },
     'Audio': { 'Tier10': 2000, 'Tier50': 4500, 'Tier100': 11000, 'Tier500': 40000 },
     'Video': { 'Tier10': 4000, 'Tier50': 7000, 'Tier100': 16000, 'Tier500': 55000 },
+    'HD':    { 'Tier10': 6500, 'Tier50': 12000, 'Tier100': 23500, 'Tier500': 70000 },
   };
   const formatPrice = (cents: number) => {
     if (cents === 0) return 'Free';
@@ -68,12 +69,14 @@ export default function CreateInstance() {
 
     setLoading(true);
     try {
+      const isHd = featureTier() === 'HD';
       const result = await instanceStore.createInstance(
         subdomain(),
         displayName(),
         adminPassword(),
-        featureTier(),
-        userCountTier()
+        isHd ? 'Video' : featureTier(),
+        userCountTier(),
+        isHd
       );
       navigate('/dashboard');
     } catch (err: any) {
@@ -147,19 +150,22 @@ export default function CreateInstance() {
 
           {/* Feature tier */}
           <p class="text-xs text-xcord-text-muted mb-2">Features</p>
-          <div class="grid grid-cols-3 gap-2 mb-4">
-            <For each={['Chat', 'Audio', 'Video']}>
+          <div class="grid grid-cols-4 gap-2 mb-4">
+            <For each={[
+              { key: 'Chat', label: 'Chat', desc: 'Text only' },
+              { key: 'Audio', label: '+Audio', desc: 'Text + voice' },
+              { key: 'Video', label: '+Video', desc: 'Text + voice + video' },
+              { key: 'HD', label: '+HD', desc: '1080p + recording' },
+            ]}>
               {(tier) => (
                 <button
                   type="button"
-                  onClick={() => setFeatureTier(tier)}
+                  onClick={() => setFeatureTier(tier.key)}
                   disabled={loading()}
-                  class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${featureTier() === tier ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'}`}
+                  class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${featureTier() === tier.key ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'}`}
                 >
-                  <div class="font-semibold">{tier === 'Chat' ? 'Chat' : tier === 'Audio' ? '+Audio' : '+Video'}</div>
-                  <div class="text-xs text-xcord-text-muted mt-1">
-                    {tier === 'Chat' ? 'Text only' : tier === 'Audio' ? 'Text + voice' : 'Text + voice + video'}
-                  </div>
+                  <div class="font-semibold">{tier.label}</div>
+                  <div class="text-xs text-xcord-text-muted mt-1">{tier.desc}</div>
                 </button>
               )}
             </For>

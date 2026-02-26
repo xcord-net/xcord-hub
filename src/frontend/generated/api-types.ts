@@ -690,9 +690,13 @@ export interface components {
             secret: string;
             qrCodeUrl: string;
         };
-        /** @default 0 */
-        FeatureTier: number;
-        FeatureTier2: number;
+        /**
+         * @default Chat
+         * @enum {unknown}
+         */
+        FeatureTier: "Chat" | "Audio" | "Video";
+        /** @enum {unknown} */
+        FeatureTier2: "Chat" | "Audio" | "Video";
         ForgotPasswordRequest: {
             email: string;
         };
@@ -937,9 +941,13 @@ export interface components {
             instanceId: string;
             message: string;
         };
-        /** @default 10 */
-        UserCountTier: number;
-        UserCountTier2: number;
+        /**
+         * @default Tier10
+         * @enum {unknown}
+         */
+        UserCountTier: "Tier10" | "Tier50" | "Tier100" | "Tier500";
+        /** @enum {unknown} */
+        UserCountTier2: "Tier10" | "Tier50" | "Tier100" | "Tier500";
         Verify2FARequest: {
             code: string;
         };
