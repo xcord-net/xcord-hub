@@ -1,10 +1,44 @@
 import { A } from "@solidjs/router";
+import { onMount, onCleanup } from "solid-js";
 import FeatureCard from "../components/FeatureCard";
+import PageMeta from "../components/PageMeta";
 
 export default function Landing() {
+  onMount(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'xcord-jsonld';
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Organization',
+          name: 'Xcord',
+          url: window.location.origin,
+          logo: `${window.location.origin}/android-chrome-512x512.png`,
+          description: 'Open-source community platform with voice, video, and text.',
+        },
+        {
+          '@type': 'WebSite',
+          name: 'Xcord',
+          url: window.location.origin,
+        },
+      ],
+    });
+    document.head.appendChild(script);
+  });
+
+  onCleanup(() => {
+    document.getElementById('xcord-jsonld')?.remove();
+  });
 
   return (
     <div>
+      <PageMeta
+        title="Xcord - Open Source Community Chat Platform"
+        description="Open-source community platform with voice, video, and text. Host it yourself or start free on our cloud."
+        path="/"
+      />
       {/* Hero Section */}
       <section class="py-20 sm:py-32">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

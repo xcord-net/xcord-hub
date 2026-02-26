@@ -1,8 +1,14 @@
 import { A } from '@solidjs/router';
+import PageMeta from '../components/PageMeta';
 
 export default function SelfHosting() {
   return (
     <article class="max-w-3xl mx-auto px-6 py-20 text-xcord-landing-text">
+      <PageMeta
+        title="Self-Hosting Guide - Xcord"
+        description="Deploy your own Xcord instance with full control. Step-by-step guide for Docker-based deployment with automatic TLS."
+        path="/docs/self-hosting"
+      />
       <h1 class="text-4xl font-bold text-white mb-2">Self-Hosting Guide</h1>
       <p class="text-xcord-landing-text-muted mb-12">
         Deploy your own xcord instance — you own your data, your keys, and your infrastructure.

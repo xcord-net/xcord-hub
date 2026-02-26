@@ -1,8 +1,14 @@
 import { A } from '@solidjs/router';
+import PageMeta from '../components/PageMeta';
 
 export default function PrivacyPolicy() {
   return (
     <article class="max-w-3xl mx-auto px-6 py-20 text-xcord-landing-text">
+      <PageMeta
+        title="Privacy Policy - Xcord Hub"
+        description="How Xcord handles your data. No ads, no tracking, no data sales. AES-256 encryption at rest."
+        path="/privacy"
+      />
       <h1 class="text-4xl font-bold text-white mb-2">Privacy Policy</h1>
       <p class="text-xcord-landing-text-muted mb-12">Last updated: February 2026</p>
 

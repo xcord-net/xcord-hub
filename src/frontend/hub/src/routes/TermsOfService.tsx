@@ -1,8 +1,14 @@
 import { A } from '@solidjs/router';
+import PageMeta from '../components/PageMeta';
 
 export default function TermsOfService() {
   return (
     <article class="max-w-3xl mx-auto px-6 py-20 text-xcord-landing-text">
+      <PageMeta
+        title="Terms of Service - Xcord Hub"
+        description="Terms of Service for Xcord's hosted platform. Read about account responsibilities, acceptable use, and data handling."
+        path="/terms"
+      />
       <h1 class="text-4xl font-bold text-white mb-2">Terms of Service</h1>
       <p class="text-xcord-landing-text-muted mb-12">Last updated: February 2026</p>
 
