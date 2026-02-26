@@ -29,13 +29,14 @@ export default function SelfHosting() {
 
       {/* Step 1 */}
       <section class="mb-12">
-        <h2 class="text-2xl font-bold text-white mb-4">1. Clone the Repository</h2>
+        <h2 class="text-2xl font-bold text-white mb-4">1. Clone the Repositories</h2>
         <pre class="rounded-lg bg-xcord-landing-surface border border-xcord-landing-border p-4 text-sm overflow-x-auto">
-          <code>{`git clone --recurse-submodules https://github.com/xcord-net/xcord.net.git
-cd xcord.net`}</code>
+          <code>{`git clone https://github.com/xcord-net/xcord-fed.git
+git clone https://github.com/xcord-net/xcord-topo.git`}</code>
         </pre>
         <p class="mt-3 text-sm text-xcord-landing-text-muted">
-          This pulls xcord-fed (your server), xcord-hub (optional control plane), and xcord-topo (the topology designer).
+          <strong class="text-white">xcord-fed</strong> is your chat server.{' '}
+          <strong class="text-white">xcord-topo</strong> is the topology designer you'll use to design and deploy your infrastructure.
         </p>
       </section>
 
@@ -113,9 +114,7 @@ cd xcord.net`}</code>
         <div class="rounded-lg bg-xcord-landing-surface border border-xcord-landing-border overflow-hidden text-sm">
           {[
             { problem: 'Site not loading', solution: 'Verify DNS A record points to your server IP' },
-            { problem: 'Certificate errors', solution: 'Caddy needs ports 80 and 443 open' },
             { problem: '502 Bad Gateway', solution: 'Container may still be starting — check docker logs' },
-            { problem: 'Voice/video not working', solution: 'LiveKit needs UDP ports 7882 and 50000-60000 open' },
           ].map((row, i) => (
             <div class={`flex gap-4 px-4 py-3 ${i > 0 ? 'border-t border-xcord-landing-border' : ''}`}>
               <span class="shrink-0 w-40 font-medium text-white">{row.problem}</span>
