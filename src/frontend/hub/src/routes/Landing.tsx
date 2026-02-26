@@ -1,21 +1,7 @@
-import { createResource } from "solid-js";
 import { A } from "@solidjs/router";
 import FeatureCard from "../components/FeatureCard";
 
-interface HubStats {
-  totalServers: number;
-  totalUsers: number;
-  totalMessages: number;
-}
-
-async function getPublicStats(): Promise<HubStats> {
-  const res = await fetch("/api/v1/hub/stats");
-  if (!res.ok) throw new Error("Failed to fetch stats");
-  return res.json();
-}
-
 export default function Landing() {
-  const [stats] = createResource(getPublicStats);
 
   return (
     <div>
@@ -121,31 +107,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section class="py-20 bg-xcord-landing-surface/50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div data-testid="stat-servers">
-              <div class="text-4xl font-bold text-xcord-brand">
-                {stats()?.totalServers?.toLocaleString() ?? "—"}
-              </div>
-              <div class="mt-2 text-sm text-xcord-landing-text-muted">Active Servers</div>
-            </div>
-            <div data-testid="stat-users">
-              <div class="text-4xl font-bold text-xcord-brand">
-                {stats()?.totalUsers?.toLocaleString() ?? "—"}
-              </div>
-              <div class="mt-2 text-sm text-xcord-landing-text-muted">Happy Users</div>
-            </div>
-            <div data-testid="stat-messages">
-              <div class="text-4xl font-bold text-xcord-brand">
-                {stats()?.totalMessages?.toLocaleString() ?? "—"}
-              </div>
-              <div class="mt-2 text-sm text-xcord-landing-text-muted">Messages Sent</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Stats Section — hidden until real data is available */}
 
       {/* Final CTA */}
       <section class="py-20">
