@@ -32,7 +32,7 @@ export default function Register() {
       return;
     }
     if (!agreed() || !ageConfirmed() || !encryptionConfirmed()) {
-      setLocalError('You must agree to all requirements');
+      setLocalError('You must agree to all terms');
       return;
     }
 
