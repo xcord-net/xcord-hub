@@ -1,6 +1,7 @@
 import { createSignal, Show, For } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { instanceStore } from '../../stores/instance.store';
+import Captcha from '../../components/Captcha';
 
 export default function CreateInstance() {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ export default function CreateInstance() {
   const [subdomainStatus, setSubdomainStatus] = createSignal<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [featureTier, setFeatureTier] = createSignal('Chat');
   const [userCountTier, setUserCountTier] = createSignal('Tier10');
+  const [captchaId, setCaptchaId] = createSignal('');
+  const [captchaAnswer, setCaptchaAnswer] = createSignal('');
 
   // Prices in cents — must match backend TierDefaults.GetPriceCents
   const priceMatrixCents: Record<string, Record<string, number>> = {
@@ -76,7 +79,9 @@ export default function CreateInstance() {
         adminPassword(),
         isHd ? 'Video' : featureTier(),
         userCountTier(),
-        isHd
+        isHd,
+        captchaId(),
+        captchaAnswer()
       );
       navigate('/dashboard');
     } catch (err: any) {
@@ -226,6 +231,10 @@ export default function CreateInstance() {
             disabled={loading()}
           />
         </div>
+
+        <Show when={featureTier() === 'Chat' && userCountTier() === 'Tier10'}>
+          <Captcha onSolved={(id, ans) => { setCaptchaId(id); setCaptchaAnswer(ans); }} />
+        </Show>
 
         <Show when={error()}>
           <div class="text-sm text-xcord-red">{error()}</div>

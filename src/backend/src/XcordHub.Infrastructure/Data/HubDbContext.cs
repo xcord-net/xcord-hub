@@ -27,6 +27,7 @@ public sealed class HubDbContext : DbContext
     public DbSet<WorkerIdRegistry> WorkerIdRegistry => Set<WorkerIdRegistry>();
     public DbSet<FederationToken> FederationTokens => Set<FederationToken>();
     public DbSet<MailingListEntry> MailingListEntries => Set<MailingListEntry>();
+    public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
 
     // Revenue tracking
     public DbSet<InstanceRevenueConfig> InstanceRevenueConfigs => Set<InstanceRevenueConfig>();

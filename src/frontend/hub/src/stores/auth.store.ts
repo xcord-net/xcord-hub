@@ -34,13 +34,13 @@ async function login(email: string, password: string): Promise<boolean> {
   }
 }
 
-async function signup(email: string, password: string, displayName: string, username: string): Promise<boolean> {
+async function signup(email: string, password: string, displayName: string, username: string, captchaId?: string, captchaAnswer?: string): Promise<boolean> {
   setError(null);
   try {
     const response = await fetch('/api/v1/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, displayName, username }),
+      body: JSON.stringify({ email, password, displayName, username, captchaId, captchaAnswer }),
     });
 
     if (!response.ok) {

@@ -2,6 +2,7 @@ import { createSignal, Show } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { useAuth } from '../../stores/auth.store';
 import PasswordStrength from '../../components/PasswordStrength';
+import Captcha from '../../components/Captcha';
 import Logo from '../../components/Logo';
 
 export default function Register() {
@@ -17,6 +18,8 @@ export default function Register() {
   const [encryptionConfirmed, setEncryptionConfirmed] = createSignal(false);
   const [loading, setLoading] = createSignal(false);
   const [localError, setLocalError] = createSignal('');
+  const [captchaId, setCaptchaId] = createSignal('');
+  const [captchaAnswer, setCaptchaAnswer] = createSignal('');
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
@@ -37,7 +40,7 @@ export default function Register() {
     }
 
     setLoading(true);
-    const success = await auth.signup(email(), password(), displayName() || username(), username());
+    const success = await auth.signup(email(), password(), displayName() || username(), username(), captchaId(), captchaAnswer());
     setLoading(false);
     if (success) {
       navigate('/dashboard', { replace: true });
@@ -154,6 +157,8 @@ export default function Register() {
               </span>
             </label>
           </div>
+
+          <Captcha onSolved={(id, ans) => { setCaptchaId(id); setCaptchaAnswer(ans); }} />
 
           <Show when={displayError()}>
             <div class="text-sm text-xcord-red">{displayError()}</div>

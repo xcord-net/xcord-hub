@@ -309,6 +309,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/captcha": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetCaptcha"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/change-password": {
         parameters: {
             query?: never;
@@ -643,6 +659,10 @@ export interface components {
             featureTier: string;
             userCountTier: string;
         };
+        CaptchaResponse: {
+            captchaId: string;
+            question: string;
+        };
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
@@ -672,6 +692,10 @@ export interface components {
             hdUpgrade: boolean;
             /** @default null */
             adminPassword: string | null;
+            /** @default null */
+            captchaId: string | null;
+            /** @default null */
+            captchaAnswer: string | null;
         };
         CreateInstanceResponse: {
             instanceId: string;
@@ -868,6 +892,10 @@ export interface components {
             displayName: string;
             email: string;
             password: string;
+            /** @default null */
+            captchaId: string | null;
+            /** @default null */
+            captchaAnswer: string | null;
         };
         RegisterResponse: {
             instanceOAuthToken: string;
@@ -1396,6 +1424,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChangePlanResponse"];
+                };
+            };
+        };
+    };
+    GetCaptcha: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaptchaResponse"];
                 };
             };
         };

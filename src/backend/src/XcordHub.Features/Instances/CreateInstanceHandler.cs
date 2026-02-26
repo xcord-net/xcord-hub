@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using XcordHub;
 using XcordHub.Entities;
+using XcordHub.Features.Auth;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 
@@ -19,7 +20,9 @@ public sealed record CreateInstanceCommand(
     FeatureTier FeatureTier = FeatureTier.Chat,
     UserCountTier UserCountTier = UserCountTier.Tier10,
     bool HdUpgrade = false,
-    string? AdminPassword = null
+    string? AdminPassword = null,
+    string? CaptchaId = null,
+    string? CaptchaAnswer = null
 );
 
 public sealed record CreateInstanceResponse(
@@ -35,7 +38,8 @@ public sealed class CreateInstanceHandler(
     SnowflakeId snowflakeGenerator,
     ICurrentUserService currentUserService,
     IProvisioningQueue provisioningQueue,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    ICaptchaService captchaService)
     : IRequestHandler<CreateInstanceCommand, Result<CreateInstanceResponse>>,
       IValidatable<CreateInstanceCommand>
 {
@@ -70,6 +74,13 @@ public sealed class CreateInstanceHandler(
 
     public async Task<Result<CreateInstanceResponse>> Handle(CreateInstanceCommand request, CancellationToken cancellationToken)
     {
+        // Validate captcha for free tier (Chat + Tier10) — paid tiers skip captcha
+        var isFreeTier = request.FeatureTier == FeatureTier.Chat && request.UserCountTier == UserCountTier.Tier10;
+        if (isFreeTier && !await captchaService.ValidateAsync(request.CaptchaId ?? "", request.CaptchaAnswer ?? ""))
+        {
+            return Error.BadRequest("CAPTCHA_FAILED", "Invalid or expired captcha");
+        }
+
         var userIdResult = currentUserService.GetCurrentUserId();
         if (userIdResult.IsFailure) return userIdResult.Error!;
         var userId = userIdResult.Value;
