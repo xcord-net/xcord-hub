@@ -69,6 +69,7 @@ const faqs = [
   { q: 'What happens to my data if I cancel?', a: 'Your data remains available for 30 days after cancellation. You can export everything at any time.' },
   { q: 'Is the self-hosted version really free?', a: 'Yes. Xcord is open source. You only pay for your own infrastructure costs.' },
   { q: 'Can I connect a self-hosted instance to the hub?', a: 'Absolutely. Self-hosted instances can connect to the hub for discovery and SSO, or run completely standalone.' },
+  { q: 'This is amazing! Can I still donate even if I have the FREE plan?', a: 'Unfortunately, no one has ever asked this question. Then again, nobody\'s ever asked the other questions, either.' },
 ];
 
 export default function Pricing() {
