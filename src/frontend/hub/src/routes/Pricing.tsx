@@ -1,5 +1,6 @@
 import { A } from '@solidjs/router';
 import { createSignal, For, Show } from 'solid-js';
+import PageMeta from '../components/PageMeta';
 
 type UserCount = 10 | 50 | 100 | 500;
 
@@ -115,6 +116,11 @@ export default function Pricing() {
 
   return (
     <>
+      <PageMeta
+        title="Pricing - Xcord Hub"
+        description="Choose a plan based on your community size. Free tier for up to 10 users. Voice, video, and text included."
+        path="/pricing"
+      />
       <section class="max-w-7xl mx-auto px-6 py-20 text-center">
         <h1 class="text-4xl font-bold mb-4">
           Pricing

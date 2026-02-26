@@ -2,6 +2,7 @@ import { createSignal, Show } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { useAuth } from '../../stores/auth.store';
 import Logo from '../../components/Logo';
+import PageMeta from '../../components/PageMeta';
 
 export default function Login() {
   const auth = useAuth();
@@ -23,6 +24,12 @@ export default function Login() {
 
   return (
     <div class="min-h-screen bg-xcord-bg-primary flex items-center justify-center px-4">
+      <PageMeta
+        title="Log In - Xcord Hub"
+        description="Log in to your Xcord Hub account."
+        path="/login"
+        noindex
+      />
       <div class="w-full max-w-md bg-xcord-bg-secondary rounded-lg shadow-lg p-8">
         <div class="text-center mb-8">
           <A href="/" class="text-2xl font-bold text-white"><Logo /></A>

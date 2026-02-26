@@ -1,3 +1,4 @@
+import { MetaProvider } from '@solidjs/meta';
 import { Router, Route, Navigate } from '@solidjs/router';
 import { lazy } from 'solid-js';
 import LandingLayout from './components/LandingLayout';
@@ -20,6 +21,7 @@ const Account = lazy(() => import('./routes/dashboard/Account'));
 
 export default function App() {
   return (
+    <MetaProvider>
     <Router>
       {/* Landing pages */}
       <Route path="/" component={LandingLayout}>
@@ -47,5 +49,6 @@ export default function App() {
 
       <Route path="*" component={() => <Navigate href="/" />} />
     </Router>
+    </MetaProvider>
   );
 }

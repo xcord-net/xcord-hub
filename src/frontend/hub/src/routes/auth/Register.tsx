@@ -4,6 +4,7 @@ import { useAuth } from '../../stores/auth.store';
 import PasswordStrength from '../../components/PasswordStrength';
 import Captcha from '../../components/Captcha';
 import Logo from '../../components/Logo';
+import PageMeta from '../../components/PageMeta';
 
 export default function Register() {
   const auth = useAuth();
@@ -51,6 +52,12 @@ export default function Register() {
 
   return (
     <div class="min-h-screen bg-xcord-bg-primary flex items-center justify-center px-4">
+      <PageMeta
+        title="Create Account - Xcord Hub"
+        description="Create a new Xcord Hub account."
+        path="/register"
+        noindex
+      />
       <div class="w-full max-w-md bg-xcord-bg-secondary rounded-lg shadow-lg p-8">
         <div class="text-center mb-8">
           <A href="/" class="text-2xl font-bold text-white"><Logo /></A>

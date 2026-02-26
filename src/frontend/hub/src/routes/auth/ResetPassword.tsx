@@ -1,6 +1,7 @@
 import { createSignal, Show } from 'solid-js';
 import { A, useNavigate, useSearchParams } from '@solidjs/router';
 import PasswordStrength from '../../components/PasswordStrength';
+import PageMeta from '../../components/PageMeta';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -56,6 +57,12 @@ export default function ResetPassword() {
 
   return (
     <div class="min-h-screen bg-xcord-bg-primary flex items-center justify-center px-4">
+      <PageMeta
+        title="Reset Password - Xcord Hub"
+        description="Set a new password for your Xcord Hub account."
+        path="/reset-password"
+        noindex
+      />
       <div class="w-full max-w-md bg-xcord-bg-secondary rounded-lg shadow-lg p-8">
         <div class="text-center mb-8">
           <A href="/" class="text-2xl font-bold text-white">xcord</A>
