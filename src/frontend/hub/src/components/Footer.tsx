@@ -9,6 +9,7 @@ export default function Footer() {
             <h3 class="text-sm font-semibold text-white mb-3">Product</h3>
             <ul class="space-y-2">
               <li><A href="/pricing" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Pricing</A></li>
+              <li><A href="/download" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Download</A></li>
               <li><A href="/register" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Get Started</A></li>
             </ul>
           </div>
