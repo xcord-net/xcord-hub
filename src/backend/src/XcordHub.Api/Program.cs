@@ -27,7 +27,7 @@ if (!app.Environment.IsEnvironment("OpenApiGen"))
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
+    await dbContext.Database.MigrateAsync();
     await app.SeedAdminAsync();
 }
 

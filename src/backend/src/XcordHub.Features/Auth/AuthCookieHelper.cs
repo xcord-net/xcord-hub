@@ -30,6 +30,14 @@ public static class AuthCookieHelper
         if (isMobile)
             return (SameSiteMode.None, true);
 
-        return (SameSiteMode.Strict, httpContext.Request.IsHttps);
+        // Behind a reverse proxy, httpContext.Request.IsHttps is false even when the client
+        // connected over HTTPS (TLS terminated at the proxy). Check X-Forwarded-Proto to
+        // detect the original scheme, and set Secure = true when the upstream connection
+        // was HTTPS. This ensures cookies get the Secure flag in production while still
+        // working in HTTP-only development environments.
+        var forwardedProto = httpContext.Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
+        var isSecure = httpContext.Request.IsHttps
+                    || string.Equals(forwardedProto, "https", StringComparison.OrdinalIgnoreCase);
+        return (SameSiteMode.Strict, isSecure);
     }
 }

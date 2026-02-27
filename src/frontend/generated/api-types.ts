@@ -501,6 +501,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["UpdateProfile"];
+        trace?: never;
+    };
     "/api/v1/auth/2fa/verify": {
         parameters: {
             query?: never;
@@ -940,6 +956,14 @@ export interface components {
         UpdateFeatureFlagsResponse: {
             instanceId: string;
             message: string;
+        };
+        UpdateProfileRequest: {
+            displayName: string | null;
+            email: string | null;
+        };
+        UpdateProfileResponse: {
+            displayName: string;
+            email: string;
         };
         UpdateResourceLimitsRequest: {
             /** Format: int32 */
@@ -1685,6 +1709,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    UpdateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateProfileResponse"];
+                };
             };
         };
     };
