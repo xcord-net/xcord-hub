@@ -42,6 +42,12 @@ public sealed class HubUserConfiguration : IEntityTypeConfiguration<HubUser>
         builder.Property(x => x.TwoFactorEnabled)
             .IsRequired();
 
+        builder.Property(x => x.TwoFactorFailureCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(x => x.TwoFactorLockedAt);
+
         builder.Property(x => x.TwoFactorSecret)
             .HasMaxLength(255);
 

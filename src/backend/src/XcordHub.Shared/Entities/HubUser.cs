@@ -12,6 +12,8 @@ public sealed class HubUser
     public bool IsAdmin { get; set; }
     public bool IsDisabled { get; set; }
     public bool TwoFactorEnabled { get; set; }
+    public int TwoFactorFailureCount { get; set; }
+    public DateTimeOffset? TwoFactorLockedAt { get; set; }
     public string? TwoFactorSecret { get; set; }
     public string? StripeCustomerId { get; set; }
 

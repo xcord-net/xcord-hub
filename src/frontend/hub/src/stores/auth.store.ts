@@ -8,7 +8,7 @@ const [token, setToken] = createSignal<string | null>(null);
 const [isLoading, setIsLoading] = createSignal(true);
 const [error, setError] = createSignal<string | null>(null);
 
-async function login(email: string, password: string): Promise<boolean> {
+async function login(email: string, password: string): Promise<'success' | '2fa_required' | false> {
   setError(null);
   try {
     const response = await fetch('/api/v1/auth/login', {
@@ -19,7 +19,36 @@ async function login(email: string, password: string): Promise<boolean> {
 
     if (!response.ok) {
       const data = await response.json().catch(() => null);
+      if (data?.title === '2FA_REQUIRED') {
+        return '2fa_required';
+      }
       setError(data?.detail || data?.message || 'Invalid email or password');
+      return false;
+    }
+
+    const data = await response.json();
+    setToken(data.accessToken);
+    setUser({ userId: String(data.userId), username: data.username, displayName: data.displayName, email: data.email });
+    localStorage.setItem('xcord_hub_token', data.accessToken);
+    return 'success';
+  } catch {
+    setError('Network error. Please try again.');
+    return false;
+  }
+}
+
+async function loginWith2FA(email: string, password: string, code: string): Promise<boolean> {
+  setError(null);
+  try {
+    const response = await fetch('/api/v1/auth/2fa/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, code }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      setError(data?.detail || data?.message || 'Invalid verification code');
       return false;
     }
 
@@ -160,6 +189,7 @@ export function useAuth() {
     get isLoading() { return isLoading(); },
     get error() { return error(); },
     login,
+    loginWith2FA,
     signup,
     logout,
     restoreSession,
@@ -177,6 +207,7 @@ export const authStore = {
   isLoading,
   error,
   login,
+  loginWith2FA,
   signup,
   logout,
   restoreSession,
