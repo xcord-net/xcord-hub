@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using BCrypt.Net;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -145,6 +146,7 @@ public static class ServiceCollectionExtensions
         services.Configure<EmailOptions>(config.GetSection("Email"));
         services.Configure<MinioOptions>(config.GetSection(MinioOptions.SectionName));
         services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
+        services.Configure<AuthOptions>(config.GetSection(AuthOptions.SectionName));
     }
 
     private static void AddEncryption(IServiceCollection services, IConfiguration config)
@@ -387,18 +389,18 @@ public static class ServiceCollectionExtensions
                 });
             });
 
-            // Registration: max 3 per minute per IP
+            // Registration: configurable per-IP limit (default 3/min)
             options.AddFixedWindowLimiter("auth-register", limiterOptions =>
             {
-                limiterOptions.PermitLimit = 3;
+                limiterOptions.PermitLimit = rateLimitOptions.AuthRegisterPermitLimit;
                 limiterOptions.Window = TimeSpan.FromMinutes(1);
                 limiterOptions.QueueLimit = 0;
             });
 
-            // Password reset: max 3 per minute per IP
+            // Password reset: configurable per-IP limit (default 3/min)
             options.AddFixedWindowLimiter("auth-forgot-password", limiterOptions =>
             {
-                limiterOptions.PermitLimit = 3;
+                limiterOptions.PermitLimit = rateLimitOptions.AuthForgotPasswordPermitLimit;
                 limiterOptions.Window = TimeSpan.FromMinutes(1);
                 limiterOptions.QueueLimit = 0;
             });
@@ -480,6 +482,7 @@ public static class ServiceCollectionExtensions
         var encryptionService = scope.ServiceProvider.GetRequiredService<IEncryptionService>();
         var snowflakeGenerator = scope.ServiceProvider.GetRequiredService<SnowflakeId>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var authOptions = scope.ServiceProvider.GetRequiredService<IOptions<AuthOptions>>().Value;
 
         var adminUsername = configuration.GetSection("Admin:Username").Value;
         var adminEmail = configuration.GetSection("Admin:Email").Value;
@@ -502,8 +505,8 @@ public static class ServiceCollectionExtensions
             return; // Admin already exists
         }
 
-        // Create admin user
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword, 12);
+        // Create admin user — offloaded to thread pool to avoid starvation
+        var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(adminPassword, authOptions.BcryptWorkFactor));
         var encryptedEmail = encryptionService.Encrypt(adminEmail.ToLowerInvariant());
         var now = DateTimeOffset.UtcNow;
 

@@ -13,7 +13,7 @@ public sealed class HttpDockerService : IDockerService
     private readonly string _instanceImage;
 
     // xcord-shared-net: services (postgres, redis, minio, livekit, mailpit, caddy)
-    // Instance containers join xcord-shared-net so they can reach those services,
+    // Instance services join xcord-shared-net so they can reach those services,
     // but xcord-hub-infra-net (where docker-socket-proxy lives) is never attached
     // to instance containers — preventing a compromised instance from reaching
     // the Docker API.
@@ -37,13 +37,10 @@ public sealed class HttpDockerService : IDockerService
         var payload = new
         {
             Name = networkName,
-            Driver = "bridge",
-            CheckDuplicate = true,
-            // Set Internal = true so this network has no internet routing and
-            // cannot reach other Docker networks (e.g. xcord-hub-infra-net where
-            // docker-socket-proxy lives). xcord-shared-net is joined separately
-            // and provides the controlled service access path.
-            Internal = false,
+            Driver = "overlay",
+            // Attachable allows non-service containers (e.g. compose services)
+            // to also join this overlay network when needed.
+            Attachable = true,
             Labels = new Dictionary<string, string>
             {
                 ["xcord.instance.domain"] = instanceDomain,
@@ -51,7 +48,7 @@ public sealed class HttpDockerService : IDockerService
             }
         };
 
-        _logger.LogInformation("Creating Docker network {NetworkName} for instance {Domain}", networkName, instanceDomain);
+        _logger.LogInformation("Creating Docker overlay network {NetworkName} for instance {Domain}", networkName, instanceDomain);
 
         var response = await _httpClient.PostAsJsonAsync("/networks/create", payload, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -83,8 +80,9 @@ public sealed class HttpDockerService : IDockerService
     /// <summary>
     /// Creates a Docker secret containing the instance config JSON.
     /// Returns the secret ID, which must be passed to <see cref="StartContainerAsync"/>.
-    /// The secret is mounted at /run/secrets/xcord-config inside the container
-    /// and is never exposed via `docker inspect` on the container itself.
+    /// The secret is mounted at /run/secrets/xcord-config inside the service container
+    /// and is never exposed via <c>docker inspect</c> on the container itself.
+    /// Requires Docker Swarm mode to be initialized.
     /// </summary>
     public async Task<string> CreateSecretAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default)
     {
@@ -143,201 +141,262 @@ public sealed class HttpDockerService : IDockerService
         _logger.LogInformation("Removed Docker secret {SecretId}", secretId);
     }
 
+    /// <summary>
+    /// Creates a Swarm service for the instance. Docker Swarm services support
+    /// secret mounting, which keeps credentials out of <c>docker inspect</c> and
+    /// <c>/proc/&lt;pid&gt;/environ</c>. Returns the service ID (stored as DockerContainerId
+    /// for backward compatibility with the infrastructure record).
+    /// </summary>
     public async Task<string> StartContainerAsync(string instanceDomain, string secretId, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
     {
         var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
-        var containerName = $"xcord-{subdomain}-api";
+        var serviceName = $"xcord-{subdomain}-api";
         var networkName = $"xcord-{subdomain}-net";
 
-        // Config is delivered via Docker secret mounted at /run/secrets/xcord-config.
-        // This keeps sensitive credentials (DB password, MinIO keys, encryption keys,
-        // LiveKit secrets) out of `docker inspect` output and /proc/<pid>/environ.
-        var hostConfig = new Dictionary<string, object>
-        {
-            ["NetworkMode"] = networkName,
-            ["RestartPolicy"] = new { Name = "unless-stopped" }
-        };
+        // Resolve network IDs for the service spec. Swarm services reference
+        // networks by ID (not name) in the TaskTemplate.
+        var instanceNetworkId = await ResolveNetworkIdAsync(networkName, cancellationToken);
+        var sharedNetworkId = await ResolveNetworkIdAsync(SharedNetworkName, cancellationToken);
 
+        // Build resource limits for the service task template
+        var resources = new Dictionary<string, object>();
         if (resourceLimits != null)
         {
-            hostConfig["Memory"] = resourceLimits.MemoryBytes;
-            hostConfig["CpuQuota"] = resourceLimits.CpuQuota;
-            hostConfig["CpuPeriod"] = 100_000L;
+            resources["Limits"] = new
+            {
+                MemoryBytes = resourceLimits.MemoryBytes,
+                NanoCPUs = resourceLimits.CpuQuota * 1000 // Convert from CpuQuota (microseconds per 100ms) to NanoCPUs
+            };
         }
 
-        var createPayload = new Dictionary<string, object>
+        var servicePayload = new Dictionary<string, object>
         {
-            ["Image"] = _instanceImage,
-            ["Hostname"] = containerName,
-            ["Env"] = new[]
-            {
-                "ASPNETCORE_ENVIRONMENT=Production"
-            },
-            // Mount the config secret at /run/secrets/xcord-config (read by entrypoint.sh)
-            ["Secrets"] = new[]
-            {
-                new
-                {
-                    SecretID = secretId,
-                    SecretName = $"xcord-{subdomain}-config",
-                    File = new
-                    {
-                        Name = "xcord-config",
-                        UID = "0",
-                        GID = "0",
-                        Mode = 0444
-                    }
-                }
-            },
+            ["Name"] = serviceName,
             ["Labels"] = new Dictionary<string, string>
             {
                 ["xcord.instance.domain"] = instanceDomain,
                 ["xcord.instance.subdomain"] = subdomain,
                 ["xcord.instance.type"] = "api"
             },
-            ["HostConfig"] = hostConfig
+            ["TaskTemplate"] = new Dictionary<string, object>
+            {
+                ["ContainerSpec"] = new Dictionary<string, object>
+                {
+                    ["Image"] = _instanceImage,
+                    ["Hostname"] = serviceName,
+                    ["Env"] = new[] { "ASPNETCORE_ENVIRONMENT=Production" },
+                    ["Secrets"] = new[]
+                    {
+                        new
+                        {
+                            SecretID = secretId,
+                            SecretName = $"xcord-{subdomain}-config",
+                            File = new
+                            {
+                                Name = "xcord-config",
+                                UID = "0",
+                                GID = "0",
+                                Mode = 292u // 0444 octal
+                            }
+                        }
+                    }
+                },
+                ["Networks"] = new[]
+                {
+                    new { Target = instanceNetworkId },
+                    new { Target = sharedNetworkId }
+                },
+                ["Resources"] = resources.Count > 0 ? resources : new Dictionary<string, object>(),
+                ["RestartPolicy"] = new
+                {
+                    Condition = "on-failure",
+                    MaxAttempts = 3L
+                }
+            },
+            ["Mode"] = new
+            {
+                Replicated = new { Replicas = 1L }
+            }
         };
 
-        _logger.LogInformation("Creating Docker container {ContainerName} for instance {Domain}", containerName, instanceDomain);
+        _logger.LogInformation("Creating Swarm service {ServiceName} for instance {Domain}", serviceName, instanceDomain);
 
-        // Container name is passed as query parameter per Docker Engine API spec
-        var createResponse = await _httpClient.PostAsJsonAsync($"/containers/create?name={containerName}", createPayload, cancellationToken);
+        var createResponse = await _httpClient.PostAsJsonAsync("/services/create", servicePayload, cancellationToken);
         createResponse.EnsureSuccessStatusCode();
 
-        var createResult = await createResponse.Content.ReadFromJsonAsync<DockerContainerCreateResponse>(cancellationToken);
-        if (createResult?.Id == null)
+        var createResult = await createResponse.Content.ReadFromJsonAsync<DockerServiceCreateResponse>(cancellationToken);
+        if (createResult?.ID == null)
         {
-            throw new InvalidOperationException("Docker API returned null container ID");
+            throw new InvalidOperationException("Docker API returned null service ID");
         }
 
-        var containerId = createResult.Id;
-
-        // Connect container to xcord-shared-net so it can reach postgres/redis/minio/livekit/caddy.
-        // Critically, xcord-shared-net does NOT include docker-socket-proxy — that service is on
-        // xcord-hub-infra-net, which is only attached to the gateway container. Instance containers
-        // therefore have no path to the Docker API even if compromised.
-        var connectPayload = new
-        {
-            Container = containerId
-        };
-
-        await _httpClient.PostAsJsonAsync($"/networks/{SharedNetworkName}/connect", connectPayload, cancellationToken);
-
-        // Start container
-        var startResponse = await _httpClient.PostAsync($"/containers/{containerId}/start", null, cancellationToken);
-        startResponse.EnsureSuccessStatusCode();
-
-        _logger.LogInformation("Started Docker container {ContainerId} for instance {Domain}", containerId, instanceDomain);
-        return containerId;
+        _logger.LogInformation("Created Swarm service {ServiceId} for instance {Domain}", createResult.ID, instanceDomain);
+        return createResult.ID;
     }
 
+    /// <summary>
+    /// Verifies that the Swarm service has at least one running task.
+    /// Polls for up to 60 seconds because Swarm task scheduling adds latency
+    /// compared to starting a plain container.
+    /// The <paramref name="containerId"/> here is actually the service ID
+    /// (stored in <c>Infrastructure.DockerContainerId</c>).
+    /// </summary>
     public async Task<bool> VerifyContainerRunningAsync(string containerId, CancellationToken cancellationToken = default)
     {
-        try
+        const int maxWaitMs = 60_000;
+        const int pollIntervalMs = 3_000;
+        var serviceId = containerId;
+        var elapsed = 0;
+
+        while (elapsed < maxWaitMs)
         {
-            var response = await _httpClient.GetAsync($"/containers/{containerId}/json", cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
             {
-                return false;
+                var response = await _httpClient.GetAsync(
+                    $"/tasks?filters={{\"service\":[\"{serviceId}\"],\"desired-state\":[\"running\"]}}",
+                    cancellationToken);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var tasks = await response.Content.ReadFromJsonAsync<JsonElement[]>(cancellationToken);
+                    if (tasks != null)
+                    {
+                        foreach (var task in tasks)
+                        {
+                            if (task.TryGetProperty("Status", out var status) &&
+                                status.TryGetProperty("State", out var state) &&
+                                state.GetString() == "running")
+                            {
+                                _logger.LogInformation("Service {ServiceId} task is running after {Elapsed}ms", serviceId, elapsed);
+                                return true;
+                            }
+
+                            // Check for terminal failure states
+                            if (task.TryGetProperty("Status", out var failStatus) &&
+                                failStatus.TryGetProperty("State", out var failState))
+                            {
+                                var stateStr = failState.GetString();
+                                if (stateStr is "failed" or "rejected" or "shutdown")
+                                {
+                                    var errMsg = failStatus.TryGetProperty("Err", out var err) ? err.GetString() : "unknown error";
+                                    _logger.LogWarning("Service {ServiceId} task in terminal state {State}: {Error}",
+                                        serviceId, stateStr, errMsg);
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error polling service {ServiceId} tasks", serviceId);
             }
 
-            var container = await response.Content.ReadFromJsonAsync<DockerContainerInspectResponse>(cancellationToken);
-            return container?.State?.Running ?? false;
+            await Task.Delay(pollIntervalMs, cancellationToken);
+            elapsed += pollIntervalMs;
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to verify container {ContainerId}", containerId);
-            return false;
-        }
+
+        _logger.LogWarning("Service {ServiceId} did not reach running state within {MaxWait}s", serviceId, maxWaitMs / 1000);
+        return false;
     }
 
+    /// <summary>
+    /// Runs database migrations using a one-shot Swarm service with a Docker secret.
+    /// The service is configured with <c>restart-condition: none</c> so it exits
+    /// after the migration completes.
+    /// </summary>
     public async Task RunMigrationContainerAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default)
     {
         var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
-        var containerName = $"xcord-{subdomain}-migrations";
+        var serviceName = $"xcord-{subdomain}-migrations";
         var networkName = $"xcord-{subdomain}-net";
 
-        // Create a temporary secret for the migration container
+        // Create a temporary secret for the migration service
         var secretId = await CreateSecretAsync(instanceDomain + ".migrations", configJson, cancellationToken);
 
         try
         {
-            var createPayload = new
+            var instanceNetworkId = await ResolveNetworkIdAsync(networkName, cancellationToken);
+            var sharedNetworkId = await ResolveNetworkIdAsync(SharedNetworkName, cancellationToken);
+
+            var servicePayload = new Dictionary<string, object>
             {
-                Image = _instanceImage,
-                Name = containerName,
-                Hostname = containerName,
-                Env = new[]
-                {
-                    "ASPNETCORE_ENVIRONMENT=Production"
-                },
-                Secrets = new[]
-                {
-                    new
-                    {
-                        SecretID = secretId,
-                        SecretName = $"xcord-{subdomain}-migrations-config",
-                        File = new
-                        {
-                            Name = "xcord-config",
-                            UID = "0",
-                            GID = "0",
-                            Mode = 0444
-                        }
-                    }
-                },
-                Labels = new Dictionary<string, string>
+                ["Name"] = serviceName,
+                ["Labels"] = new Dictionary<string, string>
                 {
                     ["xcord.instance.domain"] = instanceDomain,
                     ["xcord.instance.subdomain"] = subdomain,
                     ["xcord.instance.type"] = "migrations"
                 },
-                HostConfig = new
+                ["TaskTemplate"] = new Dictionary<string, object>
                 {
-                    NetworkMode = networkName,
-                    AutoRemove = true
+                    ["ContainerSpec"] = new Dictionary<string, object>
+                    {
+                        ["Image"] = _instanceImage,
+                        ["Hostname"] = serviceName,
+                        ["Env"] = new[] { "ASPNETCORE_ENVIRONMENT=Production" },
+                        ["Command"] = new[] { "dotnet", "Xcord.Api.dll", "--migrate" },
+                        ["Secrets"] = new[]
+                        {
+                            new
+                            {
+                                SecretID = secretId,
+                                SecretName = $"xcord-{subdomain}.migrations-config",
+                                File = new
+                                {
+                                    Name = "xcord-config",
+                                    UID = "0",
+                                    GID = "0",
+                                    Mode = 292u // 0444 octal
+                                }
+                            }
+                        }
+                    },
+                    ["Networks"] = new[]
+                    {
+                        new { Target = instanceNetworkId },
+                        new { Target = sharedNetworkId }
+                    },
+                    ["RestartPolicy"] = new
+                    {
+                        Condition = "none"
+                    }
                 },
-                Cmd = new[] { "dotnet", "ef", "database", "update" }
+                ["Mode"] = new
+                {
+                    Replicated = new { Replicas = 1L }
+                }
             };
 
-            _logger.LogInformation("Creating migration container {ContainerName} for instance {Domain}", containerName, instanceDomain);
+            _logger.LogInformation("Creating migration service {ServiceName} for instance {Domain}", serviceName, instanceDomain);
 
-            var createResponse = await _httpClient.PostAsJsonAsync("/containers/create", createPayload, cancellationToken);
+            var createResponse = await _httpClient.PostAsJsonAsync("/services/create", servicePayload, cancellationToken);
             createResponse.EnsureSuccessStatusCode();
 
-            var createResult = await createResponse.Content.ReadFromJsonAsync<DockerContainerCreateResponse>(cancellationToken);
-            if (createResult?.Id == null)
+            var createResult = await createResponse.Content.ReadFromJsonAsync<DockerServiceCreateResponse>(cancellationToken);
+            if (createResult?.ID == null)
             {
-                throw new InvalidOperationException("Docker API returned null container ID for migrations");
+                throw new InvalidOperationException("Docker API returned null service ID for migrations");
             }
 
-            var containerId = createResult.Id;
+            var serviceId = createResult.ID;
 
-            // Connect to shared network for DB access
-            var connectPayload = new
+            _logger.LogInformation("Started migration service {ServiceId} for instance {Domain}", serviceId, instanceDomain);
+
+            // Wait for the migration task to complete (poll for task state)
+            await WaitForServiceTaskCompletionAsync(serviceId, cancellationToken);
+
+            // Remove the migration service
+            var deleteResponse = await _httpClient.DeleteAsync($"/services/{serviceId}", cancellationToken);
+            if (!deleteResponse.IsSuccessStatusCode && deleteResponse.StatusCode != System.Net.HttpStatusCode.NotFound)
             {
-                Container = containerId
-            };
-
-            await _httpClient.PostAsJsonAsync($"/networks/{SharedNetworkName}/connect", connectPayload, cancellationToken);
-
-            // Start and wait for completion
-            var startResponse = await _httpClient.PostAsync($"/containers/{containerId}/start", null, cancellationToken);
-            startResponse.EnsureSuccessStatusCode();
-
-            _logger.LogInformation("Started migration container {ContainerId} for instance {Domain}", containerId, instanceDomain);
-
-            // Wait for container to exit
-            var waitResponse = await _httpClient.PostAsync($"/containers/{containerId}/wait", null, cancellationToken);
-            waitResponse.EnsureSuccessStatusCode();
-
-            var waitResult = await waitResponse.Content.ReadFromJsonAsync<DockerContainerWaitResponse>(cancellationToken);
-            if (waitResult?.StatusCode != 0)
-            {
-                throw new InvalidOperationException($"Migration container exited with status code {waitResult?.StatusCode}");
+                deleteResponse.EnsureSuccessStatusCode();
             }
 
-            _logger.LogInformation("Migration container {ContainerId} completed successfully", containerId);
+            _logger.LogInformation("Migration service {ServiceId} completed successfully", serviceId);
         }
         finally
         {
@@ -349,38 +408,74 @@ public sealed class HttpDockerService : IDockerService
     public async Task<bool> VerifyMigrationsCompleteAsync(string instanceDomain, CancellationToken cancellationToken = default)
     {
         // Migrations are verified by successful completion of RunMigrationContainerAsync
-        // This method is called as a separate verify step, so we just return true
-        // if we got here, it means migrations succeeded
         await Task.CompletedTask;
         return true;
     }
 
+    /// <summary>
+    /// Stops a Swarm service by scaling it to 0 replicas.
+    /// The <paramref name="containerId"/> is actually the service ID.
+    /// </summary>
     public async Task StopContainerAsync(string containerId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Stopping container {ContainerId}", containerId);
+        var serviceId = containerId;
+        _logger.LogInformation("Scaling down service {ServiceId} to 0 replicas", serviceId);
 
-        var response = await _httpClient.PostAsync($"/containers/{containerId}/stop?t=10", null, cancellationToken);
-
-        if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotModified)
+        // Get the current service spec (needed for update)
+        var inspectResponse = await _httpClient.GetAsync($"/services/{serviceId}", cancellationToken);
+        if (!inspectResponse.IsSuccessStatusCode)
         {
-            response.EnsureSuccessStatusCode();
+            if (inspectResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("Service {ServiceId} not found, skipping stop", serviceId);
+                return;
+            }
+            inspectResponse.EnsureSuccessStatusCode();
         }
 
-        _logger.LogInformation("Stopped container {ContainerId}", containerId);
+        var serviceDoc = await inspectResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        var version = serviceDoc.GetProperty("Version").GetProperty("Index").GetInt64();
+
+        // Update the service to 0 replicas
+        var spec = serviceDoc.GetProperty("Spec");
+        var specJson = spec.GetRawText();
+        var specDict = JsonSerializer.Deserialize<Dictionary<string, object>>(specJson)!;
+
+        // Override the Mode to 0 replicas
+        specDict["Mode"] = new Dictionary<string, object>
+        {
+            ["Replicated"] = new { Replicas = 0L }
+        };
+
+        var updateResponse = await _httpClient.PostAsJsonAsync(
+            $"/services/{serviceId}/update?version={version}",
+            specDict, cancellationToken);
+
+        if (!updateResponse.IsSuccessStatusCode && updateResponse.StatusCode != System.Net.HttpStatusCode.NotModified)
+        {
+            updateResponse.EnsureSuccessStatusCode();
+        }
+
+        _logger.LogInformation("Scaled service {ServiceId} to 0 replicas", serviceId);
     }
 
+    /// <summary>
+    /// Removes a Swarm service entirely.
+    /// The <paramref name="containerId"/> is actually the service ID.
+    /// </summary>
     public async Task RemoveContainerAsync(string containerId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Removing container {ContainerId}", containerId);
+        var serviceId = containerId;
+        _logger.LogInformation("Removing service {ServiceId}", serviceId);
 
-        var response = await _httpClient.DeleteAsync($"/containers/{containerId}?force=true", cancellationToken);
+        var response = await _httpClient.DeleteAsync($"/services/{serviceId}", cancellationToken);
 
         if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
         {
             response.EnsureSuccessStatusCode();
         }
 
-        _logger.LogInformation("Removed container {ContainerId}", containerId);
+        _logger.LogInformation("Removed service {ServiceId}", serviceId);
     }
 
     public async Task RemoveNetworkAsync(string networkId, CancellationToken cancellationToken = default)
@@ -397,6 +492,67 @@ public sealed class HttpDockerService : IDockerService
         _logger.LogInformation("Removed network {NetworkId}", networkId);
     }
 
+    /// <summary>
+    /// Resolves a network name to its ID, required for Swarm service network references.
+    /// </summary>
+    private async Task<string> ResolveNetworkIdAsync(string networkName, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.GetAsync($"/networks/{networkName}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var networkDoc = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        return networkDoc.GetProperty("Id").GetString()
+            ?? throw new InvalidOperationException($"Could not resolve network ID for {networkName}");
+    }
+
+    /// <summary>
+    /// Polls until the service's single task reaches a terminal state (complete or failed).
+    /// </summary>
+    private async Task WaitForServiceTaskCompletionAsync(string serviceId, CancellationToken cancellationToken)
+    {
+        const int maxWaitMs = 120_000;
+        const int pollIntervalMs = 2_000;
+        var elapsed = 0;
+
+        while (elapsed < maxWaitMs)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var response = await _httpClient.GetAsync(
+                $"/tasks?filters={{\"service\":[\"{serviceId}\"]}}",
+                cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var tasks = await response.Content.ReadFromJsonAsync<JsonElement[]>(cancellationToken);
+                if (tasks != null && tasks.Length > 0)
+                {
+                    // Check the most recent task
+                    var latestTask = tasks[^1];
+                    if (latestTask.TryGetProperty("Status", out var status) &&
+                        status.TryGetProperty("State", out var state))
+                    {
+                        var stateStr = state.GetString();
+                        switch (stateStr)
+                        {
+                            case "complete":
+                                return;
+                            case "failed":
+                            case "rejected":
+                                var errMsg = status.TryGetProperty("Err", out var err) ? err.GetString() : "unknown error";
+                                throw new InvalidOperationException($"Migration task failed: {errMsg}");
+                        }
+                    }
+                }
+            }
+
+            await Task.Delay(pollIntervalMs, cancellationToken);
+            elapsed += pollIntervalMs;
+        }
+
+        throw new TimeoutException($"Migration service {serviceId} did not complete within {maxWaitMs / 1000}s");
+    }
+
     private sealed class DockerNetworkCreateResponse
     {
         public string Id { get; set; } = string.Empty;
@@ -408,24 +564,8 @@ public sealed class HttpDockerService : IDockerService
         public string Id { get; set; } = string.Empty;
     }
 
-    private sealed class DockerContainerCreateResponse
+    private sealed class DockerServiceCreateResponse
     {
-        public string Id { get; set; } = string.Empty;
-        public string[] Warnings { get; set; } = Array.Empty<string>();
-    }
-
-    private sealed class DockerContainerInspectResponse
-    {
-        public ContainerState? State { get; set; }
-    }
-
-    private sealed class ContainerState
-    {
-        public bool Running { get; set; }
-    }
-
-    private sealed class DockerContainerWaitResponse
-    {
-        public int StatusCode { get; set; }
+        public string ID { get; set; } = string.Empty;
     }
 }

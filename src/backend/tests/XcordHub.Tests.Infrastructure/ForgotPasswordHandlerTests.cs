@@ -119,7 +119,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
     }
 
     private static ResetPasswordHandler CreateResetPasswordHandler(HubDbContext db) =>
-        new(db);
+        new(db, Options.Create(new AuthOptions()));
 
     // ─── Tests ────────────────────────────────────────────────────────────────
 

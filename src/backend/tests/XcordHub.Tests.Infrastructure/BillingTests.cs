@@ -124,10 +124,10 @@ public sealed class BillingTests : IAsyncLifetime
         var user = new HubUser
         {
             Id = userId,
-            Username = $"billinguser_{usernameSuffix}",
-            DisplayName = $"Billing User {usernameSuffix}",
-            Email = encryptionService.Encrypt($"billing_{usernameSuffix}@test.invalid"),
-            EmailHash = encryptionService.ComputeHmac($"billing_{usernameSuffix}@test.invalid"),
+            Username = $"bu_{usernameSuffix}"[..Math.Min(32, $"bu_{usernameSuffix}".Length)],
+            DisplayName = $"BU {usernameSuffix}"[..Math.Min(32, $"BU {usernameSuffix}".Length)],
+            Email = encryptionService.Encrypt($"bu_{usernameSuffix}@test.invalid"),
+            EmailHash = encryptionService.ComputeHmac($"bu_{usernameSuffix}@test.invalid"),
             PasswordHash = "hashed_password",
             IsAdmin = false,
             IsDisabled = false,
@@ -143,7 +143,8 @@ public sealed class BillingTests : IAsyncLifetime
             StubUser(userId),
             new NoOpProvisioningQueue(),
             BuildConfiguration(),
-            new NoOpCaptchaService());
+            new NoOpCaptchaService(),
+            Options.Create(new AuthOptions()));
 
         // Subdomain must be lowercase alphanumeric with hyphens only (no underscores).
         var subdomain = $"bt-{usernameSuffix}".Replace("_", "-").ToLowerInvariant();

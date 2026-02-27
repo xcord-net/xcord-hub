@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Auth;
@@ -29,9 +31,12 @@ public sealed class RegisterHandler(
     IJwtService jwtService,
     SnowflakeId snowflakeGenerator,
     ICaptchaService captchaService,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    IOptions<AuthOptions> authOptions)
     : IRequestHandler<RegisterRequest, Result<RegisterResponse>>, IValidatable<RegisterRequest>
 {
+    private readonly AuthOptions _authOptions = authOptions.Value;
+
     public Error? Validate(RegisterRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Username))
@@ -94,8 +99,8 @@ public sealed class RegisterHandler(
             return Error.Conflict("EMAIL_TAKEN", "Email is already registered");
         }
 
-        // Hash password (BCrypt, work factor 12)
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, 12);
+        // Hash password (BCrypt, configurable work factor) — offloaded to thread pool to avoid starvation
+        var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.Password, _authOptions.BcryptWorkFactor));
 
         // Encrypt email
         var encryptedEmail = encryptionService.Encrypt(request.Email.ToLowerInvariant());

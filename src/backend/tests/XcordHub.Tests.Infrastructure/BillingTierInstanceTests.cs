@@ -1,12 +1,14 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using System.Text;
 using Testcontainers.PostgreSql;
 using XcordHub.Entities;
 using XcordHub.Features.Auth;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Tests.Infrastructure;
@@ -120,7 +122,8 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
             currentUserService,
             NoOpProvisioningQueue(),
             BuildConfiguration(),
-            new NoOpCaptchaService());
+            new NoOpCaptchaService(),
+            Options.Create(new AuthOptions()));
     }
 
     // ---------------------------------------------------------------------------

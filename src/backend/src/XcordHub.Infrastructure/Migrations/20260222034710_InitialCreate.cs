@@ -43,6 +43,25 @@ namespace XcordHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "login_attempts",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    IpAddress = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: false),
+                    UserAgent = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: false),
+                    Success = table.Column<bool>(type: "boolean", nullable: false),
+                    FailureReason = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    UserId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_login_attempts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "managed_instances",
                 columns: table => new
                 {
@@ -316,6 +335,16 @@ namespace XcordHub.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_login_attempts_CreatedAt",
+                table: "login_attempts",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_login_attempts_IpAddress",
+                table: "login_attempts",
+                column: "IpAddress");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_instance_billing_ManagedInstanceId",
                 table: "instance_billing",
                 column: "ManagedInstanceId",
@@ -402,6 +431,9 @@ namespace XcordHub.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "instance_billing");
+
+            migrationBuilder.DropTable(
+                name: "login_attempts");
 
             migrationBuilder.DropTable(
                 name: "instance_configs");
