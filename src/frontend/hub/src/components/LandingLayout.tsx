@@ -15,6 +15,9 @@ export default function LandingLayout(props: ParentProps) {
             <A data-testid="nav-pricing" href="/pricing" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">
               Pricing
             </A>
+            <A data-testid="nav-download" href="/download" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">
+              Download
+            </A>
             <A data-testid="nav-login" href="/login" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">
               Log in
             </A>

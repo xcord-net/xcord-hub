@@ -6,6 +6,7 @@ import DashboardLayout from './components/DashboardLayout';
 
 const Landing = lazy(() => import('./routes/Landing'));
 const Pricing = lazy(() => import('./routes/Pricing'));
+const Download = lazy(() => import('./routes/Download'));
 const SelfHosting = lazy(() => import('./routes/SelfHosting'));
 const TermsOfService = lazy(() => import('./routes/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./routes/PrivacyPolicy'));
@@ -27,6 +28,7 @@ export default function App() {
       <Route path="/" component={LandingLayout}>
         <Route path="/" component={Landing} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/download" component={Download} />
         <Route path="/docs/self-hosting" component={SelfHosting} />
         <Route path="/terms" component={TermsOfService} />
         <Route path="/privacy" component={PrivacyPolicy} />
