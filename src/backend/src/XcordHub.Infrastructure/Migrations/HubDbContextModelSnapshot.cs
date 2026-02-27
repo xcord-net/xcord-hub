@@ -476,8 +476,6 @@ namespace XcordHub.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid");
 
-                    NpgsqlEntityTypeBuilderExtensions.UseXminAsConcurrencyToken(b);
-
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");

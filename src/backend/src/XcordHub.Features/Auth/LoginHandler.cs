@@ -81,8 +81,8 @@ public sealed class LoginHandler(
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
-        // Verify password
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        // Verify password — offloaded to thread pool to avoid starvation
+        if (!await Task.Run(() => BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)))
         {
             await IncrementAttemptCounterAsync(db, rateLimitKey);
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_CREDENTIALS", user.Id));

@@ -35,8 +35,8 @@ public sealed class DeleteAccountHandler(
             return Error.NotFound("USER_NOT_FOUND", "User not found");
         }
 
-        // Verify password before allowing deletion
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        // Verify password before allowing deletion — offloaded to thread pool to avoid starvation
+        if (!await Task.Run(() => BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)))
         {
             return Error.Validation("INVALID_PASSWORD", "Password is incorrect");
         }

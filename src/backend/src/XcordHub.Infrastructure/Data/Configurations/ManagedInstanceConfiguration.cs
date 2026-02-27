@@ -16,7 +16,10 @@ public sealed class ManagedInstanceConfiguration : IEntityTypeConfiguration<Mana
         // Use PostgreSQL xmin system column as optimistic concurrency token.
         // xmin is updated automatically by Postgres on every row write, so
         // concurrent modifications will cause a DbUpdateConcurrencyException.
-        builder.UseXminAsConcurrencyToken();
+        builder.Property<uint>("xmin")
+            .HasColumnType("xid")
+            .IsConcurrencyToken()
+            .ValueGeneratedOnAddOrUpdate();
 
         builder.Property(x => x.OwnerId)
             .IsRequired();

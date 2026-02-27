@@ -71,6 +71,9 @@ if [ -f "$CONFIG_PATH" ]; then
         },
         Captcha: {
             Enabled: (if .captcha.enabled == false then false else true end)
+        },
+        Auth: {
+            BcryptWorkFactor: (.auth.bcryptWorkFactor // 12)
         }
     }' "$CONFIG_PATH" > "$APPSETTINGS_PATH"
 

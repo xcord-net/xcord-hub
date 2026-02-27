@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 
 namespace XcordHub.Features.Auth;
 
@@ -13,9 +15,11 @@ public sealed record ResetPasswordRequest(string Token, string NewPassword);
 
 public sealed record ResetPasswordCommand(string Token, string NewPassword);
 
-public sealed class ResetPasswordHandler(HubDbContext dbContext)
+public sealed class ResetPasswordHandler(HubDbContext dbContext, IOptions<AuthOptions> authOptions)
     : IRequestHandler<ResetPasswordCommand, Result<bool>>, IValidatable<ResetPasswordCommand>
 {
+    private readonly AuthOptions _authOptions = authOptions.Value;
+
     public Error? Validate(ResetPasswordCommand request)
     {
         if (string.IsNullOrWhiteSpace(request.Token))
@@ -63,8 +67,8 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext)
             return Error.Validation("TOKEN_EXPIRED", "Reset token has expired");
         }
 
-        // Update password
-        resetToken.HubUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, 12);
+        // Update password — offloaded to thread pool to avoid starvation
+        resetToken.HubUser.PasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.NewPassword, _authOptions.BcryptWorkFactor));
 
         // Mark token as used
         resetToken.IsUsed = true;

@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 
 namespace XcordHub.Features.Auth;
 
@@ -21,9 +23,11 @@ public sealed record ChangePasswordCommand(
     string NewPassword
 );
 
-public sealed class ChangePasswordHandler(HubDbContext dbContext)
+public sealed class ChangePasswordHandler(HubDbContext dbContext, IOptions<AuthOptions> authOptions)
     : IRequestHandler<ChangePasswordCommand, Result<bool>>, IValidatable<ChangePasswordCommand>
 {
+    private readonly AuthOptions _authOptions = authOptions.Value;
+
     public Error? Validate(ChangePasswordCommand request)
     {
         if (string.IsNullOrWhiteSpace(request.CurrentPassword))
@@ -57,14 +61,14 @@ public sealed class ChangePasswordHandler(HubDbContext dbContext)
             return Error.NotFound("USER_NOT_FOUND", "User not found");
         }
 
-        // Verify current password
-        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+        // Verify current password — offloaded to thread pool to avoid starvation
+        if (!await Task.Run(() => BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash)))
         {
             return Error.Validation("INVALID_PASSWORD", "Current password is incorrect");
         }
 
-        // Hash new password
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, 12);
+        // Hash new password — offloaded to thread pool to avoid starvation
+        user.PasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.NewPassword, _authOptions.BcryptWorkFactor));
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

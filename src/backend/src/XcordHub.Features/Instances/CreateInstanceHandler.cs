@@ -6,10 +6,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using XcordHub;
 using XcordHub.Entities;
 using XcordHub.Features.Auth;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Instances;
@@ -39,10 +41,13 @@ public sealed class CreateInstanceHandler(
     ICurrentUserService currentUserService,
     IProvisioningQueue provisioningQueue,
     IConfiguration configuration,
-    ICaptchaService captchaService)
+    ICaptchaService captchaService,
+    IOptions<AuthOptions> authOptions)
     : IRequestHandler<CreateInstanceCommand, Result<CreateInstanceResponse>>,
       IValidatable<CreateInstanceCommand>
 {
+    private readonly AuthOptions _authOptions = authOptions.Value;
+
     public Error? Validate(CreateInstanceCommand request)
     {
         if (string.IsNullOrWhiteSpace(request.Subdomain))
@@ -142,10 +147,10 @@ public sealed class CreateInstanceHandler(
 
         dbContext.InstanceBillings.Add(billing);
 
-        // Create config with tier defaults and hashed admin password
+        // Create config with tier defaults and hashed admin password — offloaded to thread pool to avoid starvation
         var resourceLimits = TierDefaults.GetResourceLimits(request.UserCountTier);
         var featureFlags = TierDefaults.GetFeatureFlags(request.FeatureTier, request.HdUpgrade);
-        var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword, 12);
+        var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(adminPassword, _authOptions.BcryptWorkFactor));
 
         var config = new InstanceConfig
         {

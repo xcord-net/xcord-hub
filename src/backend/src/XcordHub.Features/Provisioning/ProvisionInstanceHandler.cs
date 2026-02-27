@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using XcordHub;
 using XcordHub.Entities;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Provisioning;
@@ -34,9 +36,12 @@ public sealed class ProvisionInstanceHandler(
     HubDbContext dbContext,
     IProvisioningQueue provisioningQueue,
     SnowflakeId snowflakeGenerator,
-    ICurrentUserService currentUserService)
+    ICurrentUserService currentUserService,
+    IOptions<AuthOptions> authOptions)
     : IRequestHandler<ProvisionInstanceCommand, Result<ProvisionInstanceResponse>>, IValidatable<ProvisionInstanceCommand>
 {
+    private readonly AuthOptions _authOptions = authOptions.Value;
+
     public Error? Validate(ProvisionInstanceCommand request)
     {
         // OwnerId == 0 is allowed — means "use the calling user's ID"
@@ -141,8 +146,8 @@ public sealed class ProvisionInstanceHandler(
         var resourceLimits = TierDefaults.GetResourceLimits(request.UserCountTier);
         var featureFlags = TierDefaults.GetFeatureFlags(request.FeatureTier, request.HdUpgrade);
 
-        // Create config record with admin password (BCrypt hashed)
-        var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, 12);
+        // Create config record with admin password (BCrypt hashed) — offloaded to thread pool to avoid starvation
+        var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, _authOptions.BcryptWorkFactor));
         var config = new InstanceConfig
         {
             Id = snowflakeGenerator.NextId(),

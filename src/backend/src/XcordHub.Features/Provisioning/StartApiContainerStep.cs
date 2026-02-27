@@ -202,7 +202,13 @@ public sealed class StartApiContainerStep : IProvisioningStep
             rateLimiting = new
             {
                 maxRequests = 10000,
-                windowSeconds = 60
+                windowSeconds = 60,
+                authRegisterPermitLimit = 100,
+                authForgotPasswordPermitLimit = 100
+            },
+            auth = new
+            {
+                bcryptWorkFactor = 10
             },
             gif = new
             {
