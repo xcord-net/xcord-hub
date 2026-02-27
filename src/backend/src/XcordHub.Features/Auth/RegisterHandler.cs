@@ -156,14 +156,7 @@ public sealed class RegisterHandler(
         {
             var result = await handler.ExecuteAsync(request, ct, success =>
             {
-                // Set httpOnly cookie with refresh token
-                httpContext.Response.Cookies.Append("refresh_token", success.RefreshToken, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = httpContext.Request.IsHttps,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTimeOffset.UtcNow.AddDays(30)
-                });
+                AuthCookieHelper.SetRefreshTokenCookie(httpContext, success.RefreshToken);
 
                 return Results.Ok(new RegisterApiResponse(
                     success.UserId,

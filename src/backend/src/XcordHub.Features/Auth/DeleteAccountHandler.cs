@@ -137,8 +137,7 @@ public sealed class DeleteAccountHandler(
             return result.Match(
                 _ =>
                 {
-                    // Clear the refresh token cookie on successful deletion
-                    httpContext.Response.Cookies.Delete("refresh_token");
+                    AuthCookieHelper.DeleteRefreshTokenCookie(httpContext);
                     return Results.Ok(new SuccessResponse(true));
                 },
                 error => Results.Problem(statusCode: error.StatusCode, title: error.Code, detail: error.Message));
