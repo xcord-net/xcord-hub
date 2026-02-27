@@ -169,6 +169,7 @@ public sealed class RegisterHandler(
             return result;
         })
         .AllowAnonymous()
+        .RequireRateLimiting("auth-register")
         .Produces<RegisterApiResponse>(200)
         .WithName("Register")
         .WithTags("Auth");

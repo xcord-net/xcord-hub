@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 using XcordHub.Entities;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 
@@ -23,9 +26,14 @@ public sealed class LoginHandler(
     IEncryptionService encryptionService,
     IJwtService jwtService,
     SnowflakeId snowflakeGenerator,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    IConnectionMultiplexer redis,
+    IOptions<RedisOptions> redisOptions)
     : IRequestHandler<LoginRequest, Result<LoginResponse>>, IValidatable<LoginRequest>
 {
+    private const int MaxFailedAttempts = 5;
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(1);
+
     public Error? Validate(LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
@@ -47,11 +55,27 @@ public sealed class LoginHandler(
     {
         // Find user by EmailHash
         var emailHash = encryptionService.ComputeHmac(request.Email.ToLowerInvariant());
+        var emailHashHex = Convert.ToHexString(emailHash);
+        var rateLimitKey = $"{redisOptions.Value.ChannelPrefix}:login-attempts:{emailHashHex}";
+
+        // Check per-account brute-force counter before verifying the password
+        var db = redis.GetDatabase();
+        var currentCount = (long?)await db.StringGetAsync(rateLimitKey);
+        if (currentCount >= MaxFailedAttempts)
+        {
+            var ttl = await db.KeyTimeToLiveAsync(rateLimitKey);
+            var retryAfterSeconds = ttl.HasValue ? (int)Math.Ceiling(ttl.Value.TotalSeconds) : (int)LockoutDuration.TotalSeconds;
+            dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "LOGIN_RATE_LIMITED"));
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Error.RateLimited("LOGIN_RATE_LIMITED", retryAfterSeconds.ToString());
+        }
+
         var user = await dbContext.HubUsers
             .FirstOrDefaultAsync(u => u.EmailHash == emailHash, cancellationToken);
 
         if (user == null)
         {
+            await IncrementAttemptCounterAsync(db, rateLimitKey);
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_CREDENTIALS"));
             await dbContext.SaveChangesAsync(cancellationToken);
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
@@ -60,10 +84,14 @@ public sealed class LoginHandler(
         // Verify password
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
+            await IncrementAttemptCounterAsync(db, rateLimitKey);
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_CREDENTIALS", user.Id));
             await dbContext.SaveChangesAsync(cancellationToken);
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
+
+        // Successful login — clear the brute-force counter
+        await db.KeyDeleteAsync(rateLimitKey);
 
         // Check if account is disabled
         if (user.IsDisabled)
@@ -113,6 +141,16 @@ public sealed class LoginHandler(
         return new LoginResponse(user.Id.ToString(), user.Username, user.DisplayName, email, accessToken, refreshTokenValue);
     }
 
+    private static async Task IncrementAttemptCounterAsync(IDatabase db, string key)
+    {
+        var count = await db.StringIncrementAsync(key);
+        if (count == 1)
+        {
+            // First failure — set the TTL so the lockout window starts now
+            await db.KeyExpireAsync(key, LockoutDuration);
+        }
+    }
+
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
         return app.MapPost("/api/v1/auth/login", async (
@@ -121,19 +159,42 @@ public sealed class LoginHandler(
             HttpContext httpContext,
             CancellationToken ct) =>
         {
-            var result = await handler.ExecuteAsync(request, ct, success =>
-            {
-                AuthCookieHelper.SetRefreshTokenCookie(httpContext, success.RefreshToken);
+            // Run validation first
+            var validationError = handler.Validate(request);
+            if (validationError is not null)
+                return Results.Problem(statusCode: validationError.StatusCode, title: validationError.Code, detail: validationError.Message);
 
-                return Results.Ok(new LoginApiResponse(
-                    success.UserId,
-                    success.Username,
-                    success.DisplayName,
-                    success.Email,
-                    success.AccessToken));
-            });
+            var result = await handler.Handle(request, ct);
 
-            return result;
+            return result.Match(
+                success =>
+                {
+                    AuthCookieHelper.SetRefreshTokenCookie(httpContext, success.RefreshToken);
+
+                    return Results.Ok(new LoginApiResponse(
+                        success.UserId,
+                        success.Username,
+                        success.DisplayName,
+                        success.Email,
+                        success.AccessToken));
+                },
+                error =>
+                {
+                    if (error.StatusCode == 429 && error.Code == "LOGIN_RATE_LIMITED"
+                        && int.TryParse(error.Message, out var retryAfter))
+                    {
+                        httpContext.Response.Headers["Retry-After"] = retryAfter.ToString();
+                        return Results.Problem(
+                            statusCode: 429,
+                            title: error.Code,
+                            detail: $"Too many failed login attempts. Please wait {retryAfter} second(s) before trying again.");
+                    }
+
+                    return Results.Problem(
+                        statusCode: error.StatusCode,
+                        title: error.Code,
+                        detail: error.Message);
+                });
         })
         .AllowAnonymous()
         .Produces<LoginApiResponse>(200)

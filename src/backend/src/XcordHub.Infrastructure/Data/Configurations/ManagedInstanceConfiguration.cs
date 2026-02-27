@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using XcordHub.Entities;
 
 namespace XcordHub.Infrastructure.Data.Configurations;
@@ -11,6 +12,11 @@ public sealed class ManagedInstanceConfiguration : IEntityTypeConfiguration<Mana
         builder.ToTable("managed_instances");
 
         builder.HasKey(x => x.Id);
+
+        // Use PostgreSQL xmin system column as optimistic concurrency token.
+        // xmin is updated automatically by Postgres on every row write, so
+        // concurrent modifications will cause a DbUpdateConcurrencyException.
+        builder.UseXminAsConcurrencyToken();
 
         builder.Property(x => x.OwnerId)
             .IsRequired();

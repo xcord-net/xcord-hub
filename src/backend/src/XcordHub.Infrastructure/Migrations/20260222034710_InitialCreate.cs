@@ -223,6 +223,7 @@ namespace XcordHub.Infrastructure.Migrations
                     ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
                     DockerNetworkId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     DockerContainerId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    DockerSecretId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
                     DatabaseName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     DatabasePassword = table.Column<byte[]>(type: "bytea", nullable: false),
                     RedisDb = table.Column<int>(type: "integer", nullable: false),

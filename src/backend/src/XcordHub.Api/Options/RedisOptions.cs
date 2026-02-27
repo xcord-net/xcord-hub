@@ -1,7 +1,1 @@
-namespace XcordHub.Api.Options;
-
-public sealed class RedisOptions
-{
-    public string ConnectionString { get; set; } = string.Empty;
-    public string ChannelPrefix { get; set; } = string.Empty;
-}
+// RedisOptions moved to XcordHub.Infrastructure.Options — this file intentionally left empty.

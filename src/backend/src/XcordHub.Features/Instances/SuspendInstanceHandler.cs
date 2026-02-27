@@ -70,7 +70,8 @@ public sealed class SuspendInstanceHandler(
                 instance.Infrastructure.DockerContainerId,
                 cancellationToken);
 
-            // Update status
+            // Update status — optimistic concurrency via xmin ensures only one concurrent
+            // suspension wins; the other gets DbUpdateConcurrencyException → 409 Conflict.
             instance.Status = InstanceStatus.Suspended;
             await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -79,6 +80,15 @@ public sealed class SuspendInstanceHandler(
                 instance.Id, instance.Domain);
 
             return true;
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+        {
+            logger.LogWarning(ex,
+                "Concurrent suspension conflict for instance {InstanceId} ({Domain})",
+                instance.Id, instance.Domain);
+
+            return Error.Conflict("CONCURRENT_MODIFICATION",
+                "Instance was modified concurrently. Please retry the operation.");
         }
         catch (Exception ex)
         {

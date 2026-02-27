@@ -47,7 +47,7 @@ public sealed class ForgotPasswordHandler(
         // Always return success to prevent email enumeration
         if (user == null || user.IsDisabled)
         {
-            logger.LogWarning("Password reset requested for non-existent or disabled email");
+            logger.LogInformation("Password reset requested");
             return true;
         }
 
@@ -76,7 +76,7 @@ public sealed class ForgotPasswordHandler(
 
         await emailService.SendAsync(plaintextEmail, "Reset your Xcord password", emailBody);
 
-        logger.LogInformation("Password reset email sent for user {UserId}", user.Id);
+        logger.LogInformation("Password reset requested");
 
         return true;
     }
@@ -92,6 +92,8 @@ public sealed class ForgotPasswordHandler(
             var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent());
             return result;
         })
+        .AllowAnonymous()
+        .RequireRateLimiting("auth-forgot-password")
         .Produces(204)
         .WithTags("Auth");
     }

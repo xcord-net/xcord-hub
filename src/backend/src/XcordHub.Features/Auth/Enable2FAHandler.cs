@@ -35,7 +35,7 @@ public sealed class Enable2FAHandler(HubDbContext dbContext)
         user.TwoFactorSecret = secret;
 
         // Generate QR code URL (otpauth://totp/...)
-        var qrCodeUrl = $"otpauth://totp/XcordHub:{user.Username}?secret={secret}&issuer=XcordHub";
+        var qrCodeUrl = $"otpauth://totp/XcordHub:{user.Username}?secret={secret}&issuer=XcordHub&algorithm=SHA256";
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

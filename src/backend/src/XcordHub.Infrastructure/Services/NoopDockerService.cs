@@ -23,7 +23,19 @@ public sealed class NoopDockerService : IDockerService
         return Task.FromResult(true);
     }
 
-    public Task<string> StartContainerAsync(string instanceDomain, string configJson, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
+    public Task<string> CreateSecretAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("NOOP: Would create secret for {Domain}", instanceDomain);
+        return Task.FromResult($"secret_{instanceDomain}");
+    }
+
+    public Task RemoveSecretAsync(string secretId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("NOOP: Would remove secret {SecretId}", secretId);
+        return Task.CompletedTask;
+    }
+
+    public Task<string> StartContainerAsync(string instanceDomain, string secretId, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("NOOP: Would start container for {Domain} with limits {Limits}", instanceDomain, resourceLimits);
         return Task.FromResult($"container_{instanceDomain}");
@@ -35,7 +47,7 @@ public sealed class NoopDockerService : IDockerService
         return Task.FromResult(true);
     }
 
-    public Task RunMigrationContainerAsync(string instanceDomain, CancellationToken cancellationToken = default)
+    public Task RunMigrationContainerAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("NOOP: Would run migrations for {Domain}", instanceDomain);
         return Task.CompletedTask;
