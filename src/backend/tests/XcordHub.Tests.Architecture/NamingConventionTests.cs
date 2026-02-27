@@ -8,28 +8,6 @@ public sealed class NamingConventionTests
     private const string FeaturesNamespace = "XcordHub.Features";
 
     [Fact]
-    public void Handlers_ShouldEndWithHandler()
-    {
-        // Arrange
-        var assembly = typeof(XcordHub.Features.FeaturesAssemblyMarker).Assembly;
-
-        // Act
-        var result = Types.InAssembly(assembly)
-            .That()
-            .ResideInNamespace(FeaturesNamespace)
-            .And()
-            .AreClasses()
-            .And()
-            .HaveNameMatching(".*Handler$")
-            .Should()
-            .HaveNameEndingWith("Handler")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue();
-    }
-
-    [Fact]
     public void Commands_ShouldEndWithCommand()
     {
         // Arrange
