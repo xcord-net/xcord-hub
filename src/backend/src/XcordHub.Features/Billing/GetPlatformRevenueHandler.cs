@@ -37,9 +37,6 @@ public sealed class GetPlatformRevenueHandler(
         var userIdResult = currentUserService.GetCurrentUserId();
         if (userIdResult.IsFailure) return userIdResult.Error!;
 
-        // TODO: Add admin check — for now, any authenticated user can view platform revenue
-        // In production, this would check for an admin role
-
         var now = DateTimeOffset.UtcNow;
         var monthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -110,7 +107,7 @@ public sealed class GetPlatformRevenueHandler(
         {
             return await handler.ExecuteAsync(new GetPlatformRevenueQuery(), ct);
         })
-        .RequireAuthorization(Policies.User)
+        .RequireAuthorization(Policies.Admin)
         .Produces<PlatformRevenueSummary>(200)
         .WithName("GetPlatformRevenue")
         .WithTags("Billing");
