@@ -68,7 +68,7 @@ public sealed class JwtSecurityTests
 
         // Assert
         var act = () => tokenHandler.ValidateToken(token, validationParameters, out _);
-        act.Should().Throw<SecurityTokenException>();
+        act.Should().Throw<SecurityTokenInvalidSignatureException>();
     }
 
     [Fact]

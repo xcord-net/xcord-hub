@@ -134,6 +134,8 @@ const USER_TIERS: [UserCountTier, string][] = [
   ['Tier500', '500'],
 ];
 
+const SALES_EMAIL = 'sales@xcord.net';
+
 const FEATURE_TIERS: { id: FeatureTier; label: string; desc: string }[] = [
   { id: 'Chat', label: 'Chat', desc: 'Text only' },
   { id: 'Audio', label: '+Audio', desc: 'Text + voice' },
@@ -152,6 +154,7 @@ function PlanEditor(props: {
   const [error, setError] = createSignal('');
   const [confirmingDowngrade, setConfirmingDowngrade] = createSignal(false);
   const [confirmingCancel, setConfirmingCancel] = createSignal(false);
+  const [customTier, setCustomTier] = createSignal(false);
 
   const newPrice = () => getPriceCents(feature(), users(), hd());
   const currentPrice = () => props.instance.priceCents;
@@ -305,10 +308,10 @@ function PlanEditor(props: {
                 {([value, label]) => (
                   <button
                     type="button"
-                    onClick={() => setUsers(value)}
+                    onClick={() => { setUsers(value); setCustomTier(false); }}
                     disabled={loading()}
                     class={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                      users() === value
+                      users() === value && !customTier()
                         ? 'ring-2 ring-xcord-brand bg-xcord-bg-tertiary text-xcord-text-primary'
                         : 'bg-xcord-bg-tertiary text-xcord-text-muted hover:text-xcord-text-primary'
                     }`}
@@ -317,6 +320,18 @@ function PlanEditor(props: {
                   </button>
                 )}
               </For>
+              <button
+                type="button"
+                onClick={() => setCustomTier(true)}
+                disabled={loading()}
+                class={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+                  customTier()
+                    ? 'ring-2 ring-xcord-brand bg-xcord-bg-tertiary text-xcord-text-primary'
+                    : 'bg-xcord-bg-tertiary text-xcord-text-muted hover:text-xcord-text-primary'
+                }`}
+              >
+                Custom
+              </button>
             </div>
           </div>
 
@@ -344,7 +359,28 @@ function PlanEditor(props: {
             </div>
           </Show>
 
+          {/* Contact Sales for custom tier */}
+          <Show when={customTier()}>
+            <div class="bg-xcord-brand/5 border border-xcord-brand/20 rounded-lg p-5 mb-5">
+              <p class="text-sm font-semibold text-xcord-text-primary mb-2">
+                Need more than 500 users?
+              </p>
+              <p class="text-xs text-xcord-text-muted mb-4">
+                Custom plans include dedicated infrastructure, priority support,
+                SLA guarantees, and flexible user limits. Contact our sales team
+                to discuss your requirements.
+              </p>
+              <a
+                href={`mailto:${SALES_EMAIL}?subject=${encodeURIComponent(`Custom plan inquiry — ${props.instance.displayName}`)}`}
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-xcord-brand rounded hover:bg-xcord-brand-hover transition"
+              >
+                Contact Sales
+              </a>
+            </div>
+          </Show>
+
           {/* Price summary */}
+          <Show when={!customTier()}>
           <div class="bg-xcord-bg-secondary rounded-lg p-4 mb-5">
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs text-xcord-text-muted">Current plan</span>
@@ -467,6 +503,7 @@ function PlanEditor(props: {
               </button>
             </Show>
           </div>
+          </Show>
         </div>
       </div>
     </div>
