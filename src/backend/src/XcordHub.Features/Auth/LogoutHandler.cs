@@ -49,8 +49,7 @@ public sealed class LogoutHandler(HubDbContext dbContext)
                 await handler.HandleWithToken(refreshTokenValue, ct);
             }
 
-            // Delete the cookie
-            httpContext.Response.Cookies.Delete("refresh_token");
+            AuthCookieHelper.DeleteRefreshTokenCookie(httpContext);
 
             return Results.Ok(new SuccessResponse(true));
         })
