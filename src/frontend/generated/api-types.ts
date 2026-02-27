@@ -437,6 +437,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/2fa/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["LoginWith2FA"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -852,6 +868,18 @@ export interface components {
         LoginRequest: {
             email: string;
             password: string;
+        };
+        LoginWith2FAApiResponse: {
+            userId: string;
+            username: string;
+            displayName: string;
+            email: string;
+            accessToken: string;
+        };
+        LoginWith2FARequest: {
+            email: string;
+            password: string;
+            code: string;
         };
         MailingListItem: {
             id: string;
@@ -1622,6 +1650,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoginApiResponse"];
+                };
+            };
+        };
+    };
+    LoginWith2FA: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginWith2FARequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginWith2FAApiResponse"];
                 };
             };
         };

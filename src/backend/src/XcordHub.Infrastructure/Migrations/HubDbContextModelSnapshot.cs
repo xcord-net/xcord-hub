@@ -106,6 +106,14 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("TwoFactorFailureCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTimeOffset?>("TwoFactorLockedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("TwoFactorSecret")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");

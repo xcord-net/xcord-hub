@@ -27,6 +27,8 @@ namespace XcordHub.Infrastructure.Migrations
                     IsAdmin = table.Column<bool>(type: "boolean", nullable: false),
                     IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
                     TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    TwoFactorFailureCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    TwoFactorLockedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     TwoFactorSecret = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     SubscriptionTier = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     StripeCustomerId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),

@@ -842,6 +842,36 @@
         }
       }
     },
+    "/api/v1/auth/2fa/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "LoginWith2FA",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginWith2FARequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginWith2FAApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "tags": [
@@ -1964,6 +1994,52 @@
             "type": "string"
           },
           "password": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginWith2FAApiResponse": {
+        "required": [
+          "userId",
+          "username",
+          "displayName",
+          "email",
+          "accessToken"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginWith2FARequest": {
+        "required": [
+          "email",
+          "password",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "code": {
             "type": "string"
           }
         }
