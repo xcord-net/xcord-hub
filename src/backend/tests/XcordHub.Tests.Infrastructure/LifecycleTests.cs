@@ -92,9 +92,15 @@ public sealed class LifecycleTests : IAsyncLifetime
 
         public Task<string> CreateNetworkAsync(string instanceDomain, CancellationToken cancellationToken = default) => Task.FromResult("net_spy");
         public Task<bool> VerifyNetworkAsync(string networkId, CancellationToken cancellationToken = default) => Task.FromResult(true);
-        public Task<string> StartContainerAsync(string instanceDomain, string configJson, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default) => Task.FromResult("ctr_spy");
+        public Task<string> CreateSecretAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default) => Task.FromResult("secret_spy");
+        public Task RemoveSecretAsync(string secretId, CancellationToken cancellationToken = default)
+        {
+            _callLog.Add($"RemoveSecret:{secretId}");
+            return Task.CompletedTask;
+        }
+        public Task<string> StartContainerAsync(string instanceDomain, string secretId, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default) => Task.FromResult("ctr_spy");
         public Task<bool> VerifyContainerRunningAsync(string containerId, CancellationToken cancellationToken = default) => Task.FromResult(true);
-        public Task RunMigrationContainerAsync(string instanceDomain, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task RunMigrationContainerAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<bool> VerifyMigrationsCompleteAsync(string instanceDomain, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task RemoveContainerAsync(string containerId, CancellationToken cancellationToken = default)
         {
@@ -414,6 +420,7 @@ public sealed class LifecycleTests : IAsyncLifetime
             new RemoveProxyRouteStep(caddyProxy, NullLogger<RemoveProxyRouteStep>.Instance),
             new RemoveDnsRecordStep(dnsProvider, NullLogger<RemoveDnsRecordStep>.Instance),
             new RemoveContainerStep(dockerService, NullLogger<RemoveContainerStep>.Instance),
+            new RemoveSecretStep(dockerService, NullLogger<RemoveSecretStep>.Instance),
             new RemoveNetworkStep(dockerService, NullLogger<RemoveNetworkStep>.Instance),
             new RemoveMinioBucketStep(minioService, NullLogger<RemoveMinioBucketStep>.Instance),
         };

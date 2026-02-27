@@ -230,7 +230,7 @@ public sealed class LoginWith2FAHandler(
             Array.Reverse(counterBytes);
         }
 
-        using var hmac = new HMACSHA1(secret);
+        using var hmac = new HMACSHA256(secret);
         var hash = hmac.ComputeHash(counterBytes);
 
         var offset = hash[^1] & 0x0F;

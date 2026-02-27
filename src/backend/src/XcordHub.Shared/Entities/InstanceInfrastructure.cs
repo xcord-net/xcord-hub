@@ -6,6 +6,7 @@ public sealed class InstanceInfrastructure
     public long ManagedInstanceId { get; set; }
     public string DockerNetworkId { get; set; } = string.Empty;
     public string DockerContainerId { get; set; } = string.Empty;
+    public string DockerSecretId { get; set; } = string.Empty;
     public string DatabaseName { get; set; } = string.Empty;
     public string DatabasePassword { get; set; } = string.Empty;
     public int RedisDb { get; set; }

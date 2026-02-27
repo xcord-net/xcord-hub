@@ -298,6 +298,11 @@ namespace XcordHub.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("DockerSecretId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("DockerNetworkId")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -465,6 +470,13 @@ namespace XcordHub.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid");
+
+                    NpgsqlEntityTypeBuilderExtensions.UseXminAsConcurrencyToken(b);
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)

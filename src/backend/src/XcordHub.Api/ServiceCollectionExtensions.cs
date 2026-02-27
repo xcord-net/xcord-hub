@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using BCrypt.Net;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -342,6 +343,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDestructionStep, RemoveProxyRouteStep>();
         services.AddScoped<IDestructionStep, RemoveDnsRecordStep>();
         services.AddScoped<IDestructionStep, RemoveContainerStep>();
+        services.AddScoped<IDestructionStep, RemoveSecretStep>();
         services.AddScoped<IDestructionStep, RemoveNetworkStep>();
         services.AddScoped<IDestructionStep, RemoveMinioBucketStep>();
 
@@ -384,6 +386,22 @@ public static class ServiceCollectionExtensions
                     AutoReplenishment = true
                 });
             });
+
+            // Registration: max 3 per minute per IP
+            options.AddFixedWindowLimiter("auth-register", limiterOptions =>
+            {
+                limiterOptions.PermitLimit = 3;
+                limiterOptions.Window = TimeSpan.FromMinutes(1);
+                limiterOptions.QueueLimit = 0;
+            });
+
+            // Password reset: max 3 per minute per IP
+            options.AddFixedWindowLimiter("auth-forgot-password", limiterOptions =>
+            {
+                limiterOptions.PermitLimit = 3;
+                limiterOptions.Window = TimeSpan.FromMinutes(1);
+                limiterOptions.QueueLimit = 0;
+            });
         });
     }
 
@@ -404,15 +422,15 @@ public static class ServiceCollectionExtensions
                 {
                     var allOrigins = corsOrigins.Concat(MobileOrigins).ToArray();
                     policy.WithOrigins(allOrigins)
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
+                        .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                        .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin")
                         .AllowCredentials();
                 }
                 else
                 {
                     policy.AllowAnyOrigin()
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
+                        .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                        .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin");
                 }
             });
         });

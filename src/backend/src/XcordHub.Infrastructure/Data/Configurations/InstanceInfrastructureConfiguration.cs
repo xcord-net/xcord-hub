@@ -32,6 +32,10 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
             .IsRequired()
             .HasMaxLength(255);
 
+        builder.Property(x => x.DockerSecretId)
+            .IsRequired()
+            .HasMaxLength(255);
+
         builder.Property(x => x.DatabaseName)
             .IsRequired()
             .HasMaxLength(255);

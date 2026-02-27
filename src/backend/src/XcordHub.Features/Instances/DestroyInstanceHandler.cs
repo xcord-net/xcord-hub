@@ -61,7 +61,8 @@ public sealed class DestroyInstanceHandler(
             // Tombstone the worker ID (never reuse)
             await TombstoneWorkerIdAsync(instance.SnowflakeWorkerId, cancellationToken);
 
-            // Mark instance as destroyed (soft delete)
+            // Mark instance as destroyed (soft delete) — optimistic concurrency via xmin ensures
+            // only one concurrent destroy wins; the other gets DbUpdateConcurrencyException → 409.
             instance.Status = InstanceStatus.Destroyed;
             instance.DeletedAt = DateTimeOffset.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -71,6 +72,15 @@ public sealed class DestroyInstanceHandler(
                 instance.Id, instance.Domain);
 
             return true;
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+        {
+            logger.LogWarning(ex,
+                "Concurrent destruction conflict for instance {InstanceId} ({Domain})",
+                instance.Id, instance.Domain);
+
+            return Error.Conflict("CONCURRENT_MODIFICATION",
+                "Instance was modified concurrently. Please retry the operation.");
         }
         catch (Exception ex)
         {

@@ -67,11 +67,17 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 _hubConnectionString, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
                 featureFlags, limits);
 
-            // Start container with config injected via XCORD_CONFIG_INLINE env var
-            var containerId = await _dockerService.StartContainerAsync(instance.Domain, configJson, containerResourceLimits, cancellationToken);
+            // Create a Docker secret containing the config. The secret is mounted at
+            // /run/secrets/xcord-config inside the container and read by entrypoint.sh.
+            // This keeps sensitive credentials out of `docker inspect` and /proc/<pid>/environ.
+            var secretId = await _dockerService.CreateSecretAsync(instance.Domain, configJson, cancellationToken);
 
-            // Update infrastructure with container ID
+            // Start container using the secret ID (not env var config)
+            var containerId = await _dockerService.StartContainerAsync(instance.Domain, secretId, containerResourceLimits, cancellationToken);
+
+            // Update infrastructure with container ID and secret ID
             instance.Infrastructure.DockerContainerId = containerId;
+            instance.Infrastructure.DockerSecretId = secretId;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return true;
@@ -110,7 +116,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
 
     /// <summary>
     /// Generates configuration JSON in the xcord-config.json format that
-    /// xcord-fed/docker/entrypoint.sh reads from XCORD_CONFIG_INLINE.
+    /// xcord-fed/docker/entrypoint.sh reads from /run/secrets/xcord-config.
     /// </summary>
     private static string GenerateConfigJson(
         string domain,

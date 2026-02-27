@@ -66,7 +66,8 @@ public sealed class ResumeInstanceHandler(
                     instance.Id);
             }
 
-            // Update status
+            // Update status — optimistic concurrency via xmin ensures only one concurrent
+            // resume wins; the other gets DbUpdateConcurrencyException → 409 Conflict.
             instance.Status = InstanceStatus.Running;
             await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -75,6 +76,15 @@ public sealed class ResumeInstanceHandler(
                 instance.Id, instance.Domain);
 
             return true;
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+        {
+            logger.LogWarning(ex,
+                "Concurrent resume conflict for instance {InstanceId} ({Domain})",
+                instance.Id, instance.Domain);
+
+            return Error.Conflict("CONCURRENT_MODIFICATION",
+                "Instance was modified concurrently. Please retry the operation.");
         }
         catch (Exception ex)
         {
