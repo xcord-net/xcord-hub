@@ -1,4 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300..900&family=Sora:wght@400;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  /* === Backgrounds (cool undertone, deep slate) === */
+  --color-xcord-bg-primary: #1a1d25;
+  --color-xcord-bg-secondary: #151821;
+  --color-xcord-bg-tertiary: #10131a;
+  --color-xcord-bg-accent: #242836;
+  --color-xcord-bg-floating: #0c0e14;
+
+  /* === Text (slightly warm for contrast) === */
+  --color-xcord-text-primary: #e6e4f0;
+  --color-xcord-text-secondary: #a8a6b8;
+  --color-xcord-text-muted: #6a6880;
+  --color-xcord-text-link: #e0a44a;
+
+  /* === Brand (amber-gold signature) === */
+  --color-xcord-brand: #d4943a;
+  --color-xcord-brand-hover: #be8333;
+
+  /* === Status === */
+  --color-xcord-status-online: #3ba55d;
+  --color-xcord-status-idle: #f0b232;
+  --color-xcord-status-dnd: #ed4245;
+  --color-xcord-status-offline: #747f8d;
+
+  /* === Semantic === */
+  --color-xcord-green: #3ba55d;
+  --color-xcord-yellow: #f0b232;
+  --color-xcord-red: #ed4245;
+
+  /* === Border === */
+  --color-xcord-border: #1e2130;
+
+  /* === Font === */
+  --font-sans: "Figtree", "Segoe UI", sans-serif;
+}
 
 * {
   box-sizing: border-box;
@@ -6,13 +43,32 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
+  background-color: var(--color-xcord-bg-primary);
+  color: var(--color-xcord-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-xcord-bg-tertiary);
+  border-radius: 4px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-xcord-bg-tertiary) transparent;
 }

@@ -125,7 +125,7 @@ public sealed class ForgotPasswordHandler(
                       Click the button below to choose a new password. This link expires in <strong style="color: #dbdee1;">1 hour</strong>.
                     </p>
                     <a href="{resetUrl}"
-                       style="display: inline-block; padding: 12px 24px; background-color: #5865f2; color: #ffffff;
+                       style="display: inline-block; padding: 12px 24px; background-color: #d4943a; color: #ffffff;
                               text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: 600;">
                       Reset Password
                     </a>
