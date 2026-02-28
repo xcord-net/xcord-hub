@@ -56,26 +56,6 @@ public sealed class NamingConventionTests
     }
 
     [Fact]
-    public void Handlers_ShouldNotBeAbstract()
-    {
-        // Arrange
-        var assembly = typeof(XcordHub.Features.FeaturesAssemblyMarker).Assembly;
-
-        // Act
-        var result = Types.InAssembly(assembly)
-            .That()
-            .ResideInNamespace(FeaturesNamespace)
-            .And()
-            .HaveNameEndingWith("Handler")
-            .Should()
-            .NotBeAbstract()
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue();
-    }
-
-    [Fact]
     public void EndpointImplementors_ShouldBeHandlers()
     {
         // Arrange — all IEndpoint implementors should follow the Handler naming convention

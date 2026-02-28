@@ -34,9 +34,10 @@ public static class ServiceCollectionExtensions
         var services = builder.Services;
         var config = builder.Configuration;
 
-        // JSON serialization — enums as strings, snowflake IDs as strings
+        // JSON serialization — explicit camelCase + converters
         services.ConfigureHttpJsonOptions(options =>
         {
+            options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
             options.SerializerOptions.Converters.Add(new SnowflakeJsonConverter());
         });
@@ -413,8 +414,8 @@ public static class ServiceCollectionExtensions
     {
         var corsOrigins = config.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
-        if (corsOrigins.Length == 0 && env.IsProduction())
-            throw new InvalidOperationException("Cors:AllowedOrigins must not be empty in Production");
+        if (corsOrigins.Length == 0 && !env.IsDevelopment())
+            throw new InvalidOperationException("Cors:AllowedOrigins must not be empty outside Development");
 
         services.AddCors(options =>
         {
