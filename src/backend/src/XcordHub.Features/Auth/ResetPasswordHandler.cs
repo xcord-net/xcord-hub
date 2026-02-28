@@ -73,6 +73,12 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext, IOptions<AuthOp
         // Mark token as used
         resetToken.IsUsed = true;
 
+        // Delete ALL refresh tokens for the user (force re-login everywhere)
+        var refreshTokens = await dbContext.RefreshTokens
+            .Where(rt => rt.HubUserId == resetToken.HubUserId)
+            .ToListAsync(cancellationToken);
+        dbContext.RefreshTokens.RemoveRange(refreshTokens);
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return true;
