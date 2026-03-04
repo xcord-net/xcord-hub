@@ -201,10 +201,13 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
             ? Options.Create(options)
             : BuildMinioOptions();
 
+        var resolver = new TopologyResolver(Options.Create(new TopologyOptions()));
+
         return new ProvisionMinioStep(
             _dbContext!,
             minioService,
             minioOptions,
+            resolver,
             NullLogger<ProvisionMinioStep>.Instance);
     }
 

@@ -13,15 +13,17 @@ public sealed class StartApiContainerStep : IProvisioningStep
     private readonly HubDbContext _dbContext;
     private readonly IDockerService _dockerService;
     private readonly string _hubConnectionString;
+    private readonly TopologyResolver _resolver;
 
     public string StepName => "StartApiContainer";
 
-    public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IConfiguration configuration)
+    public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IConfiguration configuration, TopologyResolver resolver)
     {
         _dbContext = dbContext;
         _dockerService = dockerService;
         _hubConnectionString = configuration.GetSection("Database:ConnectionString").Value
             ?? throw new InvalidOperationException("Database:ConnectionString not configured");
+        _resolver = resolver;
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -60,11 +62,22 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 }
             }
 
+            // Resolve pool-specific service endpoints, falling back to defaults
+            var pool = instance.Infrastructure.PlacedInPool;
+            var poolDbConnStr = _resolver.GetDatabaseConnectionString(pool);
+            var dbConnStr = poolDbConnStr ?? _hubConnectionString;
+            var redisConnStr = _resolver.GetRedisConnectionString(pool) ?? "redis:6379";
+            var storageConfig = _resolver.GetStorageConfig(pool);
+            var storageEndpoint = storageConfig != null ? $"http://{storageConfig.Endpoint}" : "http://minio:9000";
+            var livekitConfig = _resolver.GetLiveKitConfig(pool);
+            var livekitHost = livekitConfig?.Host ?? "ws://livekit:7880";
+
             // Generate config JSON in xcord-config.json format (read by xcord-fed entrypoint).
             // Use per-instance MinIO credentials provisioned by ProvisionMinioStep.
             var configJson = GenerateConfigJson(
                 instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId,
-                _hubConnectionString, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
+                dbConnStr, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
+                redisConnStr, storageEndpoint, livekitHost,
                 featureFlags, limits);
 
             // Create a Docker secret containing the config. The secret is mounted at
@@ -125,6 +138,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
         string hubConnectionString,
         string minioAccessKey,
         string minioSecretKey,
+        string redisConnectionString,
+        string storageEndpoint,
+        string livekitHost,
         FeatureFlags? featureFlags = null,
         ResourceLimits? resourceLimits = null)
     {
@@ -153,7 +169,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
             },
             redis = new
             {
-                connectionString = "redis:6379",
+                connectionString = redisConnectionString,
                 channelPrefix = $"{domain}:"
             },
             jwt = new
@@ -163,7 +179,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
             },
             storage = new
             {
-                endpoint = "http://minio:9000",
+                endpoint = storageEndpoint,
                 accessKey = minioAccessKey,
                 secretKey = minioSecretKey,
                 bucket = $"xcord-{subdomain}",
@@ -171,7 +187,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
             },
             livekit = new
             {
-                host = "ws://livekit:7880",
+                host = livekitHost,
                 apiKey = infrastructure.LiveKitApiKey,
                 apiSecret = infrastructure.LiveKitSecretKey
             },

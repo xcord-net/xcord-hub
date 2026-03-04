@@ -84,6 +84,16 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
         builder.Property(x => x.BootstrapTokenHash)
             .HasMaxLength(64);
 
+        builder.Property(e => e.PlacedInPool)
+            .HasColumnName("PlacedInPool")
+            .HasMaxLength(255)
+            .HasDefaultValue("default");
+
+        builder.Property(e => e.PlacementRegion)
+            .HasColumnName("PlacementRegion")
+            .HasMaxLength(255)
+            .HasDefaultValue("");
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

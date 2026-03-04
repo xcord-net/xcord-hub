@@ -148,6 +148,7 @@ public static class ServiceCollectionExtensions
         services.Configure<MinioOptions>(config.GetSection(MinioOptions.SectionName));
         services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
         services.Configure<AuthOptions>(config.GetSection(AuthOptions.SectionName));
+        services.Configure<TopologyOptions>(config.GetSection(TopologyOptions.SectionName));
     }
 
     private static void AddEncryption(IServiceCollection services, IConfiguration config)
@@ -327,9 +328,12 @@ public static class ServiceCollectionExtensions
         else
             services.AddSingleton<ICaddyProxyManager, NoopCaddyProxyManager>();
 
+        services.AddSingleton<TopologyResolver>();
+
         // Provisioning pipeline steps
         services.AddScoped<IProvisioningStep, ValidateSubdomainStep>();
         services.AddScoped<IProvisioningStep, EnforceTierLimitsStep>();
+        services.AddScoped<IProvisioningStep, ResolvePlacementStep>();
         services.AddScoped<IProvisioningStep, GenerateSecretsStep>();
         services.AddScoped<IProvisioningStep, AllocateWorkerIdStep>();
         services.AddScoped<IProvisioningStep, CreateNetworkStep>();

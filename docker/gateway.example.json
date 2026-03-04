@@ -55,5 +55,11 @@
     "useSsl": false,
     "devMode": false,
     "hubBaseUrl": "https://hub.xcord.local"
+  },
+  "topology": {
+    "computePools": [],
+    "dedicatedHosts": [],
+    "dns": null,
+    "publicIpsByPool": {}
   }
 }

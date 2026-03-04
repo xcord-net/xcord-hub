@@ -18,6 +18,7 @@ public sealed class ProvisionMinioStep : IProvisioningStep
     private readonly HubDbContext _dbContext;
     private readonly IMinioProvisioningService _minioService;
     private readonly MinioOptions _minioOptions;
+    private readonly TopologyResolver _resolver;
     private readonly ILogger<ProvisionMinioStep> _logger;
 
     public string StepName => "ProvisionMinio";
@@ -26,11 +27,13 @@ public sealed class ProvisionMinioStep : IProvisioningStep
         HubDbContext dbContext,
         IMinioProvisioningService minioService,
         IOptions<MinioOptions> minioOptions,
+        TopologyResolver resolver,
         ILogger<ProvisionMinioStep> logger)
     {
         _dbContext = dbContext;
         _minioService = minioService;
         _minioOptions = minioOptions.Value;
+        _resolver = resolver;
         _logger = logger;
     }
 
@@ -69,13 +72,15 @@ public sealed class ProvisionMinioStep : IProvisioningStep
             {
                 // Per-instance IAM user creation likely failed (Console API unavailable).
                 // Fall back to root credentials so the instance can still access its bucket.
+                // Use pool-specific storage credentials if available, otherwise hub-level defaults.
                 _logger.LogWarning(
                     "Per-instance MinIO credentials failed for instance {InstanceId}. " +
                     "Falling back to root credentials for bucket {Bucket}.",
                     instanceId, bucketName);
 
-                infra.MinioAccessKey = _minioOptions.AccessKey;
-                infra.MinioSecretKey = _minioOptions.SecretKey;
+                var poolStorage = _resolver.GetStorageConfig(instance.Infrastructure.PlacedInPool);
+                infra.MinioAccessKey = poolStorage?.AccessKey ?? _minioOptions.AccessKey;
+                infra.MinioSecretKey = poolStorage?.SecretKey ?? _minioOptions.SecretKey;
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 

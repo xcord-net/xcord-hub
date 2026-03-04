@@ -252,6 +252,8 @@ namespace XcordHub.Infrastructure.Migrations
                     LiveKitApiKey = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     LiveKitSecretKey = table.Column<byte[]>(type: "bytea", nullable: false),
                     BootstrapTokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    PlacedInPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: "default"),
+                    PlacementRegion = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Services;
 using XcordHub;
 
 namespace XcordHub.Features.Provisioning;
@@ -16,14 +17,16 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
 {
     private readonly HubDbContext _dbContext;
     private readonly string _hubConnectionString;
+    private readonly TopologyResolver _resolver;
 
     public string StepName => "ProvisionDatabase";
 
-    public ProvisionDatabaseStep(HubDbContext dbContext, IConfiguration configuration)
+    public ProvisionDatabaseStep(HubDbContext dbContext, IConfiguration configuration, TopologyResolver resolver)
     {
         _dbContext = dbContext;
         _hubConnectionString = configuration.GetSection("Database:ConnectionString").Value
             ?? throw new InvalidOperationException("Database:ConnectionString not configured");
+        _resolver = resolver;
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -41,8 +44,12 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
 
         try
         {
+            // Resolve pool-specific PG connection string, falling back to hub connection string
+            var poolConnStr = _resolver.GetDatabaseConnectionString(instance.Infrastructure.PlacedInPool);
+            var connectionString = poolConnStr ?? _hubConnectionString;
+
             // Connect to the "postgres" maintenance database using the hub's superuser credentials
-            var builder = new NpgsqlConnectionStringBuilder(_hubConnectionString)
+            var builder = new NpgsqlConnectionStringBuilder(connectionString)
             {
                 Database = "postgres"
             };
@@ -84,7 +91,11 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
 
         try
         {
-            var builder = new NpgsqlConnectionStringBuilder(_hubConnectionString)
+            // Resolve pool-specific PG connection string, falling back to hub connection string
+            var poolConnStr = _resolver.GetDatabaseConnectionString(infrastructure.PlacedInPool);
+            var connectionString = poolConnStr ?? _hubConnectionString;
+
+            var builder = new NpgsqlConnectionStringBuilder(connectionString)
             {
                 Database = "postgres"
             };
