@@ -17,6 +17,8 @@ public sealed class InstanceInfrastructure
     public string LiveKitSecretKey { get; set; } = string.Empty;
     public string InstanceKek { get; set; } = string.Empty;
     public string? BootstrapTokenHash { get; set; }
+    public string PlacedInPool { get; set; } = "default";
+    public string PlacementRegion { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
 
     // Navigation properties

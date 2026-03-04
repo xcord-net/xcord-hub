@@ -10,17 +10,20 @@ public sealed class ConfigureDnsAndProxyStep : IProvisioningStep
     private readonly HubDbContext _dbContext;
     private readonly IDnsProvider _dnsProvider;
     private readonly ICaddyProxyManager _proxyManager;
+    private readonly TopologyResolver _resolver;
 
     public string StepName => "ConfigureDnsAndProxy";
 
     public ConfigureDnsAndProxyStep(
         HubDbContext dbContext,
         IDnsProvider dnsProvider,
-        ICaddyProxyManager proxyManager)
+        ICaddyProxyManager proxyManager,
+        TopologyResolver resolver)
     {
         _dbContext = dbContext;
         _dnsProvider = dnsProvider;
         _proxyManager = proxyManager;
+        _resolver = resolver;
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -36,8 +39,9 @@ public sealed class ConfigureDnsAndProxyStep : IProvisioningStep
 
         try
         {
-            // Create DNS A record
-            var ipAddress = "127.0.0.1"; // Placeholder - would be the gateway's public IP
+            // Resolve pool-specific public IP, falling back to localhost placeholder
+            var ips = _resolver.GetPublicIpsForPool(instance.Infrastructure.PlacedInPool);
+            var ipAddress = ips.Count > 0 ? ips[0] : "127.0.0.1";
             await _dnsProvider.CreateARecordAsync(instance.Domain, ipAddress, cancellationToken);
 
             // Create Caddy proxy route using the deterministic container name

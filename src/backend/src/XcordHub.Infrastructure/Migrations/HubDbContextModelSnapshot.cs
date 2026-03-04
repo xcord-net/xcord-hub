@@ -312,6 +312,18 @@ namespace XcordHub.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("bytea");
 
+                    b.Property<string>("PlacedInPool")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasDefaultValue("default")
+                        .HasColumnName("PlacedInPool");
+
+                    b.Property<string>("PlacementRegion")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasDefaultValue("")
+                        .HasColumnName("PlacementRegion");
+
                     b.Property<string>("LiveKitApiKey")
                         .IsRequired()
                         .HasMaxLength(255)
