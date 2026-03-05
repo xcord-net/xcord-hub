@@ -140,6 +140,19 @@ public sealed class HttpDockerService : IDockerService
         _logger.LogInformation("Creating Docker secret {SecretName}", secretName);
 
         var response = await _httpClient.PostAsJsonAsync("/secrets/create", payload, cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            // Secret already exists (e.g. from a previous provisioning run).
+            // Look up its ID by name and reuse it — KEK secrets persist across
+            // container recreations and should not be regenerated.
+            _logger.LogInformation("Docker secret {SecretName} already exists, looking up ID", secretName);
+            var existingId = await GetSecretIdByNameAsync(secretName, cancellationToken);
+            if (existingId == null)
+                throw new InvalidOperationException($"Docker secret '{secretName}' reported as conflict but not found by name");
+            return existingId;
+        }
+
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<DockerSecretCreateResponse>(cancellationToken);
@@ -602,6 +615,20 @@ public sealed class HttpDockerService : IDockerService
         };
 
         return [configMount, kekMount];
+    }
+
+    /// <summary>
+    /// Looks up a Docker secret ID by name using the filter API.
+    /// Returns null if no secret with the given name exists.
+    /// </summary>
+    private async Task<string?> GetSecretIdByNameAsync(string secretName, CancellationToken cancellationToken)
+    {
+        var filter = Uri.EscapeDataString($"{{\"name\":[\"{secretName}\"]}}");
+        var response = await _httpClient.GetAsync($"/secrets?filters={filter}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var secrets = await response.Content.ReadFromJsonAsync<JsonElement[]>(cancellationToken);
+        if (secrets == null || secrets.Length == 0) return null;
+        return secrets[0].GetProperty("ID").GetString();
     }
 
     private sealed class DockerNetworkCreateResponse
