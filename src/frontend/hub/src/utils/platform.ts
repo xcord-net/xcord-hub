@@ -28,6 +28,7 @@ export interface PlatformInfo {
   arch: string;
   links: DownloadLink[];
   comingSoon?: boolean;
+  requirements?: string;
 }
 
 export function getDownloadLinks(): Record<string, PlatformInfo> {
@@ -35,6 +36,7 @@ export function getDownloadLinks(): Record<string, PlatformInfo> {
     windows: {
       name: 'Windows',
       arch: 'x64',
+      requirements: 'Windows 10+ (64-bit)',
       links: [
         { label: 'Download .exe', url: `${DESKTOP_BASE}/Xcord_x64-setup.exe`, format: '.exe installer' },
       ],
@@ -42,6 +44,7 @@ export function getDownloadLinks(): Record<string, PlatformInfo> {
     macos: {
       name: 'macOS',
       arch: 'Universal',
+      requirements: 'macOS 12 Monterey or later',
       links: [
         { label: 'Apple Silicon', url: `${DESKTOP_BASE}/Xcord_arm64.dmg`, format: '.dmg (ARM64)' },
         { label: 'Intel', url: `${DESKTOP_BASE}/Xcord_x64.dmg`, format: '.dmg (x64)' },
@@ -50,6 +53,7 @@ export function getDownloadLinks(): Record<string, PlatformInfo> {
     linux: {
       name: 'Linux',
       arch: 'x64',
+      requirements: 'Ubuntu 22.04+, Fedora 38+, or equivalent',
       links: [
         { label: 'Download .AppImage', url: `${DESKTOP_BASE}/Xcord_amd64.AppImage`, format: '.AppImage' },
         { label: 'Download .deb', url: `${DESKTOP_BASE}/Xcord_amd64.deb`, format: '.deb package' },

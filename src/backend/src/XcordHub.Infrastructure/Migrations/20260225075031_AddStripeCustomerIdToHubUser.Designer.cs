@@ -298,9 +298,15 @@ namespace XcordHub.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<byte[]>("InstanceKek")
+                    b.Property<string>("DatabaseUsername")
                         .IsRequired()
-                        .HasColumnType("bytea");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("DockerKekSecretId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("LiveKitApiKey")
                         .IsRequired()

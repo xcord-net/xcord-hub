@@ -120,6 +120,39 @@ public sealed class HttpDockerService : IDockerService
     }
 
     /// <summary>
+    /// Creates a Docker secret with an explicit name and raw string data.
+    /// Used for secrets like the instance KEK that are not tied to config JSON.
+    /// </summary>
+    public async Task<string> CreateRawSecretAsync(string secretName, string data, CancellationToken cancellationToken = default)
+    {
+        var dataBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(data));
+
+        var payload = new
+        {
+            Name = secretName,
+            Data = dataBase64,
+            Labels = new Dictionary<string, string>
+            {
+                ["xcord.secret.type"] = "raw"
+            }
+        };
+
+        _logger.LogInformation("Creating Docker secret {SecretName}", secretName);
+
+        var response = await _httpClient.PostAsJsonAsync("/secrets/create", payload, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<DockerSecretCreateResponse>(cancellationToken);
+        if (result?.Id == null)
+        {
+            throw new InvalidOperationException("Docker API returned null secret ID");
+        }
+
+        _logger.LogInformation("Created Docker secret {SecretId} ({SecretName})", result.Id, secretName);
+        return result.Id;
+    }
+
+    /// <summary>
     /// Removes a Docker secret by ID. Safe to call even if the secret no longer exists.
     /// </summary>
     public async Task RemoveSecretAsync(string secretId, CancellationToken cancellationToken = default)
@@ -147,7 +180,7 @@ public sealed class HttpDockerService : IDockerService
     /// <c>/proc/&lt;pid&gt;/environ</c>. Returns the service ID (stored as DockerContainerId
     /// for backward compatibility with the infrastructure record).
     /// </summary>
-    public async Task<string> StartContainerAsync(string instanceDomain, string secretId, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
+    public async Task<string> StartContainerAsync(string instanceDomain, string configSecretId, string? kekSecretId = null, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
     {
         var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var serviceName = $"xcord-{subdomain}-api";
@@ -169,6 +202,9 @@ public sealed class HttpDockerService : IDockerService
             };
         }
 
+        // Build secret mounts: config secret (readable) + optional KEK secret (restricted)
+        var secrets = BuildSecretMounts(configSecretId, $"xcord-{subdomain}-config", kekSecretId, $"xcord-{subdomain}-kek");
+
         var servicePayload = new Dictionary<string, object>
         {
             ["Name"] = serviceName,
@@ -185,21 +221,7 @@ public sealed class HttpDockerService : IDockerService
                     ["Image"] = _instanceImage,
                     ["Hostname"] = serviceName,
                     ["Env"] = new[] { "ASPNETCORE_ENVIRONMENT=Production" },
-                    ["Secrets"] = new[]
-                    {
-                        new
-                        {
-                            SecretID = secretId,
-                            SecretName = $"xcord-{subdomain}-config",
-                            File = new
-                            {
-                                Name = "xcord-config",
-                                UID = "0",
-                                GID = "0",
-                                Mode = 292u // 0444 octal
-                            }
-                        }
-                    }
+                    ["Secrets"] = secrets
                 },
                 ["Networks"] = new[]
                 {
@@ -308,19 +330,22 @@ public sealed class HttpDockerService : IDockerService
     /// The service is configured with <c>restart-condition: none</c> so it exits
     /// after the migration completes.
     /// </summary>
-    public async Task RunMigrationContainerAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default)
+    public async Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, CancellationToken cancellationToken = default)
     {
         var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var serviceName = $"xcord-{subdomain}-migrations";
         var networkName = $"xcord-{subdomain}-net";
 
         // Create a temporary secret for the migration service
-        var secretId = await CreateSecretAsync(instanceDomain + ".migrations", configJson, cancellationToken);
+        var configSecretId = await CreateSecretAsync(instanceDomain + ".migrations", configJson, cancellationToken);
 
         try
         {
             var instanceNetworkId = await ResolveNetworkIdAsync(networkName, cancellationToken);
             var sharedNetworkId = await ResolveNetworkIdAsync(SharedNetworkName, cancellationToken);
+
+            // Build secret mounts: config secret + optional KEK secret (reused from provisioning)
+            var secrets = BuildSecretMounts(configSecretId, $"xcord-{subdomain}.migrations-config", kekSecretId, $"xcord-{subdomain}-kek");
 
             var servicePayload = new Dictionary<string, object>
             {
@@ -339,21 +364,7 @@ public sealed class HttpDockerService : IDockerService
                         ["Hostname"] = serviceName,
                         ["Env"] = new[] { "ASPNETCORE_ENVIRONMENT=Production" },
                         ["Command"] = new[] { "dotnet", "Xcord.Api.dll", "--migrate" },
-                        ["Secrets"] = new[]
-                        {
-                            new
-                            {
-                                SecretID = secretId,
-                                SecretName = $"xcord-{subdomain}.migrations-config",
-                                File = new
-                                {
-                                    Name = "xcord-config",
-                                    UID = "0",
-                                    GID = "0",
-                                    Mode = 292u // 0444 octal
-                                }
-                            }
-                        }
+                        ["Secrets"] = secrets
                     },
                     ["Networks"] = new[]
                     {
@@ -400,8 +411,8 @@ public sealed class HttpDockerService : IDockerService
         }
         finally
         {
-            // Always clean up the temporary migration secret
-            await RemoveSecretAsync(secretId, cancellationToken);
+            // Always clean up the temporary migration config secret (KEK secret is persistent)
+            await RemoveSecretAsync(configSecretId, cancellationToken);
         }
     }
 
@@ -551,6 +562,46 @@ public sealed class HttpDockerService : IDockerService
         }
 
         throw new TimeoutException($"Migration service {serviceId} did not complete within {maxWaitMs / 1000}s");
+    }
+
+    /// <summary>
+    /// Builds the Secrets array for a Swarm service ContainerSpec.
+    /// Always includes the config secret; optionally includes the KEK secret.
+    /// </summary>
+    private static object[] BuildSecretMounts(string configSecretId, string configSecretName, string? kekSecretId, string kekSecretName)
+    {
+        var configMount = new
+        {
+            SecretID = configSecretId,
+            SecretName = configSecretName,
+            File = new
+            {
+                Name = "xcord-config",
+                UID = "0",
+                GID = "0",
+                Mode = 292u // 0444 octal
+            }
+        };
+
+        if (string.IsNullOrWhiteSpace(kekSecretId))
+        {
+            return [configMount];
+        }
+
+        var kekMount = new
+        {
+            SecretID = kekSecretId,
+            SecretName = kekSecretName,
+            File = new
+            {
+                Name = "xcord-kek",
+                UID = "0",
+                GID = "0",
+                Mode = 256u // 0400 octal — owner-read only
+            }
+        };
+
+        return [configMount, kekMount];
     }
 
     private sealed class DockerNetworkCreateResponse

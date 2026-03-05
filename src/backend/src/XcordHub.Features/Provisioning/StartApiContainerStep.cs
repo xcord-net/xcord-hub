@@ -85,8 +85,14 @@ public sealed class StartApiContainerStep : IProvisioningStep
             // This keeps sensitive credentials out of `docker inspect` and /proc/<pid>/environ.
             var secretId = await _dockerService.CreateSecretAsync(instance.Domain, configJson, cancellationToken);
 
-            // Start container using the secret ID (not env var config)
-            var containerId = await _dockerService.StartContainerAsync(instance.Domain, secretId, containerResourceLimits, cancellationToken);
+            // Start container with config secret + KEK secret (separate Docker secrets).
+            // The KEK secret was created in GenerateSecretsStep and is reused across
+            // container recreations — only deleted during full instance destruction.
+            var kekSecretId = !string.IsNullOrWhiteSpace(instance.Infrastructure.DockerKekSecretId)
+                ? instance.Infrastructure.DockerKekSecretId
+                : null;
+            var containerId = await _dockerService.StartContainerAsync(
+                instance.Domain, secretId, kekSecretId, containerResourceLimits, cancellationToken);
 
             // Update infrastructure with container ID and secret ID
             instance.Infrastructure.DockerContainerId = containerId;
@@ -148,17 +154,20 @@ public sealed class StartApiContainerStep : IProvisioningStep
         // the full domain (e.g. "test.localhost") is stored in ManagedInstance.Domain).
         var subdomain = ValidationHelpers.ExtractSubdomain(domain);
 
-        // Build instance DB connection using the same host/user/password as the hub DB
-        // so we can connect to the newly created instance database. In production the
-        // ProvisionDatabase step would create a per-instance DB user instead.
+        // Build instance DB connection using per-instance credentials when available,
+        // falling back to hub superuser for backward compatibility.
         var hubBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hubConnectionString);
         var instanceConnStr = new Npgsql.NpgsqlConnectionStringBuilder
         {
             Host = hubBuilder.Host,
             Port = hubBuilder.Port,
             Database = infrastructure.DatabaseName,
-            Username = hubBuilder.Username,
-            Password = hubBuilder.Password
+            Username = !string.IsNullOrWhiteSpace(infrastructure.DatabaseUsername)
+                ? infrastructure.DatabaseUsername
+                : hubBuilder.Username,
+            Password = !string.IsNullOrWhiteSpace(infrastructure.DatabaseUsername)
+                ? infrastructure.DatabasePassword
+                : hubBuilder.Password
         }.ConnectionString;
 
         var config = new
@@ -219,8 +228,8 @@ public sealed class StartApiContainerStep : IProvisioningStep
             {
                 maxRequests = 10000,
                 windowSeconds = 60,
-                authRegisterPermitLimit = 100,
-                authForgotPasswordPermitLimit = 100
+                authRegisterPermitLimit = 3,
+                authForgotPasswordPermitLimit = 3
             },
             auth = new
             {
@@ -230,10 +239,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
             {
                 provider = "none",
                 apiKey = ""
-            },
-            encryption = new
-            {
-                kek = infrastructure.InstanceKek
             },
             outbox = new
             {

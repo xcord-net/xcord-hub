@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Services;
 using XcordHub;
 
 namespace XcordHub.Features.Provisioning;
@@ -10,13 +11,15 @@ public sealed class GenerateSecretsStep : IProvisioningStep
 {
     private readonly HubDbContext _dbContext;
     private readonly SnowflakeId _snowflakeGenerator;
+    private readonly IDockerService _dockerService;
 
     public string StepName => "GenerateSecrets";
 
-    public GenerateSecretsStep(HubDbContext dbContext, SnowflakeId snowflakeGenerator)
+    public GenerateSecretsStep(HubDbContext dbContext, SnowflakeId snowflakeGenerator, IDockerService dockerService)
     {
         _dbContext = dbContext;
         _snowflakeGenerator = snowflakeGenerator;
+        _dockerService = dockerService;
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -42,8 +45,16 @@ public sealed class GenerateSecretsStep : IProvisioningStep
         var minioSecretKey = GenerateSecurePassword(40);
         var liveKitApiKey = GenerateAccessKey(20);
         var liveKitSecretKey = GenerateSecurePassword(40);
-        var instanceKek = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var bootstrapToken = TokenHelper.GenerateToken();
+
+        // Generate KEK and store it as a write-only Docker secret.
+        // The KEK value is discarded after this method returns — it exists only
+        // in Docker Swarm's encrypted Raft store and at /run/secrets/xcord-kek
+        // inside the running container. The hub retains only the opaque secret ID.
+        var subdomain = ValidationHelpers.ExtractSubdomain(instance.Domain);
+        var instanceKek = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var kekSecretId = await _dockerService.CreateRawSecretAsync(
+            $"xcord-{subdomain}-kek", instanceKek, cancellationToken);
 
         var infrastructure = new InstanceInfrastructure
         {
@@ -58,7 +69,7 @@ public sealed class GenerateSecretsStep : IProvisioningStep
             CaddyRouteId = string.Empty, // Will be set in ConfigureDnsAndProxy step
             LiveKitApiKey = liveKitApiKey,
             LiveKitSecretKey = liveKitSecretKey,
-            InstanceKek = instanceKek,
+            DockerKekSecretId = kekSecretId,
             BootstrapTokenHash = TokenHelper.HashToken(bootstrapToken),
             CreatedAt = DateTimeOffset.UtcNow
         };
