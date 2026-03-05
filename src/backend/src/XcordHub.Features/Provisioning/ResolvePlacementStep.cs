@@ -26,8 +26,11 @@ public sealed class ResolvePlacementStep : IProvisioningStep
             .Include(i => i.Infrastructure)
             .FirstOrDefaultAsync(i => i.Id == instanceId, cancellationToken);
 
-        if (instance?.Billing == null || instance.Infrastructure == null)
-            return Error.NotFound("INSTANCE_NOT_FOUND", $"Instance {instanceId} or billing/infra not found");
+        if (instance?.Billing == null)
+            return Error.NotFound("INSTANCE_NOT_FOUND", $"Instance {instanceId} or billing not found");
+
+        if (instance.Infrastructure == null)
+            return Error.NotFound("INFRASTRUCTURE_NOT_FOUND", $"Infrastructure for instance {instanceId} not found (run GenerateSecrets first)");
 
         if (!_resolver.IsConfigured)
         {
