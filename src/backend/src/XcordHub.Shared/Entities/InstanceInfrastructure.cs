@@ -15,7 +15,8 @@ public sealed class InstanceInfrastructure
     public string CaddyRouteId { get; set; } = string.Empty;
     public string LiveKitApiKey { get; set; } = string.Empty;
     public string LiveKitSecretKey { get; set; } = string.Empty;
-    public string InstanceKek { get; set; } = string.Empty;
+    public string DockerKekSecretId { get; set; } = string.Empty;
+    public string DatabaseUsername { get; set; } = string.Empty;
     public string? BootstrapTokenHash { get; set; }
     public string PlacedInPool { get; set; } = "default";
     public string PlacementRegion { get; set; } = string.Empty;

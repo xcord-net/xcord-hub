@@ -98,9 +98,10 @@ public sealed class LifecycleTests : IAsyncLifetime
             _callLog.Add($"RemoveSecret:{secretId}");
             return Task.CompletedTask;
         }
-        public Task<string> StartContainerAsync(string instanceDomain, string secretId, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default) => Task.FromResult("ctr_spy");
+        public Task<string> CreateRawSecretAsync(string secretName, string data, CancellationToken cancellationToken = default) => Task.FromResult("raw_secret_spy");
+        public Task<string> StartContainerAsync(string instanceDomain, string configSecretId, string? kekSecretId = null, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default) => Task.FromResult("ctr_spy");
         public Task<bool> VerifyContainerRunningAsync(string containerId, CancellationToken cancellationToken = default) => Task.FromResult(true);
-        public Task RunMigrationContainerAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<bool> VerifyMigrationsCompleteAsync(string instanceDomain, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task RemoveContainerAsync(string containerId, CancellationToken cancellationToken = default)
         {

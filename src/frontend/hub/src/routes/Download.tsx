@@ -1,4 +1,4 @@
-import { createMemo, For, Show } from 'solid-js';
+import { createMemo, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import PageMeta from '../components/PageMeta';
 import { detectPlatform, getDownloadLinks, type Platform } from '../utils/platform';
@@ -61,6 +61,105 @@ const platformIcons: Record<string, () => ReturnType<typeof WindowsIcon>> = {
   ios: IosIcon,
 };
 
+/* ── Notify form (mobile coming-soon) ────────────────────────────────── */
+
+function NotifyForm(props: { platform: string }) {
+  const [email, setEmail] = createSignal('');
+  const [status, setStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = createSignal('');
+
+  async function handleSubmit(e: Event) {
+    e.preventDefault();
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/v1/mailing-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email(), tier: `${props.platform} app` }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus('error');
+        setMessage(data.message ?? 'Something went wrong.');
+      } else {
+        setStatus('success');
+        setMessage(data.message);
+      }
+    } catch {
+      setStatus('error');
+      setMessage('Network error. Please try again.');
+    }
+  }
+
+  return (
+    <Show
+      when={status() !== 'success'}
+      fallback={<p class="text-sm text-green-400 text-center py-1">{message()}</p>}
+    >
+      <form onSubmit={handleSubmit} class="flex gap-2 mt-1">
+        <input
+          type="email"
+          required
+          placeholder="you@example.com"
+          value={email()}
+          onInput={(e) => setEmail(e.currentTarget.value)}
+          class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-xcord-landing-bg border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
+        />
+        <button
+          type="submit"
+          disabled={status() === 'loading'}
+          class="px-3 py-2 rounded-lg font-medium bg-xcord-brand text-white text-sm hover:bg-xcord-brand-hover disabled:opacity-50 shrink-0"
+        >
+          {status() === 'loading' ? '...' : 'Notify'}
+        </button>
+      </form>
+      <Show when={status() === 'error'}>
+        <p class="text-xs text-red-400 mt-1">{message()}</p>
+      </Show>
+    </Show>
+  );
+}
+
+/* ── Feature highlights ──────────────────────────────────────────────── */
+
+const appFeatures = [
+  {
+    title: 'Voice & Video',
+    description: 'Crystal-clear calls, screen sharing, and Go Live streaming — powered by LiveKit.',
+    icon: (
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Native Performance',
+    description: 'System tray, desktop notifications, global shortcuts, and auto-start. Feels right at home.',
+    icon: (
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Your Data, Your Rules',
+    description: 'Connect to any Xcord instance — self-hosted or cloud. Your conversations stay where you choose.',
+    icon: (
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+      </svg>
+    ),
+  },
+];
+
+/* ── System requirements ─────────────────────────────────────────────── */
+
+const systemRequirements = [
+  { platform: 'Windows', os: 'Windows 10 or later (64-bit)', ram: '4 GB RAM', disk: '200 MB', extra: 'WebView2 runtime (included)' },
+  { platform: 'macOS', os: 'macOS 12 Monterey or later', ram: '4 GB RAM', disk: '200 MB', extra: 'Apple Silicon or Intel' },
+  { platform: 'Linux', os: 'Ubuntu 22.04+, Fedora 38+, or equivalent', ram: '4 GB RAM', disk: '200 MB', extra: 'WebKitGTK 4.1+' },
+];
+
 /* ── Page ─────────────────────────────────────────────────────────────── */
 
 export default function Download() {
@@ -80,11 +179,36 @@ export default function Download() {
 
   const platformOrder: Platform[] = ['windows', 'macos', 'linux', 'android', 'ios'];
 
+  onMount(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'xcord-download-jsonld';
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'Xcord',
+      applicationCategory: 'CommunicationApplication',
+      description: 'Open-source community platform with voice, video, and text chat. A self-hostable alternative to Discord.',
+      operatingSystem: 'Windows 10+, macOS 12+, Linux',
+      url: `${window.location.origin}/download`,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+    });
+    document.head.appendChild(script);
+  });
+
+  onCleanup(() => {
+    document.getElementById('xcord-download-jsonld')?.remove();
+  });
+
   return (
     <>
       <PageMeta
-        title="Download Xcord - Desktop & Mobile Apps"
-        description="Download Xcord for Windows, macOS, Linux, Android, and iOS. Native apps with voice, video, and text."
+        title="Download Xcord - Open Source Discord Alternative for Desktop & Mobile"
+        description="Download Xcord for Windows, macOS, and Linux. An open-source, self-hostable alternative to Discord with native voice, video, and text chat."
         path="/download"
       />
 
@@ -95,7 +219,7 @@ export default function Download() {
             Get Xcord
           </h1>
           <p class="mt-4 text-lg text-xcord-landing-text-muted max-w-xl mx-auto">
-            Available on desktop and mobile. Connect to your communities from anywhere.
+            The open-source alternative to Discord — native apps for every platform.
           </p>
 
           {/* Detected OS hero button */}
@@ -155,8 +279,25 @@ export default function Download() {
         </div>
       </section>
 
+      {/* App features */}
+      <section class="pb-20">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <For each={appFeatures}>
+              {(feat) => (
+                <div class="flex flex-col items-center text-center gap-3 p-6 rounded-xl bg-xcord-landing-surface border border-xcord-landing-border">
+                  <div class="text-xcord-brand">{feat.icon}</div>
+                  <h3 class="font-semibold text-white">{feat.title}</h3>
+                  <p class="text-sm text-xcord-landing-text-muted">{feat.description}</p>
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </section>
+
       {/* All platforms grid */}
-      <section class="pb-24">
+      <section class="pb-20">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 class="text-xl font-semibold text-white text-center mb-10">
             All platforms
@@ -195,9 +336,15 @@ export default function Download() {
                     <Show
                       when={!info.comingSoon}
                       fallback={
-                        <span class="text-sm text-xcord-landing-text-muted italic">
-                          Coming soon
-                        </span>
+                        <div class="flex flex-col gap-2">
+                          <span class="text-sm text-xcord-landing-text-muted italic">
+                            Coming soon
+                          </span>
+                          <p class="text-xs text-xcord-landing-text-muted">
+                            Get notified when it's ready:
+                          </p>
+                          <NotifyForm platform={info.name} />
+                        </div>
                       }
                     >
                       <div class="flex flex-col gap-2">
@@ -215,25 +362,68 @@ export default function Download() {
                         </For>
                       </div>
                     </Show>
+
+                    <Show when={info.requirements}>
+                      <p class="text-xs text-xcord-landing-text-muted mt-auto pt-2 border-t border-xcord-landing-border">
+                        Requires {info.requirements}
+                      </p>
+                    </Show>
                   </div>
                 );
               }}
             </For>
           </div>
+        </div>
+      </section>
 
-          {/* Open source callout */}
-          <div class="mt-14 text-center">
-            <p class="text-sm text-xcord-landing-text-muted">
-              Xcord is open source.{' '}
+      {/* System requirements */}
+      <section class="pb-20">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 class="text-xl font-semibold text-white text-center mb-8">
+            System requirements
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <For each={systemRequirements}>
+              {(req) => (
+                <div class="rounded-xl border border-xcord-landing-border bg-xcord-landing-surface p-5">
+                  <h3 class="font-semibold text-white mb-3">{req.platform}</h3>
+                  <ul class="space-y-2 text-sm text-xcord-landing-text-muted">
+                    <li>{req.os}</li>
+                    <li>{req.ram}</li>
+                    <li>{req.disk} disk space</li>
+                    <li>{req.extra}</li>
+                  </ul>
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </section>
+
+      {/* Bottom CTA */}
+      <section class="pb-24">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div class="rounded-xl border border-xcord-landing-border bg-xcord-landing-surface p-8 sm:p-12">
+            <h2 class="text-2xl font-bold text-white">Prefer to self-host?</h2>
+            <p class="mt-3 text-xcord-landing-text-muted max-w-lg mx-auto">
+              Deploy your own Xcord instance on your infrastructure. Unlimited users, full control, zero platform lock-in.
+            </p>
+            <div class="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
+              <A
+                href="/docs/self-hosting"
+                class="px-6 py-3 bg-xcord-brand text-white font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors"
+              >
+                Self-Hosting Guide
+              </A>
               <a
                 href="https://github.com/xcord-net"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-xcord-brand hover:underline"
+                class="px-6 py-3 border border-xcord-landing-border text-white font-medium rounded-lg hover:bg-xcord-landing-border transition-colors"
               >
                 View on GitHub
               </a>
-            </p>
+            </div>
           </div>
         </div>
       </section>

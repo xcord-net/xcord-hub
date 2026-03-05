@@ -75,11 +75,13 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
             .HasColumnType("bytea")
             .HasConversion(_encryptedStringConverter);
 
-        // Per-instance KEK — stored encrypted so only the hub can decrypt it
-        builder.Property(x => x.InstanceKek)
+        builder.Property(x => x.DockerKekSecretId)
             .IsRequired()
-            .HasColumnType("bytea")
-            .HasConversion(_encryptedStringConverter);
+            .HasMaxLength(255);
+
+        builder.Property(x => x.DatabaseUsername)
+            .IsRequired()
+            .HasMaxLength(255);
 
         builder.Property(x => x.BootstrapTokenHash)
             .HasMaxLength(64);

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,12 +10,21 @@ namespace XcordHub.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<byte[]>(
-                name: "InstanceKek",
+            migrationBuilder.AddColumn<string>(
+                name: "DockerKekSecretId",
                 table: "instance_infrastructure",
-                type: "bytea",
+                type: "character varying(255)",
+                maxLength: 255,
                 nullable: false,
-                defaultValue: new byte[0]);
+                defaultValue: "");
+
+            migrationBuilder.AddColumn<string>(
+                name: "DatabaseUsername",
+                table: "instance_infrastructure",
+                type: "character varying(255)",
+                maxLength: 255,
+                nullable: false,
+                defaultValue: "");
 
             migrationBuilder.AddColumn<bool>(
                 name: "HdUpgrade",
@@ -29,7 +38,11 @@ namespace XcordHub.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "InstanceKek",
+                name: "DockerKekSecretId",
+                table: "instance_infrastructure");
+
+            migrationBuilder.DropColumn(
+                name: "DatabaseUsername",
                 table: "instance_infrastructure");
 
             migrationBuilder.DropColumn(

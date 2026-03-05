@@ -2,12 +2,10 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Testcontainers.PostgreSql;
 using XcordHub.Entities;
 using XcordHub.Features.Provisioning;
 using XcordHub.Infrastructure.Data;
-using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 using Xunit;
 
@@ -128,18 +126,6 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
 
     // ──────────── Helpers ────────────
 
-    private static IOptions<MinioOptions> BuildMinioOptions(
-        string accessKey = "rootkey",
-        string secretKey = "rootsecret",
-        string endpoint = "localhost:9000")
-        => Options.Create(new MinioOptions
-        {
-            AccessKey = accessKey,
-            SecretKey = secretKey,
-            Endpoint = endpoint,
-            UseSsl = false
-        });
-
     private async Task<(HubUser owner, ManagedInstance instance, InstanceInfrastructure infra)> SeedInstanceAsync(
         long idBase,
         string subdomain,
@@ -186,7 +172,7 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
             CaddyRouteId = $"route_{subdomain}",
             LiveKitApiKey = "lk_key",
             LiveKitSecretKey = "lk_secret",
-            InstanceKek = "test-kek",
+            DockerKekSecretId = "test-kek-secret-id",
             CreatedAt = DateTimeOffset.UtcNow
         };
         db.InstanceInfrastructures.Add(infra);
@@ -195,19 +181,11 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
         return (owner, instance, infra);
     }
 
-    private ProvisionMinioStep BuildStep(IMinioProvisioningService minioService, MinioOptions? options = null)
+    private ProvisionMinioStep BuildStep(IMinioProvisioningService minioService)
     {
-        var minioOptions = options != null
-            ? Options.Create(options)
-            : BuildMinioOptions();
-
-        var resolver = new TopologyResolver(Options.Create(new TopologyOptions()));
-
         return new ProvisionMinioStep(
             _dbContext!,
             minioService,
-            minioOptions,
-            resolver,
             NullLogger<ProvisionMinioStep>.Instance);
     }
 
@@ -235,41 +213,20 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ExecuteAsync_PerInstanceVerifyFails_FallsBackToRootCredentials()
+    public async Task ExecuteAsync_PerInstanceVerifyFails_ReturnsFailure()
     {
-        // Simulate: bucket is created successfully but the Console API did not create
-        // a per-instance IAM user, so verify returns false.
-        var instanceAccessKey = "per-instance-key";
-        var rootAccessKey = "root-key";
-        var rootSecretKey = "root-secret";
-
+        // Per-instance credentials must work — provisioning fails hard rather than
+        // falling back to root credentials (which would give cross-bucket access).
         var (_, instance, _) = await SeedInstanceAsync(
-            InstanceIdBase + 20, "fallback", instanceAccessKey, "per-instance-secret");
+            InstanceIdBase + 20, "fallback", "per-instance-key", "per-instance-secret");
 
         var minioSpy = new RecordingMinioService { SimulateVerifyFailure = true };
-        var rootMinioOptions = new MinioOptions
-        {
-            AccessKey = rootAccessKey,
-            SecretKey = rootSecretKey,
-            Endpoint = "localhost:9000",
-            UseSsl = false
-        };
-        var step = BuildStep(minioSpy, rootMinioOptions);
+        var step = BuildStep(minioSpy);
 
         var result = await step.ExecuteAsync(instance.Id);
 
-        result.IsSuccess.Should().BeTrue("step should succeed even when per-instance credentials fail");
-
-        // Verify the infra record now holds root credentials
-        await using var verifyDb = CreateVerifyDbContext();
-        var reloadedInfra = await verifyDb.InstanceInfrastructures
-            .FirstOrDefaultAsync(i => i.ManagedInstanceId == instance.Id);
-
-        reloadedInfra.Should().NotBeNull();
-        reloadedInfra!.MinioAccessKey.Should().Be(rootAccessKey,
-            "when per-instance credentials fail, infrastructure should be updated to use root access key");
-        reloadedInfra.MinioSecretKey.Should().Be(rootSecretKey,
-            "when per-instance credentials fail, infrastructure should be updated to use root secret key");
+        result.IsSuccess.Should().BeFalse("step should fail when per-instance credentials cannot be verified");
+        result.Error!.Code.Should().Be("MINIO_CREDENTIALS_FAILED");
     }
 
     [Fact]

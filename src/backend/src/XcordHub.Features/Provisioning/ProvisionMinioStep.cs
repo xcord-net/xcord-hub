@@ -1,24 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using XcordHub.Infrastructure.Data;
-using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 using XcordHub;
 
 namespace XcordHub.Features.Provisioning;
 
 /// <summary>
-/// Creates a per-instance MinIO bucket and (optionally) a dedicated IAM user.
-/// When per-user provisioning fails, falls back to root credentials so the instance
-/// can still access its bucket.
+/// Creates a per-instance MinIO bucket with a dedicated IAM user.
+/// Provisioning fails hard if per-instance credentials cannot be verified —
+/// never falls back to root credentials (which would give cross-bucket access).
 /// </summary>
 public sealed class ProvisionMinioStep : IProvisioningStep
 {
     private readonly HubDbContext _dbContext;
     private readonly IMinioProvisioningService _minioService;
-    private readonly MinioOptions _minioOptions;
-    private readonly TopologyResolver _resolver;
     private readonly ILogger<ProvisionMinioStep> _logger;
 
     public string StepName => "ProvisionMinio";
@@ -26,14 +22,10 @@ public sealed class ProvisionMinioStep : IProvisioningStep
     public ProvisionMinioStep(
         HubDbContext dbContext,
         IMinioProvisioningService minioService,
-        IOptions<MinioOptions> minioOptions,
-        TopologyResolver resolver,
         ILogger<ProvisionMinioStep> logger)
     {
         _dbContext = dbContext;
         _minioService = minioService;
-        _minioOptions = minioOptions.Value;
-        _resolver = resolver;
         _logger = logger;
     }
 
@@ -64,24 +56,15 @@ public sealed class ProvisionMinioStep : IProvisioningStep
                 infra.MinioSecretKey,
                 cancellationToken);
 
-            // Check if the per-instance credentials actually work
+            // Verify per-instance credentials work — never fall back to root credentials
             var perUserWorks = await _minioService.VerifyBucketAsync(
                 bucketName, infra.MinioAccessKey, infra.MinioSecretKey, cancellationToken);
 
             if (!perUserWorks)
             {
-                // Per-instance IAM user creation likely failed (Console API unavailable).
-                // Fall back to root credentials so the instance can still access its bucket.
-                // Use pool-specific storage credentials if available, otherwise hub-level defaults.
-                _logger.LogWarning(
-                    "Per-instance MinIO credentials failed for instance {InstanceId}. " +
-                    "Falling back to root credentials for bucket {Bucket}.",
-                    instanceId, bucketName);
-
-                var poolStorage = _resolver.GetStorageConfig(instance.Infrastructure.PlacedInPool);
-                infra.MinioAccessKey = poolStorage?.AccessKey ?? _minioOptions.AccessKey;
-                infra.MinioSecretKey = poolStorage?.SecretKey ?? _minioOptions.SecretKey;
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                return Error.Failure("MINIO_CREDENTIALS_FAILED",
+                    $"Per-instance MinIO credentials failed for bucket '{bucketName}'. " +
+                    "Ensure the MinIO Console API is available for IAM user provisioning.");
             }
 
             return true;

@@ -10,8 +10,16 @@ public sealed class RemoveSecretStep(IDockerService dockerService, ILogger<Remov
 
     public async Task ExecuteAsync(ManagedInstance instance, InstanceInfrastructure infrastructure, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(infrastructure.DockerSecretId)) return;
-        logger.LogInformation("Removing Docker secret {SecretId} for instance {Domain}", infrastructure.DockerSecretId, instance.Domain);
-        await dockerService.RemoveSecretAsync(infrastructure.DockerSecretId, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(infrastructure.DockerSecretId))
+        {
+            logger.LogInformation("Removing Docker config secret {SecretId} for instance {Domain}", infrastructure.DockerSecretId, instance.Domain);
+            await dockerService.RemoveSecretAsync(infrastructure.DockerSecretId, cancellationToken);
+        }
+
+        if (!string.IsNullOrWhiteSpace(infrastructure.DockerKekSecretId))
+        {
+            logger.LogInformation("Removing Docker KEK secret {SecretId} for instance {Domain}", infrastructure.DockerKekSecretId, instance.Domain);
+            await dockerService.RemoveSecretAsync(infrastructure.DockerKekSecretId, cancellationToken);
+        }
     }
 }
