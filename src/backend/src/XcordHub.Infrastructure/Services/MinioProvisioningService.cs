@@ -1,4 +1,6 @@
-using System.Net.Http.Json;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,8 +12,8 @@ namespace XcordHub.Infrastructure.Services;
 
 /// <summary>
 /// Provisions per-instance MinIO users, buckets, and IAM-style bucket policies
-/// using the Minio .NET SDK (S3 operations) and the MinIO Console HTTP API
-/// (user/policy management, which is not exposed by the S3-compatible API).
+/// using the Minio .NET SDK (S3 operations) and the MinIO Admin REST API
+/// (/minio/admin/v3/ endpoints with SigV4 auth and DARE body encryption).
 /// </summary>
 public sealed class MinioProvisioningService : IMinioProvisioningService
 {
@@ -47,19 +49,8 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         // 1. Create the bucket (idempotent)
         await EnsureBucketExistsAsync(bucketName, cancellationToken);
 
-        // 2. Use the Console API to create user and policy (best-effort)
-        try
-        {
-            await ProvisionConsoleResourcesAsync(bucketName, accessKey, secretKey, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "MinIO Console API provisioning failed for bucket {Bucket} / user {AccessKey}. " +
-                "Bucket was created but per-instance user was not configured. " +
-                "The instance will fall back to root credentials.",
-                bucketName, accessKey);
-        }
+        // 2. Create IAM user and bucket-scoped policy via Admin API
+        await ProvisionAdminResourcesAsync(bucketName, accessKey, secretKey, cancellationToken);
 
         _logger.LogInformation("MinIO bucket {Bucket} provisioned for user {AccessKey}", bucketName, accessKey);
     }
@@ -72,15 +63,15 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         _logger.LogInformation("Deprovisioning MinIO bucket {Bucket} for user {AccessKey}", bucketName, accessKey);
 
         // Best-effort cleanup — log and continue on each step
-        // 1. Remove Console API resources (user + policy) first
+        // 1. Remove IAM user and policy
         try
         {
-            await DeprovisionConsoleResourcesAsync(bucketName, accessKey, cancellationToken);
+            await DeprovisionAdminResourcesAsync(bucketName, accessKey, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
-                "MinIO Console API deprovisioning failed for user {AccessKey} — continuing bucket cleanup",
+                "MinIO Admin API deprovisioning failed for user {AccessKey} — continuing bucket cleanup",
                 accessKey);
         }
 
@@ -241,172 +232,166 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
     }
 
     // -------------------------------------------------------------------------
-    // MinIO Console API operations (user + policy management)
+    // MinIO Admin REST API operations (/minio/admin/v3/)
     // -------------------------------------------------------------------------
 
-    private async Task ProvisionConsoleResourcesAsync(
+    private async Task ProvisionAdminResourcesAsync(
         string bucketName,
         string accessKey,
         string secretKey,
         CancellationToken cancellationToken)
     {
-        using var http = _httpClientFactory.CreateClient("MinioConsole");
+        using var http = _httpClientFactory.CreateClient("MinioAdmin");
 
-        var sessionId = await LoginConsoleAsync(http, cancellationToken);
+        // 1. Create IAM user (encrypted body — contains secret key)
+        await AddUserAsync(http, accessKey, secretKey, cancellationToken);
 
-        // Create user
-        await CreateConsoleUserAsync(http, sessionId, accessKey, secretKey, cancellationToken);
-
-        // Create policy scoped to this bucket
+        // 2. Create bucket-scoped canned policy (plain body — not secret)
         var policyName = $"xcord-policy-{accessKey.ToLowerInvariant()}";
         var policyDoc = BuildBucketPolicy(bucketName);
-        await CreateConsolePolicyAsync(http, sessionId, policyName, policyDoc, cancellationToken);
+        await AddCannedPolicyAsync(http, policyName, policyDoc, cancellationToken);
 
-        // Attach policy to user
-        await AttachConsolePolicyAsync(http, sessionId, accessKey, policyName, cancellationToken);
+        // 3. Attach policy to user (encrypted body)
+        await AttachPolicyAsync(http, accessKey, policyName, cancellationToken);
     }
 
-    private async Task DeprovisionConsoleResourcesAsync(
+    private async Task DeprovisionAdminResourcesAsync(
         string bucketName,
         string accessKey,
         CancellationToken cancellationToken)
     {
-        using var http = _httpClientFactory.CreateClient("MinioConsole");
-
-        var sessionId = await LoginConsoleAsync(http, cancellationToken);
+        using var http = _httpClientFactory.CreateClient("MinioAdmin");
 
         // Delete user (MinIO automatically detaches their policies)
-        await DeleteConsoleUserAsync(http, sessionId, accessKey, cancellationToken);
+        await RemoveUserAsync(http, accessKey, cancellationToken);
 
         // Delete policy
         var policyName = $"xcord-policy-{accessKey.ToLowerInvariant()}";
-        await DeleteConsolePolicyAsync(http, sessionId, policyName, cancellationToken);
+        await RemoveCannedPolicyAsync(http, policyName, cancellationToken);
     }
 
-    private async Task<string> LoginConsoleAsync(HttpClient http, CancellationToken cancellationToken)
+    /// <summary>
+    /// PUT /minio/admin/v3/add-user?accessKey={key}
+    /// Body: DARE-encrypted JSON {"secretKey":"...","status":"enabled"}
+    /// </summary>
+    private async Task AddUserAsync(HttpClient http, string accessKey, string secretKey,
+        CancellationToken cancellationToken)
     {
-        var loginPayload = new { accessKey = _options.AccessKey, secretKey = _options.SecretKey };
+        var userInfo = JsonSerializer.Serialize(new { secretKey, status = "enabled" });
+        var encrypted = MinioAdminCrypto.EncryptData(_options.SecretKey, Encoding.UTF8.GetBytes(userInfo));
 
-        var response = await http.PostAsJsonAsync("/api/v1/login", loginPayload, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        // MinIO Console returns 204 No Content with the session token in a Set-Cookie header
-        // e.g. Set-Cookie: token=<jwt>; Path=/; ...
-        if (!response.Headers.TryGetValues("Set-Cookie", out var cookies))
-            throw new InvalidOperationException("MinIO Console login did not return a Set-Cookie header");
-
-        foreach (var cookie in cookies)
+        var request = new HttpRequestMessage(HttpMethod.Put,
+            $"/minio/admin/v3/add-user?accessKey={Uri.EscapeDataString(accessKey)}")
         {
-            if (cookie.StartsWith("token=", StringComparison.OrdinalIgnoreCase))
-            {
-                var endIndex = cookie.IndexOf(';');
-                var token = endIndex > 0 ? cookie[6..endIndex] : cookie[6..];
-                return token;
-            }
+            Content = CreateOctetContent(encrypted)
+        };
+
+        var response = await http.SendAsync(request, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+        {
+            _logger.LogDebug("MinIO user {AccessKey} already exists", accessKey);
+            return;
         }
 
-        throw new InvalidOperationException("MinIO Console login Set-Cookie did not contain a token");
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("MinIO add-user failed: {StatusCode} {Body}", response.StatusCode, body);
+        }
+
+        response.EnsureSuccessStatusCode();
+        _logger.LogInformation("Created MinIO user {AccessKey}", accessKey);
     }
 
-    private static async Task CreateConsoleUserAsync(
-        HttpClient http,
-        string sessionId,
-        string accessKey,
-        string secretKey,
+    /// <summary>
+    /// PUT /minio/admin/v3/add-canned-policy?name={policyName}
+    /// Body: plain JSON policy document (not encrypted)
+    /// </summary>
+    private async Task AddCannedPolicyAsync(HttpClient http, string policyName, string policyDocument,
         CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/users")
+        var request = new HttpRequestMessage(HttpMethod.Put,
+            $"/minio/admin/v3/add-canned-policy?name={Uri.EscapeDataString(policyName)}")
         {
-            Content = JsonContent.Create(new { accessKey, secretKey }),
-            Headers = { { "Cookie", $"token={sessionId}" } }
+            Content = new ByteArrayContent(Encoding.UTF8.GetBytes(policyDocument))
+        };
+
+        var response = await http.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        _logger.LogInformation("Created MinIO policy {PolicyName}", policyName);
+    }
+
+    /// <summary>
+    /// POST /minio/admin/v3/idp/builtin/policy/attach
+    /// Body: DARE-encrypted JSON {"policies":["..."],"user":"..."}
+    /// </summary>
+    private async Task AttachPolicyAsync(HttpClient http, string accessKey, string policyName,
+        CancellationToken cancellationToken)
+    {
+        var attachReq = JsonSerializer.Serialize(new { policies = new[] { policyName }, user = accessKey });
+        var encrypted = MinioAdminCrypto.EncryptData(_options.SecretKey, Encoding.UTF8.GetBytes(attachReq));
+
+        var request = new HttpRequestMessage(HttpMethod.Post,
+            "/minio/admin/v3/idp/builtin/policy/attach")
+        {
+            Content = CreateOctetContent(encrypted)
         };
 
         var response = await http.SendAsync(request, cancellationToken);
 
-        // 409 Conflict means user already exists — treat as success
-        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("MinIO attach-policy failed: {StatusCode} {Body}", response.StatusCode, body);
+        }
+
+        response.EnsureSuccessStatusCode();
+        _logger.LogInformation("Attached policy {PolicyName} to user {AccessKey}", policyName, accessKey);
+    }
+
+    /// <summary>
+    /// DELETE /minio/admin/v3/remove-user?accessKey={key}
+    /// No body required.
+    /// </summary>
+    private async Task RemoveUserAsync(HttpClient http, string accessKey,
+        CancellationToken cancellationToken)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Delete,
+            $"/minio/admin/v3/remove-user?accessKey={Uri.EscapeDataString(accessKey)}");
+
+        var response = await http.SendAsync(request, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogDebug("MinIO user {AccessKey} not found during cleanup", accessKey);
             return;
+        }
 
         response.EnsureSuccessStatusCode();
+        _logger.LogInformation("Removed MinIO user {AccessKey}", accessKey);
     }
 
-    private static async Task CreateConsolePolicyAsync(
-        HttpClient http,
-        string sessionId,
-        string policyName,
-        string policyDocument,
+    /// <summary>
+    /// DELETE /minio/admin/v3/delete-canned-policy?name={policyName}
+    /// No body required.
+    /// </summary>
+    private async Task RemoveCannedPolicyAsync(HttpClient http, string policyName,
         CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/policies")
-        {
-            Content = JsonContent.Create(new { name = policyName, policy = policyDocument }),
-            Headers = { { "Cookie", $"token={sessionId}" } }
-        };
+        var request = new HttpRequestMessage(HttpMethod.Delete,
+            $"/minio/admin/v3/delete-canned-policy?name={Uri.EscapeDataString(policyName)}");
 
         var response = await http.SendAsync(request, cancellationToken);
 
-        // 409 Conflict means policy already exists — treat as success
-        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogDebug("MinIO policy {PolicyName} not found during cleanup", policyName);
             return;
+        }
 
         response.EnsureSuccessStatusCode();
-    }
-
-    private static async Task AttachConsolePolicyAsync(
-        HttpClient http,
-        string sessionId,
-        string accessKey,
-        string policyName,
-        CancellationToken cancellationToken)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/user/{Uri.EscapeDataString(accessKey)}/policies")
-        {
-            Content = JsonContent.Create(new { policies = new[] { policyName } }),
-            Headers = { { "Cookie", $"token={sessionId}" } }
-        };
-
-        var response = await http.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-    }
-
-    private static async Task DeleteConsoleUserAsync(
-        HttpClient http,
-        string sessionId,
-        string accessKey,
-        CancellationToken cancellationToken)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/users/{Uri.EscapeDataString(accessKey)}")
-        {
-            Headers = { { "Cookie", $"token={sessionId}" } }
-        };
-
-        var response = await http.SendAsync(request, cancellationToken);
-
-        // 404 = already deleted — treat as success
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return;
-
-        response.EnsureSuccessStatusCode();
-    }
-
-    private static async Task DeleteConsolePolicyAsync(
-        HttpClient http,
-        string sessionId,
-        string policyName,
-        CancellationToken cancellationToken)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/policies/{Uri.EscapeDataString(policyName)}")
-        {
-            Headers = { { "Cookie", $"token={sessionId}" } }
-        };
-
-        var response = await http.SendAsync(request, cancellationToken);
-
-        // 404 = already deleted — treat as success
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return;
-
-        response.EnsureSuccessStatusCode();
+        _logger.LogInformation("Removed MinIO policy {PolicyName}", policyName);
     }
 
     // -------------------------------------------------------------------------
@@ -434,5 +419,12 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         };
 
         return JsonSerializer.Serialize(policy);
+    }
+
+    private static ByteArrayContent CreateOctetContent(byte[] data)
+    {
+        var content = new ByteArrayContent(data);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        return content;
     }
 }

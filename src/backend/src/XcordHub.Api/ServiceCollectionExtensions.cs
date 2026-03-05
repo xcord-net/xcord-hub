@@ -272,16 +272,17 @@ public static class ServiceCollectionExtensions
                 .WithSSL(minioOptions.UseSsl);
         });
 
-        var minioConsoleEndpoint = minioOptions.ConsoleEndpoint;
-        var minioConsoleUrl = minioConsoleEndpoint.Contains("://")
-            ? minioConsoleEndpoint
-            : $"http{(minioOptions.UseSsl ? "s" : "")}://{minioConsoleEndpoint}";
+        // MinIO Admin REST API client (SigV4-signed, for IAM user/policy management)
+        var minioAdminUrl = minioOptions.Endpoint.Contains("://")
+            ? minioOptions.Endpoint
+            : $"http{(minioOptions.UseSsl ? "s" : "")}://{minioOptions.Endpoint}";
 
-        services.AddHttpClient("MinioConsole", client =>
+        services.AddHttpClient("MinioAdmin", client =>
         {
-            client.BaseAddress = new Uri(minioConsoleUrl);
+            client.BaseAddress = new Uri(minioAdminUrl);
             client.Timeout = TimeSpan.FromSeconds(15);
-        });
+        }).AddHttpMessageHandler(() =>
+            new MinioSigV4Handler(minioOptions.AccessKey, minioOptions.SecretKey));
 
         services.AddSingleton<IMinioProvisioningService, MinioProvisioningService>();
 

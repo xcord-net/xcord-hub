@@ -211,7 +211,7 @@ public sealed class HttpDockerService : IDockerService
             resources["Limits"] = new
             {
                 MemoryBytes = resourceLimits.MemoryBytes,
-                NanoCPUs = resourceLimits.CpuQuota * 1000 // Convert from CpuQuota (microseconds per 100ms) to NanoCPUs
+                NanoCPUs = resourceLimits.CpuQuota * 10_000 // 1 CPU = 1e9 NanoCPUs; CpuQuota is µs per 100ms → NanoCPUs = CpuQuota / 100_000 * 1e9
             };
         }
 
@@ -608,8 +608,8 @@ public sealed class HttpDockerService : IDockerService
             File = new
             {
                 Name = "xcord-kek",
-                UID = "0",
-                GID = "0",
+                UID = "1001", // xcord user inside the container
+                GID = "1001",
                 Mode = 256u // 0400 octal — owner-read only
             }
         };

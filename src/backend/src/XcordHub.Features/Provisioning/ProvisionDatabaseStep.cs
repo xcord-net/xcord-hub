@@ -111,6 +111,12 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             await using var instanceConn = new NpgsqlConnection(instanceBuilder.ConnectionString);
             await instanceConn.OpenAsync(cancellationToken);
 
+            // Create extensions that require superuser privileges. The per-instance
+            // user cannot create extensions, so we do it here as the hub superuser.
+            await using var extCmd = new NpgsqlCommand(
+                "CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"", instanceConn);
+            await extCmd.ExecuteNonQueryAsync(cancellationToken);
+
             // Grant schema privileges (idempotent — GRANT is safe to repeat)
             var grantStatements = new[]
             {
