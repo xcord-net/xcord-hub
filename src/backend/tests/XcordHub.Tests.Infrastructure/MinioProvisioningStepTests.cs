@@ -279,12 +279,13 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ExecuteAsync_StepName_IsProvisionMinio()
+    public Task ExecuteAsync_StepName_IsProvisionMinio()
     {
         var minioSpy = new RecordingMinioService();
         var step = BuildStep(minioSpy);
 
         step.StepName.Should().Be("ProvisionMinio");
+        return Task.CompletedTask;
     }
 
     // ──────────── VerifyAsync ────────────

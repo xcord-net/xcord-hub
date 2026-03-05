@@ -103,7 +103,10 @@ public sealed class GenerateSecretsStep : IProvisioningStep
 
     private static string GenerateSecurePassword(int length)
     {
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+        // Alphanumeric only — avoids escaping issues in SQL literals, connection strings,
+        // and shell contexts. 62^32 ≈ 2^190 bits of entropy is more than sufficient
+        // for internal service credentials.
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         var bytes = new byte[length];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(bytes);

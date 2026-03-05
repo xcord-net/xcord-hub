@@ -228,7 +228,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
             {
                 maxRequests = 10000,
                 windowSeconds = 60,
-                authRegisterPermitLimit = 3,
+                authRegisterPermitLimit = 100,
                 authForgotPasswordPermitLimit = 3
             },
             auth = new
