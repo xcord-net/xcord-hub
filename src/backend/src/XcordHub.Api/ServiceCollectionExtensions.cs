@@ -333,8 +333,8 @@ public static class ServiceCollectionExtensions
         // Provisioning pipeline steps
         services.AddScoped<IProvisioningStep, ValidateSubdomainStep>();
         services.AddScoped<IProvisioningStep, EnforceTierLimitsStep>();
-        services.AddScoped<IProvisioningStep, ResolvePlacementStep>();
         services.AddScoped<IProvisioningStep, GenerateSecretsStep>();
+        services.AddScoped<IProvisioningStep, ResolvePlacementStep>();
         services.AddScoped<IProvisioningStep, AllocateWorkerIdStep>();
         services.AddScoped<IProvisioningStep, CreateNetworkStep>();
         services.AddScoped<IProvisioningStep, ProvisionDatabaseStep>();
