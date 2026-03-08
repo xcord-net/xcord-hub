@@ -1,6 +1,8 @@
 # ===== Stage 1: Build Hub SPA =====
 FROM node:22-alpine AS build-hub-spa
 WORKDIR /app
+ARG VERSION=0.0.0-dev
+ENV VITE_APP_VERSION=$VERSION
 
 # Copy hub frontend source
 COPY src/frontend/hub/ .
@@ -19,6 +21,8 @@ RUN if [ -f package.json ]; then \
 # ===== Stage 2: Build Admin SPA =====
 FROM node:22-alpine AS build-admin-spa
 WORKDIR /app
+ARG VERSION=0.0.0-dev
+ENV VITE_APP_VERSION=$VERSION
 
 # Copy admin frontend source
 COPY src/frontend/admin/ .
@@ -37,6 +41,7 @@ RUN if [ -f package.json ]; then \
 # ===== Stage 3: Build backend =====
 FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build-backend
 WORKDIR /src
+ARG VERSION=0.0.0-dev
 
 # Copy solution and project files for restore
 COPY src/backend/Directory.Build.props src/backend/
@@ -56,6 +61,7 @@ COPY src/backend/ src/backend/
 RUN dotnet publish src/backend/src/XcordHub.Api/XcordHub.Api.csproj \
     -c Release \
     -o /app/publish \
+    -p:Version=$VERSION \
     --no-restore
 
 # ===== Stage 4: Runtime =====
