@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace XcordHub.Infrastructure.Services;
@@ -14,7 +15,7 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
         _logger = logger;
     }
 
-    public async Task<(bool IsHealthy, int ResponseTimeMs, string? ErrorMessage)> VerifyInstanceHealthAsync(
+    public async Task<(bool IsHealthy, int ResponseTimeMs, string? ErrorMessage, string? Version)> VerifyInstanceHealthAsync(
         string domain,
         CancellationToken cancellationToken = default)
     {
@@ -34,12 +35,13 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
 
             if (response.IsSuccessStatusCode)
             {
-                return (true, responseTimeMs, null);
+                var version = await ParseVersionFromResponseAsync(response, cancellationToken);
+                return (true, responseTimeMs, null, version);
             }
 
             var errorMessage = $"Health endpoint returned {(int)response.StatusCode} {response.ReasonPhrase}";
             _logger.LogWarning("Health check failed for {Domain}: {Error}", domain, errorMessage);
-            return (false, responseTimeMs, errorMessage);
+            return (false, responseTimeMs, errorMessage, null);
         }
         catch (Exception ex)
         {
@@ -48,7 +50,26 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
             var errorMessage = $"Health check failed: {ex.Message}";
 
             _logger.LogError(ex, "Health check error for {Domain}", domain);
-            return (false, responseTimeMs, errorMessage);
+            return (false, responseTimeMs, errorMessage, null);
         }
+    }
+
+    private async Task<string?> ParseVersionFromResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("version", out var versionElement))
+            {
+                return versionElement.GetString();
+            }
+        }
+        catch
+        {
+            // Version parsing is best-effort — don't fail the health check
+        }
+
+        return null;
     }
 }

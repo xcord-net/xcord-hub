@@ -29,6 +29,11 @@ public sealed class HubDbContext : DbContext
     public DbSet<MailingListEntry> MailingListEntries => Set<MailingListEntry>();
     public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
 
+    // Upgrade management
+    public DbSet<AvailableVersion> AvailableVersions => Set<AvailableVersion>();
+    public DbSet<UpgradeRollout> UpgradeRollouts => Set<UpgradeRollout>();
+    public DbSet<UpgradeEvent> UpgradeEvents => Set<UpgradeEvent>();
+
     // Revenue tracking
     public DbSet<InstanceRevenueConfig> InstanceRevenueConfigs => Set<InstanceRevenueConfig>();
     public DbSet<PlatformRevenue> PlatformRevenues => Set<PlatformRevenue>();

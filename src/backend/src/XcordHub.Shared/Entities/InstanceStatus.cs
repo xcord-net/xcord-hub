@@ -7,5 +7,6 @@ public enum InstanceStatus
     Running = 2,
     Suspended = 3,
     Destroyed = 4,
-    Failed = 5
+    Failed = 5,
+    Upgrading = 6
 }

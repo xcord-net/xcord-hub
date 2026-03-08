@@ -8,6 +8,8 @@ public sealed class InstanceConfig
     public string ResourceLimitsJson { get; set; } = string.Empty;
     public string FeatureFlagsJson { get; set; } = string.Empty;
     public int Version { get; set; }
+    public UpgradePolicy UpgradePolicy { get; set; } = UpgradePolicy.Auto;
+    public string? PinnedVersion { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 

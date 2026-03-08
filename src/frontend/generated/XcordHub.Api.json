@@ -17,6 +17,188 @@
         }
       }
     },
+    "/api/v1/admin/upgrades/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Admin",
+          "Upgrades"
+        ],
+        "operationId": "CancelUpgrade",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelUpgradeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/upgrades/{id}": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Upgrades"
+        ],
+        "operationId": "GetUpgradeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUpgradeStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/upgrades": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Upgrades"
+        ],
+        "operationId": "ListUpgrades",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListUpgradesResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin",
+          "Upgrades"
+        ],
+        "operationId": "StartUpgrade",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartUpgradeCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartUpgradeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/versions": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Upgrades"
+        ],
+        "operationId": "ListVersions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListVersionsResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin",
+          "Upgrades"
+        ],
+        "operationId": "PublishVersion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishVersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/instances": {
       "post": {
         "tags": [
@@ -219,6 +401,38 @@
         }
       }
     },
+    "/api/v1/hub/instances/{instanceId}/versions": {
+      "get": {
+        "tags": [
+          "Instances",
+          "Upgrades"
+        ],
+        "operationId": "GetAvailableVersions",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAvailableVersionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/instances/{instanceId}/resume": {
       "post": {
         "tags": [
@@ -358,6 +572,90 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UpdateResourceLimitsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/instances/{instanceId}/upgrade-policy": {
+      "patch": {
+        "tags": [
+          "Instances",
+          "Upgrades"
+        ],
+        "operationId": "UpdateUpgradePolicy",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUpgradePolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateUpgradePolicyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/instances/{instanceId}/upgrade": {
+      "post": {
+        "tags": [
+          "Instances",
+          "Upgrades"
+        ],
+        "operationId": "UpgradeInstance",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeInstanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpgradeInstanceResponse"
                 }
               }
             }
@@ -1362,6 +1660,45 @@
           }
         }
       },
+      "AvailableVersionDto": {
+        "required": [
+          "id",
+          "version",
+          "image",
+          "releaseNotes",
+          "isMinimumVersion",
+          "minimumEnforcementDate",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "releaseNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMinimumVersion": {
+            "type": "boolean"
+          },
+          "minimumEnforcementDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "CancelInstanceBillingResponse": {
         "required": [
           "message",
@@ -1378,6 +1715,27 @@
           },
           "userCountTier": {
             "type": "string"
+          }
+        }
+      },
+      "CancelUpgradeResponse": {
+        "required": [
+          "id",
+          "status",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },
@@ -1594,6 +1952,20 @@
           }
         }
       },
+      "GetAvailableVersionsResponse": {
+        "required": [
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailableVersionDto"
+            }
+          }
+        }
+      },
       "GetBillingResponse": {
         "required": [
           "instances"
@@ -1687,6 +2059,73 @@
           }
         }
       },
+      "GetUpgradeStatusResponse": {
+        "required": [
+          "id",
+          "toImage",
+          "fromImage",
+          "targetPool",
+          "status",
+          "totalInstances",
+          "completedInstances",
+          "failedInstanceId",
+          "errorMessage",
+          "startedAt",
+          "completedAt",
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "toImage": {
+            "type": "string"
+          },
+          "fromImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetPool": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "totalInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedInstanceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpgradeEventItem"
+            }
+          }
+        }
+      },
       "InstanceBillingItem": {
         "required": [
           "instanceId",
@@ -1736,7 +2175,9 @@
           "consecutiveFailures",
           "responseTimeMs",
           "errorMessage",
-          "lastCheckAt"
+          "lastCheckAt",
+          "version",
+          "deployedImage"
         ],
         "type": "object",
         "properties": {
@@ -1768,6 +2209,14 @@
           "lastCheckAt": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "deployedImage": {
+            "type": "string",
             "nullable": true
           }
         }
@@ -1953,6 +2402,49 @@
           "pageSize": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "ListUpgradesResponse": {
+        "required": [
+          "rollouts",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "rollouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpgradeRolloutListItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ListVersionsResponse": {
+        "required": [
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionListItem"
+            }
           }
         }
       },
@@ -2164,6 +2656,58 @@
           }
         }
       },
+      "PublishVersionRequest": {
+        "required": [
+          "version",
+          "image"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "releaseNotes": {
+            "type": "string",
+            "default": null,
+            "nullable": true
+          },
+          "publishedBy": {
+            "default": "0"
+          }
+        }
+      },
+      "PublishVersionResponse": {
+        "required": [
+          "id",
+          "version",
+          "image",
+          "releaseNotes",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "releaseNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "RefreshTokenApiResponse": {
         "required": [
           "accessToken"
@@ -2331,6 +2875,68 @@
           }
         }
       },
+      "StartUpgradeCommand": {
+        "required": [
+          "toImage"
+        ],
+        "type": "object",
+        "properties": {
+          "toImage": {
+            "type": "string"
+          },
+          "fromImage": {
+            "type": "string",
+            "default": null,
+            "nullable": true
+          },
+          "targetPool": {
+            "type": "string",
+            "default": null,
+            "nullable": true
+          },
+          "force": {
+            "type": "boolean",
+            "default": false
+          },
+          "initiatedBy": {
+            "default": "0"
+          }
+        }
+      },
+      "StartUpgradeResponse": {
+        "required": [
+          "id",
+          "toImage",
+          "fromImage",
+          "targetPool",
+          "status",
+          "startedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "toImage": {
+            "type": "string"
+          },
+          "fromImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetPool": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "SuccessResponse": {
         "required": [
           "success"
@@ -2490,6 +3096,172 @@
           }
         }
       },
+      "UpdateUpgradePolicyRequest": {
+        "required": [
+          "upgradePolicy",
+          "pinnedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "upgradePolicy": {
+            "$ref": "#/components/schemas/UpgradePolicy"
+          },
+          "pinnedVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateUpgradePolicyResponse": {
+        "required": [
+          "upgradePolicy",
+          "pinnedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "upgradePolicy": {
+            "type": "string"
+          },
+          "pinnedVersion": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpgradeEventItem": {
+        "required": [
+          "id",
+          "managedInstanceId",
+          "status",
+          "previousImage",
+          "targetImage",
+          "previousVersion",
+          "newVersion",
+          "errorMessage",
+          "startedAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "managedInstanceId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "previousImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetImage": {
+            "type": "string"
+          },
+          "previousVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "newVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "UpgradeInstanceRequest": {
+        "required": [
+          "targetImage"
+        ],
+        "type": "object",
+        "properties": {
+          "targetImage": {
+            "type": "string"
+          }
+        }
+      },
+      "UpgradeInstanceResponse": {
+        "required": [
+          "accepted"
+        ],
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpgradePolicy": {
+        "enum": [
+          "Auto",
+          "Manual",
+          "Pinned"
+        ]
+      },
+      "UpgradeRolloutListItem": {
+        "required": [
+          "id",
+          "toImage",
+          "fromImage",
+          "targetPool",
+          "status",
+          "totalInstances",
+          "completedInstances",
+          "startedAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "toImage": {
+            "type": "string"
+          },
+          "fromImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetPool": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "totalInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedInstances": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
       "UserCountTier": {
         "enum": [
           "Tier10",
@@ -2517,6 +3289,45 @@
             "type": "string"
           }
         }
+      },
+      "VersionListItem": {
+        "required": [
+          "id",
+          "version",
+          "image",
+          "releaseNotes",
+          "isMinimumVersion",
+          "minimumEnforcementDate",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "releaseNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMinimumVersion": {
+            "type": "boolean"
+          },
+          "minimumEnforcementDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     }
   },
@@ -2526,6 +3337,9 @@
     },
     {
       "name": "Admin"
+    },
+    {
+      "name": "Upgrades"
     },
     {
       "name": "MailingList"

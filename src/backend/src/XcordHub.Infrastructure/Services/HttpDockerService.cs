@@ -437,6 +437,95 @@ public sealed class HttpDockerService : IDockerService
     }
 
     /// <summary>
+    /// Updates a Swarm service to use a new Docker image.
+    /// Swarm handles the container replacement (stop old, start new).
+    /// </summary>
+    public async Task UpdateServiceImageAsync(string serviceId, string newImage, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Updating service {ServiceId} to image {Image}", serviceId, newImage);
+
+        var inspectResponse = await _httpClient.GetAsync($"/services/{serviceId}", cancellationToken);
+        if (!inspectResponse.IsSuccessStatusCode)
+        {
+            inspectResponse.EnsureSuccessStatusCode();
+        }
+
+        var serviceDoc = await inspectResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        var version = serviceDoc.GetProperty("Version").GetProperty("Index").GetInt64();
+
+        // Clone the existing spec and update the image
+        var spec = serviceDoc.GetProperty("Spec");
+        using var specStream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(specStream))
+        {
+            WriteSpecWithNewImage(spec, newImage, writer);
+        }
+
+        specStream.Position = 0;
+        var content = new StreamContent(specStream);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var updateResponse = await _httpClient.PostAsync(
+            $"/services/{serviceId}/update?version={version}",
+            content, cancellationToken);
+
+        if (!updateResponse.IsSuccessStatusCode && updateResponse.StatusCode != System.Net.HttpStatusCode.NotModified)
+        {
+            var body = await updateResponse.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("Failed to update service {ServiceId}: {StatusCode} {Body}", serviceId, updateResponse.StatusCode, body);
+            updateResponse.EnsureSuccessStatusCode();
+        }
+
+        _logger.LogInformation("Updated service {ServiceId} to image {Image}", serviceId, newImage);
+    }
+
+    /// <summary>
+    /// Deep-clones a service spec JSON, replacing only the container image.
+    /// </summary>
+    private static void WriteSpecWithNewImage(JsonElement spec, string newImage, Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        foreach (var prop in spec.EnumerateObject())
+        {
+            if (prop.Name == "TaskTemplate")
+            {
+                writer.WritePropertyName("TaskTemplate");
+                writer.WriteStartObject();
+                foreach (var ttProp in prop.Value.EnumerateObject())
+                {
+                    if (ttProp.Name == "ContainerSpec")
+                    {
+                        writer.WritePropertyName("ContainerSpec");
+                        writer.WriteStartObject();
+                        foreach (var csProp in ttProp.Value.EnumerateObject())
+                        {
+                            if (csProp.Name == "Image")
+                            {
+                                writer.WriteString("Image", newImage);
+                            }
+                            else
+                            {
+                                csProp.WriteTo(writer);
+                            }
+                        }
+                        writer.WriteEndObject();
+                    }
+                    else
+                    {
+                        ttProp.WriteTo(writer);
+                    }
+                }
+                writer.WriteEndObject();
+            }
+            else
+            {
+                prop.WriteTo(writer);
+            }
+        }
+        writer.WriteEndObject();
+    }
+
+    /// <summary>
     /// Stops a Swarm service by scaling it to 0 replicas.
     /// The <paramref name="containerId"/> is actually the service ID.
     /// </summary>

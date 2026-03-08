@@ -18,7 +18,9 @@ public sealed record InstanceHealthDto(
     int ConsecutiveFailures,
     int? ResponseTimeMs,
     string? ErrorMessage,
-    DateTimeOffset? LastCheckAt
+    DateTimeOffset? LastCheckAt,
+    string? Version,
+    string? DeployedImage
 );
 
 public sealed record AggregatedHealthResponse(
@@ -37,6 +39,7 @@ public sealed class GetAggregatedHealthHandler(HubDbContext dbContext)
     {
         var instances = await dbContext.ManagedInstances
             .Include(i => i.Health)
+            .Include(i => i.Infrastructure)
             .Where(i => i.Status == InstanceStatus.Running && i.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
@@ -54,7 +57,9 @@ public sealed class GetAggregatedHealthHandler(HubDbContext dbContext)
                     instance.Health.ConsecutiveFailures,
                     instance.Health.ResponseTimeMs,
                     instance.Health.ErrorMessage,
-                    instance.Health.LastCheckAt
+                    instance.Health.LastCheckAt,
+                    instance.Health.Version,
+                    instance.Infrastructure?.DeployedImage
                 ));
             }
             else
@@ -68,7 +73,9 @@ public sealed class GetAggregatedHealthHandler(HubDbContext dbContext)
                     0,
                     0,
                     "No health checks recorded",
-                    null
+                    null,
+                    null,
+                    instance.Infrastructure?.DeployedImage
                 ));
             }
         }

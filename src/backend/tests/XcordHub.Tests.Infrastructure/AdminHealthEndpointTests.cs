@@ -281,6 +281,8 @@ public sealed class AdminHealthEndpointTests
         int ConsecutiveFailures,
         int? ResponseTimeMs,
         string? ErrorMessage,
-        DateTimeOffset? LastCheckAt
+        DateTimeOffset? LastCheckAt,
+        string? Version,
+        string? DeployedImage
     );
 }

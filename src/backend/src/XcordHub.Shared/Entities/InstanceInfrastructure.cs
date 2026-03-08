@@ -20,6 +20,7 @@ public sealed class InstanceInfrastructure
     public string? BootstrapTokenHash { get; set; }
     public string PlacedInPool { get; set; } = "default";
     public string PlacementRegion { get; set; } = string.Empty;
+    public string? DeployedImage { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 
     // Navigation properties

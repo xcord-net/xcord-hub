@@ -178,7 +178,7 @@ public sealed class InstanceReconciler : BackgroundService
             // 4. Verify health endpoint (if container is running)
             if (containerRunning)
             {
-                var (isHealthy, _, errorMessage) = await healthVerifier.VerifyInstanceHealthAsync(
+                var (isHealthy, _, errorMessage, _) = await healthVerifier.VerifyInstanceHealthAsync(
                     instance.Domain,
                     cancellationToken);
 

@@ -29,6 +29,9 @@ public sealed class InstanceHealthConfiguration : IEntityTypeConfiguration<Insta
         builder.Property(x => x.ErrorMessage)
             .HasMaxLength(1000);
 
+        builder.Property(x => x.Version)
+            .HasMaxLength(50);
+
         builder.HasIndex(x => x.ManagedInstanceId)
             .IsUnique();
 

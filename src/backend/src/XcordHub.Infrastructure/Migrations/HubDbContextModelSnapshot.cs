@@ -22,6 +22,54 @@ namespace XcordHub.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("XcordHub.Entities.AvailableVersion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsMinimumVersion")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("MinimumEnforcementDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("PublishedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ReleaseNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedBy");
+
+                    b.HasIndex("Version")
+                        .IsUnique()
+                        .HasFilter("\"DeletedAt\" IS NULL");
+
+                    b.ToTable("available_versions", (string)null);
+                });
+
             modelBuilder.Entity("XcordHub.Entities.FederationToken", b =>
                 {
                     b.Property<long>("Id")
@@ -211,12 +259,21 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Property<long>("ManagedInstanceId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("PinnedVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("ResourceLimitsJson")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpgradePolicy")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasDefaultValue("Auto");
 
                     b.Property<int>("Version")
                         .HasColumnType("integer");
@@ -256,6 +313,10 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Property<int?>("ResponseTimeMs")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Version")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ManagedInstanceId")
@@ -288,6 +349,10 @@ namespace XcordHub.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<string>("DeployedImage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<byte[]>("DatabasePassword")
                         .IsRequired()
@@ -699,6 +764,118 @@ namespace XcordHub.Infrastructure.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.UpgradeEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<long>("ManagedInstanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("NewVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PreviousImage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PreviousVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TargetImage")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long?>("UpgradeRolloutId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagedInstanceId");
+
+                    b.HasIndex("UpgradeRolloutId");
+
+                    b.ToTable("upgrade_events", (string)null);
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.UpgradeRollout", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CompletedInstances")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<long?>("FailedInstanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FromImage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("InitiatedBy")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TargetPool")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("ToImage")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("TotalInstances")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InitiatedBy");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("upgrade_rollouts", (string)null);
+                });
+
             modelBuilder.Entity("XcordHub.Entities.WorkerIdRegistry", b =>
                 {
                     b.Property<int>("WorkerId")
@@ -728,6 +905,17 @@ namespace XcordHub.Infrastructure.Migrations
                     b.HasIndex("ManagedInstanceId");
 
                     b.ToTable("worker_id_registry", (string)null);
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.AvailableVersion", b =>
+                {
+                    b.HasOne("XcordHub.Entities.HubUser", "Publisher")
+                        .WithMany()
+                        .HasForeignKey("PublishedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Publisher");
                 });
 
             modelBuilder.Entity("XcordHub.Entities.FederationToken", b =>
@@ -851,6 +1039,35 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Navigation("HubUser");
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.UpgradeEvent", b =>
+                {
+                    b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
+                        .WithMany("UpgradeEvents")
+                        .HasForeignKey("ManagedInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("XcordHub.Entities.UpgradeRollout", "Rollout")
+                        .WithMany("UpgradeEvents")
+                        .HasForeignKey("UpgradeRolloutId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("ManagedInstance");
+
+                    b.Navigation("Rollout");
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.UpgradeRollout", b =>
+                {
+                    b.HasOne("XcordHub.Entities.HubUser", "Initiator")
+                        .WithMany()
+                        .HasForeignKey("InitiatedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Initiator");
+                });
+
             modelBuilder.Entity("XcordHub.Entities.WorkerIdRegistry", b =>
                 {
                     b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
@@ -883,6 +1100,13 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Navigation("Infrastructure");
 
                     b.Navigation("ProvisioningEvents");
+
+                    b.Navigation("UpgradeEvents");
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.UpgradeRollout", b =>
+                {
+                    b.Navigation("UpgradeEvents");
                 });
 #pragma warning restore 612, 618
         }

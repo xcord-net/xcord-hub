@@ -96,6 +96,9 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
             .HasMaxLength(255)
             .HasDefaultValue("");
 
+        builder.Property(x => x.DeployedImage)
+            .HasMaxLength(500);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

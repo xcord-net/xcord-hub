@@ -103,6 +103,11 @@ public sealed class LifecycleTests : IAsyncLifetime
         public Task<bool> VerifyContainerRunningAsync(string containerId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<bool> VerifyMigrationsCompleteAsync(string instanceDomain, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task UpdateServiceImageAsync(string serviceId, string newImage, CancellationToken cancellationToken = default)
+        {
+            _callLog.Add($"UpdateImage:{serviceId}:{newImage}");
+            return Task.CompletedTask;
+        }
         public Task RemoveContainerAsync(string containerId, CancellationToken cancellationToken = default)
         {
             _callLog.Add($"RemoveContainer:{containerId}");
