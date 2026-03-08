@@ -154,18 +154,20 @@ public sealed class HealthCheckMonitor : BackgroundService
             }
 
             // 3. Verify health endpoint
+            string? version = null;
             if (allChecksPass)
             {
-                var (isHealthy, respTime, error) = await healthVerifier.VerifyInstanceHealthAsync(
+                var result = await healthVerifier.VerifyInstanceHealthAsync(
                     instance.Domain,
                     cancellationToken);
 
-                responseTimeMs = respTime;
+                responseTimeMs = result.ResponseTimeMs;
+                version = result.Version;
 
-                if (!isHealthy)
+                if (!result.IsHealthy)
                 {
                     allChecksPass = false;
-                    errorMessage = error;
+                    errorMessage = result.ErrorMessage;
                 }
             }
 
@@ -186,6 +188,7 @@ public sealed class HealthCheckMonitor : BackgroundService
                 health.IsHealthy = true;
                 health.ConsecutiveFailures = 0;
                 health.ErrorMessage = null;
+                health.Version = version;
 
                 // Record successful health check
                 _metrics.RecordHealthCheck(success: true);

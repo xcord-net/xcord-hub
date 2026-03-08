@@ -17,6 +17,7 @@ using XcordHub.Features.Auth;
 using XcordHub.Features.Monitoring;
 using XcordHub.Features.Destruction;
 using XcordHub.Features.Provisioning;
+using XcordHub.Features.Upgrades;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
@@ -77,10 +78,16 @@ public static class ServiceCollectionExtensions
         // Provisioning
         AddProvisioning(services, config);
 
+        // Upgrades
+        services.AddSingleton<IUpgradeQueue, UpgradeQueue>();
+        services.AddScoped<UpgradeOrchestrator>();
+
         // Background services
         services.AddHostedService<ProvisioningBackgroundService>();
         services.AddHostedService<HealthCheckMonitor>();
         services.AddHostedService<InstanceReconciler>();
+        services.AddHostedService<UpgradeBackgroundService>();
+        services.AddHostedService<MinimumVersionEnforcerService>();
 
         // Metrics
         services.AddSingleton<GatewayMetrics>();

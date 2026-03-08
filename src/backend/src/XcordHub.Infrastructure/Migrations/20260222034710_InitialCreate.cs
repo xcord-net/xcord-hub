@@ -194,6 +194,8 @@ namespace XcordHub.Infrastructure.Migrations
                     ConfigJson = table.Column<string>(type: "text", nullable: false),
                     ResourceLimitsJson = table.Column<string>(type: "text", nullable: false),
                     FeatureFlagsJson = table.Column<string>(type: "text", nullable: false),
+                    UpgradePolicy = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "Auto"),
+                    PinnedVersion = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     Version = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
@@ -220,7 +222,8 @@ namespace XcordHub.Infrastructure.Migrations
                     LastCheckAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     ConsecutiveFailures = table.Column<int>(type: "integer", nullable: false),
                     ResponseTimeMs = table.Column<int>(type: "integer", nullable: true),
-                    ErrorMessage = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true)
+                    ErrorMessage = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -252,6 +255,7 @@ namespace XcordHub.Infrastructure.Migrations
                     LiveKitApiKey = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     LiveKitSecretKey = table.Column<byte[]>(type: "bytea", nullable: false),
                     BootstrapTokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    DeployedImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     PlacedInPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: "default"),
                     PlacementRegion = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
@@ -288,6 +292,95 @@ namespace XcordHub.Infrastructure.Migrations
                         name: "FK_provisioning_events_managed_instances_ManagedInstanceId",
                         column: x => x.ManagedInstanceId,
                         principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "available_versions",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Image = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ReleaseNotes = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    IsMinimumVersion = table.Column<bool>(type: "boolean", nullable: false),
+                    MinimumEnforcementDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    PublishedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    PublishedBy = table.Column<long>(type: "bigint", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_available_versions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_available_versions_hub_users_PublishedBy",
+                        column: x => x.PublishedBy,
+                        principalTable: "hub_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "upgrade_rollouts",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FromImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ToImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    TotalInstances = table.Column<int>(type: "integer", nullable: false),
+                    CompletedInstances = table.Column<int>(type: "integer", nullable: false),
+                    FailedInstanceId = table.Column<long>(type: "bigint", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    TargetPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    InitiatedBy = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_upgrade_rollouts", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_upgrade_rollouts_hub_users_InitiatedBy",
+                        column: x => x.InitiatedBy,
+                        principalTable: "hub_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "upgrade_events",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UpgradeRolloutId = table.Column<long>(type: "bigint", nullable: true),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    PreviousImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    TargetImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    PreviousVersion = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    NewVersion = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    ErrorMessage = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_upgrade_events", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_upgrade_events_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_upgrade_events_upgrade_rollouts_UpgradeRolloutId",
+                        column: x => x.UpgradeRolloutId,
+                        principalTable: "upgrade_rollouts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -404,6 +497,38 @@ namespace XcordHub.Infrastructure.Migrations
                 column: "ManagedInstanceId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_available_versions_Version",
+                table: "available_versions",
+                column: "Version",
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_available_versions_PublishedBy",
+                table: "available_versions",
+                column: "PublishedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_upgrade_rollouts_InitiatedBy",
+                table: "upgrade_rollouts",
+                column: "InitiatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_upgrade_rollouts_Status",
+                table: "upgrade_rollouts",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_upgrade_events_ManagedInstanceId",
+                table: "upgrade_events",
+                column: "ManagedInstanceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_upgrade_events_UpgradeRolloutId",
+                table: "upgrade_events",
+                column: "UpgradeRolloutId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_HubUserId",
                 table: "refresh_tokens",
                 column: "HubUserId");
@@ -428,6 +553,15 @@ namespace XcordHub.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "upgrade_events");
+
+            migrationBuilder.DropTable(
+                name: "upgrade_rollouts");
+
+            migrationBuilder.DropTable(
+                name: "available_versions");
+
             migrationBuilder.DropTable(
                 name: "federation_tokens");
 

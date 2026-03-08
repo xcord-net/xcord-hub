@@ -9,6 +9,7 @@ public sealed class InstanceHealth
     public int ConsecutiveFailures { get; set; }
     public int? ResponseTimeMs { get; set; }
     public string? ErrorMessage { get; set; }
+    public string? Version { get; set; }
 
     // Navigation properties
     public ManagedInstance ManagedInstance { get; set; } = null!;

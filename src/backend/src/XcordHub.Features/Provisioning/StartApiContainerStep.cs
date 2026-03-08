@@ -94,6 +94,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
             var containerId = await _dockerService.StartContainerAsync(
                 instance.Domain, secretId, kekSecretId, containerResourceLimits, cancellationToken);
 
+            // Track the deployed image (pool-specific or fallback)
+            instance.Infrastructure.DeployedImage = _resolver.GetInstanceImageForPool(pool);
+
             // Update infrastructure with container ID and secret ID
             instance.Infrastructure.DockerContainerId = containerId;
             instance.Infrastructure.DockerSecretId = secretId;

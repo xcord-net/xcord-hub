@@ -111,4 +111,12 @@ public sealed class TopologyResolver
         var ded = GetDedicatedHostByPlacement(placedInPool);
         return ded?.Redis.ConnectionString;
     }
+
+    public string? GetInstanceImageForPool(string placedInPool)
+    {
+        var pool = GetPoolByName(placedInPool);
+        if (pool != null) return pool.Docker.InstanceImage;
+        var ded = GetDedicatedHostByPlacement(placedInPool);
+        return ded?.Docker.InstanceImage;
+    }
 }

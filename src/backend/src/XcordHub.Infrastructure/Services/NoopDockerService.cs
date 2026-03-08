@@ -65,6 +65,12 @@ public sealed class NoopDockerService : IDockerService
         return Task.FromResult(true);
     }
 
+    public Task UpdateServiceImageAsync(string serviceId, string newImage, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("NOOP: Would update service {ServiceId} to image {Image}", serviceId, newImage);
+        return Task.CompletedTask;
+    }
+
     public Task StopContainerAsync(string containerId, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("NOOP: Would stop container {ContainerId}", containerId);

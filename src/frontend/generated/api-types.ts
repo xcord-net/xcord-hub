@@ -37,6 +37,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/upgrades/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CancelUpgrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/upgrades/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetUpgradeStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/upgrades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListUpgrades"];
+        put?: never;
+        post: operations["StartUpgrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListVersions"];
+        put?: never;
+        post: operations["PublishVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/instances": {
         parameters: {
             query?: never;
@@ -96,6 +160,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["DestroyInstance"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hub/instances/{instanceId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetAvailableVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -163,6 +243,38 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["UpdateResourceLimits"];
+        trace?: never;
+    };
+    "/api/v1/hub/instances/{instanceId}/upgrade-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["UpdateUpgradePolicy"];
+        trace?: never;
+    };
+    "/api/v1/hub/instances/{instanceId}/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["UpgradeInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/federation/register": {
@@ -686,10 +798,27 @@ export interface components {
             timestamp: string;
             instances: components["schemas"]["InstanceHealthDto"][];
         };
+        AvailableVersionDto: {
+            id: string;
+            version: string;
+            image: string;
+            releaseNotes: string | null;
+            isMinimumVersion: boolean;
+            /** Format: date-time */
+            minimumEnforcementDate: string | null;
+            /** Format: date-time */
+            publishedAt: string;
+        };
         CancelInstanceBillingResponse: {
             message: string;
             featureTier: string;
             userCountTier: string;
+        };
+        CancelUpgradeResponse: {
+            id: string;
+            status: string;
+            /** Format: date-time */
+            completedAt: string | null;
         };
         CaptchaResponse: {
             captchaId: string;
@@ -756,6 +885,9 @@ export interface components {
         ForgotPasswordRequest: {
             email: string;
         };
+        GetAvailableVersionsResponse: {
+            versions: components["schemas"]["AvailableVersionDto"][];
+        };
         GetBillingResponse: {
             instances: components["schemas"]["InstanceBillingItem"][];
         };
@@ -781,6 +913,24 @@ export interface components {
             displayName: string;
             email: string;
         };
+        GetUpgradeStatusResponse: {
+            id: string;
+            toImage: string;
+            fromImage: string | null;
+            targetPool: string | null;
+            status: string;
+            /** Format: int32 */
+            totalInstances: number;
+            /** Format: int32 */
+            completedInstances: number;
+            failedInstanceId: string | null;
+            errorMessage: string | null;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            completedAt: string | null;
+            events: components["schemas"]["UpgradeEventItem"][];
+        };
         InstanceBillingItem: {
             instanceId: string;
             domain: string;
@@ -804,6 +954,8 @@ export interface components {
             errorMessage: string | null;
             /** Format: date-time */
             lastCheckAt: string | null;
+            version: string | null;
+            deployedImage: string | null;
         };
         InstancePreview: {
             id: string;
@@ -857,6 +1009,18 @@ export interface components {
             page: number;
             /** Format: int32 */
             pageSize: number;
+        };
+        ListUpgradesResponse: {
+            rollouts: components["schemas"]["UpgradeRolloutListItem"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        ListVersionsResponse: {
+            versions: components["schemas"]["VersionListItem"][];
         };
         LoginApiResponse: {
             userId: string;
@@ -918,6 +1082,22 @@ export interface components {
             displayName: string;
             adminPassword: string;
         };
+        PublishVersionRequest: {
+            version: string;
+            image: string;
+            /** @default null */
+            releaseNotes: string | null;
+            /** @default 0 */
+            publishedBy: unknown;
+        };
+        PublishVersionResponse: {
+            id: string;
+            version: string;
+            image: string;
+            releaseNotes: string | null;
+            /** Format: date-time */
+            publishedAt: string;
+        };
         RefreshTokenApiResponse: {
             accessToken: string;
         };
@@ -967,6 +1147,26 @@ export interface components {
             stripeConnectedAccountId: string | null;
             /** Format: int32 */
             revenueSharePercent: number;
+        };
+        StartUpgradeCommand: {
+            toImage: string;
+            /** @default null */
+            fromImage: string | null;
+            /** @default null */
+            targetPool: string | null;
+            /** @default false */
+            force: boolean;
+            /** @default 0 */
+            initiatedBy: unknown;
+        };
+        StartUpgradeResponse: {
+            id: string;
+            toImage: string;
+            fromImage: string | null;
+            targetPool: string | null;
+            status: string;
+            /** Format: date-time */
+            startedAt: string;
         };
         SuccessResponse: {
             success: boolean;
@@ -1021,6 +1221,51 @@ export interface components {
             instanceId: string;
             message: string;
         };
+        UpdateUpgradePolicyRequest: {
+            upgradePolicy: components["schemas"]["UpgradePolicy"];
+            pinnedVersion: string | null;
+        };
+        UpdateUpgradePolicyResponse: {
+            upgradePolicy: string;
+            pinnedVersion: string | null;
+        };
+        UpgradeEventItem: {
+            id: string;
+            managedInstanceId: string;
+            status: string;
+            previousImage: string | null;
+            targetImage: string;
+            previousVersion: string | null;
+            newVersion: string | null;
+            errorMessage: string | null;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+        };
+        UpgradeInstanceRequest: {
+            targetImage: string;
+        };
+        UpgradeInstanceResponse: {
+            accepted: boolean;
+        };
+        /** @enum {unknown} */
+        UpgradePolicy: "Auto" | "Manual" | "Pinned";
+        UpgradeRolloutListItem: {
+            id: string;
+            toImage: string;
+            fromImage: string | null;
+            targetPool: string | null;
+            status: string;
+            /** Format: int32 */
+            totalInstances: number;
+            /** Format: int32 */
+            completedInstances: number;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            completedAt: string | null;
+        };
         /**
          * @default Tier10
          * @enum {unknown}
@@ -1031,6 +1276,17 @@ export interface components {
         Verify2FARequest: {
             code: string;
         };
+        VersionListItem: {
+            id: string;
+            version: string;
+            image: string;
+            releaseNotes: string | null;
+            isMinimumVersion: boolean;
+            /** Format: date-time */
+            minimumEnforcementDate: string | null;
+            /** Format: date-time */
+            publishedAt: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1040,6 +1296,141 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    CancelUpgrade: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelUpgradeResponse"];
+                };
+            };
+        };
+    };
+    GetUpgradeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetUpgradeStatusResponse"];
+                };
+            };
+        };
+    };
+    ListUpgrades: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListUpgradesResponse"];
+                };
+            };
+        };
+    };
+    StartUpgrade: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartUpgradeCommand"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartUpgradeResponse"];
+                };
+            };
+        };
+    };
+    ListVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListVersionsResponse"];
+                };
+            };
+        };
+    };
+    PublishVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishVersionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishVersionResponse"];
+                };
+            };
+        };
+    };
     AdminListInstances: {
         parameters: {
             query: {
@@ -1181,6 +1572,28 @@ export interface operations {
             };
         };
     };
+    GetAvailableVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetAvailableVersionsResponse"];
+                };
+            };
+        };
+    };
     ResumeInstance: {
         parameters: {
             query?: never;
@@ -1273,6 +1686,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UpdateResourceLimitsResponse"];
+                };
+            };
+        };
+    };
+    UpdateUpgradePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUpgradePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateUpgradePolicyResponse"];
+                };
+            };
+        };
+    };
+    UpgradeInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpgradeInstanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpgradeInstanceResponse"];
                 };
             };
         };
