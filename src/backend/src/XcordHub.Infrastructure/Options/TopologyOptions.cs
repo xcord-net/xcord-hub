@@ -4,6 +4,7 @@ public sealed class TopologyOptions
 {
     public const string SectionName = "Topology";
     public List<ComputePoolConfig> ComputePools { get; set; } = [];
+    public List<DataPoolConfig> DataPools { get; set; } = [];
     public List<DedicatedHostConfig> DedicatedHosts { get; set; } = [];
     public DnsConfig? Dns { get; set; }
     public Dictionary<string, List<string>> PublicIpsByPool { get; set; } = new();
@@ -20,6 +21,15 @@ public sealed class ComputePoolConfig
     public PoolDockerConfig Docker { get; set; } = new();
     public PoolCaddyConfig Caddy { get; set; } = new();
     public PoolLiveKitConfig LiveKit { get; set; } = new();
+    public PoolCapacityConfig Capacity { get; set; } = new();
+}
+
+public sealed class DataPoolConfig
+{
+    public string Name { get; set; } = string.Empty;
+    public PoolDatabaseConfig Database { get; set; } = new();
+    public PoolRedisConfig Redis { get; set; } = new();
+    public PoolStorageConfig Storage { get; set; } = new();
     public PoolCapacityConfig Capacity { get; set; } = new();
 }
 

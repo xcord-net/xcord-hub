@@ -389,6 +389,12 @@ namespace XcordHub.Infrastructure.Migrations
                         .HasDefaultValue("default")
                         .HasColumnName("PlacedInPool");
 
+                    b.Property<string>("PlacedInDataPool")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasDefaultValue("")
+                        .HasColumnName("PlacedInDataPool");
+
                     b.Property<string>("PlacementRegion")
                         .IsRequired()
                         .HasMaxLength(255)
