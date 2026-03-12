@@ -91,6 +91,11 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
             .HasMaxLength(255)
             .HasDefaultValue("default");
 
+        builder.Property(e => e.PlacedInDataPool)
+            .HasColumnName("PlacedInDataPool")
+            .HasMaxLength(255)
+            .HasDefaultValue("");
+
         builder.Property(e => e.PlacementRegion)
             .HasColumnName("PlacementRegion")
             .HasMaxLength(255)

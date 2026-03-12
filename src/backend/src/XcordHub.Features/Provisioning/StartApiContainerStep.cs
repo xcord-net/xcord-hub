@@ -62,12 +62,14 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 }
             }
 
-            // Resolve pool-specific service endpoints, falling back to defaults
+            // Resolve pool-specific service endpoints, falling back to defaults.
+            // Data pool overrides compute pool for DB, Redis, and storage when configured.
             var pool = instance.Infrastructure.PlacedInPool;
-            var poolDbConnStr = _resolver.GetDatabaseConnectionString(pool);
+            var dataPool = instance.Infrastructure.PlacedInDataPool;
+            var poolDbConnStr = _resolver.GetDatabaseConnectionString(pool, dataPool);
             var dbConnStr = poolDbConnStr ?? _hubConnectionString;
-            var redisConnStr = _resolver.GetRedisConnectionString(pool) ?? "redis:6379";
-            var storageConfig = _resolver.GetStorageConfig(pool);
+            var redisConnStr = _resolver.GetRedisConnectionString(pool, dataPool) ?? "redis:6379";
+            var storageConfig = _resolver.GetStorageConfig(pool, dataPool);
             var storageEndpoint = storageConfig != null ? $"http://{storageConfig.Endpoint}" : "http://minio:9000";
             var livekitConfig = _resolver.GetLiveKitConfig(pool);
             var livekitHost = livekitConfig?.Host ?? "ws://livekit:7880";

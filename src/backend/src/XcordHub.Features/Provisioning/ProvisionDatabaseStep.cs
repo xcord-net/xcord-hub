@@ -49,8 +49,8 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
 
         try
         {
-            // Resolve pool-specific PG connection string, falling back to hub connection string
-            var poolConnStr = _resolver.GetDatabaseConnectionString(infra.PlacedInPool);
+            // Resolve PG connection string: data pool > compute pool > hub fallback
+            var poolConnStr = _resolver.GetDatabaseConnectionString(infra.PlacedInPool, infra.PlacedInDataPool);
             var connectionString = poolConnStr ?? _hubConnectionString;
 
             // Connect to the "postgres" maintenance database using the hub's superuser credentials
@@ -155,8 +155,8 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
 
         try
         {
-            // Resolve pool-specific PG connection string, falling back to hub connection string
-            var poolConnStr = _resolver.GetDatabaseConnectionString(infrastructure.PlacedInPool);
+            // Resolve PG connection string: data pool > compute pool > hub fallback
+            var poolConnStr = _resolver.GetDatabaseConnectionString(infrastructure.PlacedInPool, infrastructure.PlacedInDataPool);
             var connectionString = poolConnStr ?? _hubConnectionString;
 
             var builder = new NpgsqlConnectionStringBuilder(connectionString)

@@ -80,6 +80,12 @@ public sealed class ResolvePlacementStep : IProvisioningStep
             return Error.Failure("POOL_AT_CAPACITY", $"Pool '{pool.Name}' is at capacity ({currentCount}/{pool.Capacity.TenantSlots})");
 
         instance.Infrastructure.PlacedInPool = pool.Name;
+
+        // Resolve data pool — if data pools are configured, find one for this compute pool
+        var dataPool = _resolver.FindDataPoolForPool(pool.Name);
+        if (dataPool != null)
+            instance.Infrastructure.PlacedInDataPool = dataPool.Name;
+
         instance.Infrastructure.PlacementRegion = "";
         await _dbContext.SaveChangesAsync(cancellationToken);
         return true;

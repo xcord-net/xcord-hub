@@ -48,6 +48,19 @@ public sealed class CreateInstanceHandler(
 {
     private readonly AuthOptions _authOptions = authOptions.Value;
 
+    private static readonly HashSet<string> ReservedSubdomains = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "www", "mail", "smtp", "imap", "pop", "ftp",
+        "docker", "registry",
+        "api", "admin", "hub", "auth",
+        "ns1", "ns2", "ns3", "ns4",
+        "caddy", "proxy", "lb",
+        "pg", "postgres", "redis", "minio", "s3",
+        "livekit", "rtc", "turn", "stun",
+        "status", "monitor", "grafana", "prometheus",
+        "_dmarc", "autoconfig", "autodiscover",
+    };
+
     public Error? Validate(CreateInstanceCommand request)
     {
         if (string.IsNullOrWhiteSpace(request.Subdomain))
@@ -58,6 +71,9 @@ public sealed class CreateInstanceHandler(
 
         if (!Regex.IsMatch(request.Subdomain, "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"))
             return Error.Validation("VALIDATION_FAILED", "Subdomain must be 3-63 characters, lowercase alphanumeric with hyphens (not at start/end)");
+
+        if (ReservedSubdomains.Contains(request.Subdomain))
+            return Error.Validation("RESERVED_SUBDOMAIN", $"'{request.Subdomain}' is reserved for infrastructure use");
 
         if (string.IsNullOrWhiteSpace(request.DisplayName))
             return Error.Validation("VALIDATION_FAILED", "DisplayName is required");

@@ -22,6 +22,27 @@ public sealed class TopologyResolver
             string.Equals(p.Tier, tier, StringComparison.OrdinalIgnoreCase));
     }
 
+    public DataPoolConfig? FindDataPool(string name)
+    {
+        return _topology.DataPools.FirstOrDefault(p =>
+            string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public DataPoolConfig? GetDataPoolByName(string placedInDataPool)
+    {
+        if (string.IsNullOrEmpty(placedInDataPool)) return null;
+        return FindDataPool(placedInDataPool);
+    }
+
+    public DataPoolConfig? FindDataPoolForPool(string computePoolName)
+    {
+        if (_topology.DataPools.Count == 0) return null;
+        // If there's exactly one data pool, use it (common case)
+        if (_topology.DataPools.Count == 1) return _topology.DataPools[0];
+        // Otherwise, match by name
+        return FindDataPool(computePoolName);
+    }
+
     public DedicatedHostConfig? FindDedicatedHost(string hostId)
     {
         return _topology.DedicatedHosts.FirstOrDefault(h =>
@@ -64,16 +85,20 @@ public sealed class TopologyResolver
         return _topology.PublicIpsByPool.TryGetValue(poolName, out var ips) ? ips : [];
     }
 
-    public string? GetDatabaseConnectionString(string placedInPool)
+    public string? GetDatabaseConnectionString(string placedInPool, string? placedInDataPool = null)
     {
+        var dataPool = GetDataPoolByName(placedInDataPool ?? "");
+        if (dataPool != null) return dataPool.Database.ConnectionString;
         var pool = GetPoolByName(placedInPool);
         if (pool != null) return pool.Database.ConnectionString;
         var ded = GetDedicatedHostByPlacement(placedInPool);
         return ded?.Database.ConnectionString;
     }
 
-    public PoolStorageConfig? GetStorageConfig(string placedInPool)
+    public PoolStorageConfig? GetStorageConfig(string placedInPool, string? placedInDataPool = null)
     {
+        var dataPool = GetDataPoolByName(placedInDataPool ?? "");
+        if (dataPool != null) return dataPool.Storage;
         var pool = GetPoolByName(placedInPool);
         if (pool != null) return pool.Storage;
         var ded = GetDedicatedHostByPlacement(placedInPool);
@@ -104,8 +129,10 @@ public sealed class TopologyResolver
         return ded?.LiveKit;
     }
 
-    public string? GetRedisConnectionString(string placedInPool)
+    public string? GetRedisConnectionString(string placedInPool, string? placedInDataPool = null)
     {
+        var dataPool = GetDataPoolByName(placedInDataPool ?? "");
+        if (dataPool != null) return dataPool.Redis.ConnectionString;
         var pool = GetPoolByName(placedInPool);
         if (pool != null) return pool.Redis.ConnectionString;
         var ded = GetDedicatedHostByPlacement(placedInPool);
