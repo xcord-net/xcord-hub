@@ -25,6 +25,11 @@ public sealed class ValidateSubdomainStep : IProvisioningStep
             return Error.NotFound("INSTANCE_NOT_FOUND", $"Instance {instanceId} not found");
         }
 
+        // Defense-in-depth: re-validate domain format even though the handler already checked
+        var domainError = ValidationHelpers.ValidateDomain(instance.Domain);
+        if (domainError != null)
+            return domainError;
+
         // Check if domain is already taken (excluding soft-deleted instances)
         var domainExists = await _dbContext.ManagedInstances
             .AnyAsync(i => i.Domain == instance.Domain && i.Id != instanceId && i.DeletedAt == null, cancellationToken);
