@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -46,14 +45,9 @@ public sealed class ProvisionInstanceHandler(
     {
         // OwnerId == 0 is allowed — means "use the calling user's ID"
 
-        if (string.IsNullOrWhiteSpace(request.Domain))
-            return Error.Validation("VALIDATION_FAILED", "Domain is required");
-
-        if (!Regex.IsMatch(request.Domain, @"^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$"))
-            return Error.Validation("VALIDATION_FAILED", "Domain must contain only lowercase letters, numbers, hyphens, and dots");
-
-        if (request.Domain.Length < 3 || request.Domain.Length > 253)
-            return Error.Validation("VALIDATION_FAILED", "Domain must be between 3 and 253 characters");
+        var domainError = ValidationHelpers.ValidateDomain(request.Domain);
+        if (domainError != null)
+            return domainError;
 
         if (string.IsNullOrWhiteSpace(request.DisplayName))
             return Error.Validation("VALIDATION_FAILED", "Display name is required");
