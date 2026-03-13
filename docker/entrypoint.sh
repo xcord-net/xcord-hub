@@ -39,6 +39,24 @@ if [ -f "$CONFIG_PATH" ]; then
             AdminUrl: (.caddy.adminUrl // "http://caddy:2019"),
             UseReal: (.caddy.useReal // false)
         },
+        Dns: {
+            Provider: (.dns.provider // "noop")
+        },
+        Cloudflare: {
+            ApiToken: (.cloudflare.apiToken // ""),
+            ZoneId: (.cloudflare.zoneId // ""),
+            DomainName: (.cloudflare.domainName // "")
+        },
+        Linode: {
+            ApiToken: (.linode.apiToken // ""),
+            DomainId: (.linode.domainId // 0)
+        },
+        Route53: {
+            AccessKeyId: (.route53.accessKeyId // ""),
+            SecretAccessKey: (.route53.secretAccessKey // ""),
+            HostedZoneId: (.route53.hostedZoneId // ""),
+            DomainName: (.route53.domainName // "")
+        },
         Admin: {
             Username: .admin.username,
             Email: .admin.email,

@@ -84,7 +84,7 @@ public sealed class WebApiTestFixture : IAsyncLifetime
                         ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
                         ["Docker:UseReal"] = "false",
                         ["Caddy:UseReal"] = "false",
-                        ["Cloudflare:UseReal"] = "false"
+                        ["Dns:Provider"] = "noop"
                     });
                 });
             });

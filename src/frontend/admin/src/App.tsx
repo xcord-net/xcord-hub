@@ -7,8 +7,9 @@ import { InstanceList } from './components/InstanceList';
 import { InstanceDetail } from './components/InstanceDetail';
 import { ProvisionForm } from './components/ProvisionForm';
 import { MailingListPage } from './components/MailingListPage';
+import { SetupWizard } from './components/SetupWizard';
 
-type Page = 'login' | 'instances' | 'instance-detail' | 'provision' | 'mailing-list';
+type Page = 'login' | 'instances' | 'instance-detail' | 'provision' | 'mailing-list' | 'setup';
 
 export function App() {
   const auth = useAuth();
@@ -17,6 +18,18 @@ export function App() {
   const [selectedInstanceId, setSelectedInstanceId] = createSignal<string | null>(null);
 
   onMount(async () => {
+    // Check if first-boot setup is needed before attempting auth validation
+    try {
+      const res = await fetch('/api/v1/setup/status');
+      const data = await res.json();
+      if (data.needsSetup) {
+        setCurrentPage('setup');
+        return;
+      }
+    } catch {
+      // If setup endpoint fails, proceed normally
+    }
+
     const isValid = await auth.validateAuth();
     if (isValid) {
       setCurrentPage('instances');
@@ -56,48 +69,59 @@ export function App() {
   };
 
   return (
-    <Show
-      when={auth.isLoading}
-      fallback={
+    <>
+      <Show when={currentPage() === 'setup'}>
+        <SetupWizard onComplete={() => {
+          // After setup, reload to go through normal auth flow
+          window.location.reload();
+        }} />
+      </Show>
+
+      <Show when={currentPage() !== 'setup'}>
         <Show
-          when={auth.isAuthenticated && auth.isAdmin}
-          fallback={<Login />}
+          when={auth.isLoading}
+          fallback={
+            <Show
+              when={auth.isAuthenticated && auth.isAdmin}
+              fallback={<Login />}
+            >
+              <Layout
+                currentPage={currentPage() === 'mailing-list' ? 'mailing-list' : currentPage() === 'instance-detail' ? 'instance-detail' : 'instances'}
+                onNavigate={handleNavigate}
+              >
+                <Show when={currentPage() === 'instances'}>
+                  <InstanceList
+                    onSelectInstance={handleSelectInstance}
+                    onProvisionNew={handleProvisionNew}
+                  />
+                </Show>
+
+                <Show when={currentPage() === 'instance-detail' && selectedInstanceId()}>
+                  <InstanceDetail
+                    instanceId={selectedInstanceId()!}
+                    onBack={handleBackToInstances}
+                  />
+                </Show>
+
+                <Show when={currentPage() === 'provision'}>
+                  <ProvisionForm
+                    onCancel={handleBackToInstances}
+                    onSuccess={handleProvisionSuccess}
+                  />
+                </Show>
+
+                <Show when={currentPage() === 'mailing-list'}>
+                  <MailingListPage />
+                </Show>
+              </Layout>
+            </Show>
+          }
         >
-          <Layout
-            currentPage={currentPage() === 'mailing-list' ? 'mailing-list' : currentPage() === 'instance-detail' ? 'instance-detail' : 'instances'}
-            onNavigate={handleNavigate}
-          >
-            <Show when={currentPage() === 'instances'}>
-              <InstanceList
-                onSelectInstance={handleSelectInstance}
-                onProvisionNew={handleProvisionNew}
-              />
-            </Show>
-
-            <Show when={currentPage() === 'instance-detail' && selectedInstanceId()}>
-              <InstanceDetail
-                instanceId={selectedInstanceId()!}
-                onBack={handleBackToInstances}
-              />
-            </Show>
-
-            <Show when={currentPage() === 'provision'}>
-              <ProvisionForm
-                onCancel={handleBackToInstances}
-                onSuccess={handleProvisionSuccess}
-              />
-            </Show>
-
-            <Show when={currentPage() === 'mailing-list'}>
-              <MailingListPage />
-            </Show>
-          </Layout>
+          <div class="min-h-screen flex items-center justify-center">
+            <div class="text-lg">Loading...</div>
+          </div>
         </Show>
-      }
-    >
-      <div class="min-h-screen flex items-center justify-center">
-        <div class="text-lg">Loading...</div>
-      </div>
-    </Show>
+      </Show>
+    </>
   );
 }
