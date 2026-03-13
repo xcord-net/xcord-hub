@@ -19,9 +19,8 @@ public sealed record ProvisionInstanceCommand(
     string Domain,
     string DisplayName,
     string AdminPassword,
-    FeatureTier FeatureTier = FeatureTier.Chat,
-    UserCountTier UserCountTier = UserCountTier.Tier10,
-    bool HdUpgrade = false
+    InstanceTier Tier = InstanceTier.Free,
+    bool MediaEnabled = false
 );
 
 public sealed record ProvisionInstanceResponse(
@@ -61,14 +60,8 @@ public sealed class ProvisionInstanceHandler(
         if (request.AdminPassword.Length < 8)
             return Error.Validation("VALIDATION_FAILED", "Admin password must be at least 8 characters");
 
-        if (!Enum.IsDefined(request.FeatureTier))
-            return Error.Validation("VALIDATION_FAILED", "Invalid feature tier");
-
-        if (!Enum.IsDefined(request.UserCountTier))
-            return Error.Validation("VALIDATION_FAILED", "Invalid user count tier");
-
-        if (request.HdUpgrade && request.FeatureTier != FeatureTier.Video)
-            return Error.Validation("VALIDATION_FAILED", "HD upgrade requires Video feature tier");
+        if (!Enum.IsDefined(request.Tier))
+            return Error.Validation("VALIDATION_FAILED", "Invalid tier");
 
         return null;
     }
@@ -125,9 +118,8 @@ public sealed class ProvisionInstanceHandler(
         {
             Id = snowflakeGenerator.NextId(),
             ManagedInstanceId = instanceId,
-            FeatureTier = request.FeatureTier,
-            UserCountTier = request.UserCountTier,
-            HdUpgrade = request.HdUpgrade,
+            Tier = request.Tier,
+            MediaEnabled = request.MediaEnabled,
             BillingStatus = BillingStatus.Active,
             BillingExempt = false,
             NextBillingDate = now.AddMonths(1),
@@ -137,8 +129,8 @@ public sealed class ProvisionInstanceHandler(
         dbContext.InstanceBillings.Add(billing);
 
         // Get tier defaults
-        var resourceLimits = TierDefaults.GetResourceLimits(request.UserCountTier);
-        var featureFlags = TierDefaults.GetFeatureFlags(request.FeatureTier, request.HdUpgrade);
+        var resourceLimits = TierDefaults.GetResourceLimits(request.Tier);
+        var featureFlags = TierDefaults.GetFeatureFlags(request.Tier, request.MediaEnabled);
 
         // Create config record with admin password (BCrypt hashed) — offloaded to thread pool to avoid starvation
         var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, _authOptions.BcryptWorkFactor));

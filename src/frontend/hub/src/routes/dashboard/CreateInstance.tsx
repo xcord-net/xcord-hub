@@ -12,24 +12,34 @@ export default function CreateInstance() {
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal('');
   const [subdomainStatus, setSubdomainStatus] = createSignal<'idle' | 'checking' | 'available' | 'taken'>('idle');
-  const [featureTier, setFeatureTier] = createSignal('Chat');
-  const [userCountTier, setUserCountTier] = createSignal('Tier10');
+  const [tier, setTier] = createSignal('Free');
+  const [mediaEnabled, setMediaEnabled] = createSignal(false);
   const [captchaId, setCaptchaId] = createSignal('');
   const [captchaAnswer, setCaptchaAnswer] = createSignal('');
 
-  // Prices in cents — must match backend TierDefaults.GetPriceCents
-  const priceMatrixCents: Record<string, Record<string, number>> = {
-    'Chat':  { 'Tier10': 0,    'Tier50': 2000, 'Tier100': 6000,  'Tier500': 20000 },
-    'Audio': { 'Tier10': 2000, 'Tier50': 4500, 'Tier100': 11000, 'Tier500': 40000 },
-    'Video': { 'Tier10': 4000, 'Tier50': 7000, 'Tier100': 16000, 'Tier500': 55000 },
-    'HD':    { 'Tier10': 6500, 'Tier50': 12000, 'Tier100': 23500, 'Tier500': 70000 },
+  // Prices in cents — must match backend TierDefaults
+  const TIER_CONFIG: Record<string, { baseCents: number; mediaPerUserCents: number; maxUsers: number }> = {
+    Free:       { baseCents: 0,     mediaPerUserCents: 400, maxUsers: 10 },
+    Basic:      { baseCents: 6000,  mediaPerUserCents: 300, maxUsers: 50 },
+    Pro:        { baseCents: 15000, mediaPerUserCents: 200, maxUsers: 200 },
+    Enterprise: { baseCents: 30000, mediaPerUserCents: 100, maxUsers: 500 },
   };
   const formatPrice = (cents: number) => {
     if (cents === 0) return 'Free';
     const dollars = cents / 100;
     return dollars % 1 === 0 ? `$${dollars}/mo` : `$${dollars.toFixed(2)}/mo`;
   };
-  const selectedPrice = () => formatPrice(priceMatrixCents[featureTier()]?.[userCountTier()] ?? 0);
+  const selectedPrice = () => {
+    const config = TIER_CONFIG[tier()];
+    if (!config) return 'Free';
+    return formatPrice(config.baseCents);
+  };
+  const mediaPrice = () => {
+    const config = TIER_CONFIG[tier()];
+    if (!config) return '';
+    const dollars = config.mediaPerUserCents / 100;
+    return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`;
+  };
 
   let checkTimer: ReturnType<typeof setTimeout>;
 
@@ -72,14 +82,12 @@ export default function CreateInstance() {
 
     setLoading(true);
     try {
-      const isHd = featureTier() === 'HD';
       const result = await instanceStore.createInstance(
         subdomain(),
         displayName(),
         adminPassword(),
-        isHd ? 'Video' : featureTier(),
-        userCountTier(),
-        isHd,
+        tier(),
+        mediaEnabled(),
         captchaId(),
         captchaAnswer()
       );
@@ -153,44 +161,42 @@ export default function CreateInstance() {
             Plan
           </label>
 
-          {/* Feature tier */}
-          <p class="text-xs text-xcord-text-muted mb-2">Features</p>
+          {/* Tier selector */}
+          <p class="text-xs text-xcord-text-muted mb-2">Tier</p>
           <div class="grid grid-cols-4 gap-2 mb-4">
             <For each={[
-              { key: 'Chat', label: 'Chat', desc: 'Text only' },
-              { key: 'Audio', label: '+Audio', desc: 'Text + voice' },
-              { key: 'Video', label: '+Video', desc: 'Text + voice + video' },
-              { key: 'HD', label: '+HD', desc: '1080p + recording' },
+              { key: 'Free',       label: 'Free',       desc: 'Up to 10 users' },
+              { key: 'Basic',      label: 'Basic',      desc: 'Up to 50 users' },
+              { key: 'Pro',        label: 'Pro',        desc: 'Up to 200 users' },
+              { key: 'Enterprise', label: 'Enterprise', desc: 'Up to 500 users' },
             ]}>
-              {(tier) => (
+              {(t) => (
                 <button
                   type="button"
-                  onClick={() => setFeatureTier(tier.key)}
+                  onClick={() => setTier(t.key)}
                   disabled={loading()}
-                  class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${featureTier() === tier.key ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'}`}
+                  class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${tier() === t.key ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'}`}
                 >
-                  <div class="font-semibold">{tier.label}</div>
-                  <div class="text-xs text-xcord-text-muted mt-1">{tier.desc}</div>
+                  <div class="font-semibold">{t.label}</div>
+                  <div class="text-xs text-xcord-text-muted mt-1">{t.desc}</div>
                 </button>
               )}
             </For>
           </div>
 
-          {/* User count tier */}
-          <p class="text-xs text-xcord-text-muted mb-2">Users</p>
-          <div class="flex gap-2 mb-4">
-            <For each={[['Tier10', '10'], ['Tier50', '50'], ['Tier100', '100'], ['Tier500', '500']]}>
-              {([value, label]) => (
-                <button
-                  type="button"
-                  onClick={() => setUserCountTier(value)}
-                  disabled={loading()}
-                  class={`px-4 py-1.5 rounded-full text-sm font-medium transition ${userCountTier() === value ? 'ring-2 ring-xcord-brand bg-xcord-bg-tertiary text-xcord-text-primary' : 'bg-xcord-bg-tertiary text-xcord-text-muted hover:text-xcord-text-primary'}`}
-                >
-                  {label}
-                </button>
-              )}
-            </For>
+          {/* Media toggle */}
+          <div class="flex items-center gap-3 mb-4">
+            <input
+              id="mediaEnabled"
+              type="checkbox"
+              checked={mediaEnabled()}
+              onChange={(e) => setMediaEnabled(e.currentTarget.checked)}
+              disabled={loading()}
+              class="h-4 w-4 rounded border-xcord-bg-accent text-xcord-brand focus:ring-xcord-brand"
+            />
+            <label for="mediaEnabled" class="text-sm text-xcord-text-primary cursor-pointer">
+              Enable voice & video ({mediaPrice()}/user/mo)
+            </label>
           </div>
 
           {/* Price display */}
@@ -232,7 +238,7 @@ export default function CreateInstance() {
           />
         </div>
 
-        <Show when={featureTier() === 'Chat' && userCountTier() === 'Tier10'}>
+        <Show when={tier() === 'Free' && !mediaEnabled()}>
           <Captcha onSolved={(id, ans) => { setCaptchaId(id); setCaptchaAnswer(ans); }} />
         </Show>
 

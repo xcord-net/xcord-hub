@@ -17,8 +17,7 @@ public sealed record CancelInstanceBillingCommand(long InstanceId);
 
 public sealed record CancelInstanceBillingResponse(
     string Message,
-    string FeatureTier,
-    string UserCountTier
+    string Tier
 );
 
 public sealed class CancelInstanceBillingHandler(
@@ -50,14 +49,12 @@ public sealed class CancelInstanceBillingHandler(
         if (instance.Billing == null)
             return Error.NotFound("BILLING_NOT_FOUND", "Billing record not found for this instance");
 
-        if (instance.Billing.FeatureTier == FeatureTier.Chat &&
-            instance.Billing.UserCountTier == UserCountTier.Tier10 &&
-            !instance.Billing.HdUpgrade)
+        if (instance.Billing.Tier == InstanceTier.Free && !instance.Billing.MediaEnabled)
             return Error.BadRequest("ALREADY_FREE", "This instance is already on the free plan");
 
         logger.LogInformation(
-            "User {UserId} cancelling billing for instance {InstanceId} (feature: {FeatureTier}, users: {UserCountTier})",
-            userId, request.InstanceId, instance.Billing.FeatureTier, instance.Billing.UserCountTier);
+            "User {UserId} cancelling billing for instance {InstanceId} (tier: {Tier}, mediaEnabled: {MediaEnabled})",
+            userId, request.InstanceId, instance.Billing.Tier, instance.Billing.MediaEnabled);
 
         // Cancel Stripe subscription if one exists
         if (stripeOptions.Value.IsConfigured &&
@@ -66,9 +63,8 @@ public sealed class CancelInstanceBillingHandler(
             await stripeService.CancelSubscriptionAsync(instance.Billing.StripeSubscriptionId, cancellationToken);
         }
 
-        instance.Billing.FeatureTier = FeatureTier.Chat;
-        instance.Billing.UserCountTier = UserCountTier.Tier10;
-        instance.Billing.HdUpgrade = false;
+        instance.Billing.Tier = InstanceTier.Free;
+        instance.Billing.MediaEnabled = false;
         instance.Billing.BillingStatus = BillingStatus.Cancelled;
         instance.Billing.StripeSubscriptionId = null;
         instance.Billing.StripePriceId = null;
@@ -79,22 +75,21 @@ public sealed class CancelInstanceBillingHandler(
         if (instance.Config != null)
         {
             instance.Config.ResourceLimitsJson = JsonSerializer.Serialize(
-                TierDefaults.GetResourceLimits(UserCountTier.Tier10));
+                TierDefaults.GetResourceLimits(InstanceTier.Free));
             instance.Config.FeatureFlagsJson = JsonSerializer.Serialize(
-                TierDefaults.GetFeatureFlags(FeatureTier.Chat));
+                TierDefaults.GetFeatureFlags(InstanceTier.Free, false));
             instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Instance {InstanceId} billing cancelled, downgraded to Chat + Tier10",
+            "Instance {InstanceId} billing cancelled, downgraded to Free tier",
             request.InstanceId);
 
         return new CancelInstanceBillingResponse(
             Message: "Instance billing has been cancelled. The instance has been moved to the free plan.",
-            FeatureTier: FeatureTier.Chat.ToString(),
-            UserCountTier: UserCountTier.Tier10.ToString()
+            Tier: InstanceTier.Free.ToString()
         );
     }
 

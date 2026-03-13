@@ -11,9 +11,8 @@ export function ProvisionForm(props: ProvisionFormProps) {
   const [subdomain, setSubdomain] = createSignal('');
   const [displayName, setDisplayName] = createSignal('');
   const [adminPassword, setAdminPassword] = createSignal('');
-  const [featureTier, setFeatureTier] = createSignal<'Chat' | 'Audio' | 'Video'>('Chat');
-  const [userCountTier, setUserCountTier] = createSignal<'Tier10' | 'Tier50' | 'Tier100' | 'Tier500'>('Tier10');
-  const [hdUpgrade, setHdUpgrade] = createSignal(false);
+  const [tier, setTier] = createSignal<'Free' | 'Basic' | 'Pro' | 'Enterprise'>('Free');
+  const [mediaEnabled, setMediaEnabled] = createSignal(false);
   const [error, setError] = createSignal('');
   const [isLoading, setIsLoading] = createSignal(false);
 
@@ -28,9 +27,8 @@ export function ProvisionForm(props: ProvisionFormProps) {
         domain: `${subdomain()}.xcord-dev.net`,
         displayName: displayName(),
         adminPassword: adminPassword(),
-        featureTier: featureTier(),
-        userCountTier: userCountTier(),
-        hdUpgrade: hdUpgrade(),
+        tier: tier(),
+        mediaEnabled: mediaEnabled(),
       });
       props.onSuccess();
     } catch (err: any) {
@@ -95,58 +93,36 @@ export function ProvisionForm(props: ProvisionFormProps) {
           />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1" for="featureTier">
-              Feature Tier
-            </label>
-            <select
-              id="featureTier"
-              value={featureTier()}
-              onChange={(e) => setFeatureTier(e.currentTarget.value as 'Chat' | 'Audio' | 'Video')}
-              class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading()}
-            >
-              <option value="Chat">Chat</option>
-              <option value="Audio">Audio</option>
-              <option value="Video">Video</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1" for="userCountTier">
-              User Capacity
-            </label>
-            <select
-              id="userCountTier"
-              value={userCountTier()}
-              onChange={(e) => setUserCountTier(e.currentTarget.value as 'Tier10' | 'Tier50' | 'Tier100' | 'Tier500')}
-              class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading()}
-            >
-              <option value="Tier10">10 Users (Free)</option>
-              <option value="Tier50">50 Users</option>
-              <option value="Tier100">100 Users</option>
-              <option value="Tier500">500 Users</option>
-            </select>
-          </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" for="tier">
+            Tier
+          </label>
+          <select
+            id="tier"
+            value={tier()}
+            onChange={(e) => setTier(e.currentTarget.value as 'Free' | 'Basic' | 'Pro' | 'Enterprise')}
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={isLoading()}
+          >
+            <option value="Free">Free (up to 10 users)</option>
+            <option value="Basic">Basic (up to 50 users)</option>
+            <option value="Pro">Pro (up to 200 users)</option>
+            <option value="Enterprise">Enterprise (up to 500 users)</option>
+          </select>
         </div>
 
         <div class="flex items-center gap-2">
           <input
-            id="hdUpgrade"
+            id="mediaEnabled"
             type="checkbox"
-            checked={hdUpgrade()}
-            onChange={(e) => setHdUpgrade(e.currentTarget.checked)}
-            disabled={isLoading() || featureTier() !== 'Video'}
+            checked={mediaEnabled()}
+            onChange={(e) => setMediaEnabled(e.currentTarget.checked)}
+            disabled={isLoading()}
             class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <label class="text-sm font-medium" for="hdUpgrade">
-            HD Upgrade (1080p/60fps, simulcast, recording)
+          <label class="text-sm font-medium" for="mediaEnabled">
+            Enable voice & video
           </label>
-          {featureTier() !== 'Video' && (
-            <span class="text-xs text-gray-400">Requires Video tier</span>
-          )}
         </div>
 
         {error() && (

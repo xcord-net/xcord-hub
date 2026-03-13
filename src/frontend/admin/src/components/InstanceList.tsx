@@ -133,7 +133,7 @@ export function InstanceList(props: InstanceListProps) {
                         {instance.status}
                       </span>
                     </td>
-                    <td class="px-6 py-4 text-sm">{instance.featureTier} / {instance.userCountTier}</td>
+                    <td class="px-6 py-4 text-sm">{instance.tier}{instance.mediaEnabled ? ' + Media' : ''}</td>
                     <td class="px-6 py-4 text-sm">
                       {new Date(instance.createdAt).toLocaleDateString()}
                     </td>

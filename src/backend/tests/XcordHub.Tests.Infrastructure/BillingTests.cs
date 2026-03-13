@@ -117,8 +117,8 @@ public sealed class BillingTests : IAsyncLifetime
         HubDbContext dbContext,
         long userId,
         string usernameSuffix,
-        FeatureTier featureTier = FeatureTier.Chat,
-        UserCountTier userCountTier = UserCountTier.Tier10)
+        InstanceTier tier = InstanceTier.Free,
+        bool mediaEnabled = false)
     {
         var encryptionService = new AesEncryptionService(TestEncryptionKey);
         var user = new HubUser
@@ -150,7 +150,7 @@ public sealed class BillingTests : IAsyncLifetime
         var subdomain = $"bt-{usernameSuffix}".Replace("_", "-").ToLowerInvariant();
 
         var result = await handler.Handle(
-            new CreateInstanceCommand(subdomain, $"Billing Test {usernameSuffix}", featureTier, userCountTier),
+            new CreateInstanceCommand(subdomain, $"Billing Test {usernameSuffix}", tier, mediaEnabled),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue("test setup: instance creation must succeed");
@@ -168,7 +168,7 @@ public sealed class BillingTests : IAsyncLifetime
     {
         await using var dbContext = CreateDbContext();
         var (user, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 1, "get_billing_1",
-            FeatureTier.Audio, UserCountTier.Tier50);
+            InstanceTier.Basic, mediaEnabled: true);
 
         var handler = new GetBillingHandler(dbContext, StubUser(user.Id));
         var result = await handler.Handle(new GetBillingQuery(), CancellationToken.None);
@@ -178,10 +178,9 @@ public sealed class BillingTests : IAsyncLifetime
 
         var item = result.Value.Instances[0];
         item.InstanceId.Should().Be(instanceId.ToString());
-        item.FeatureTier.Should().Be("Audio");
-        item.UserCountTier.Should().Be("Tier50");
-        item.HdUpgrade.Should().BeFalse();
-        item.PriceCents.Should().Be(TierDefaults.GetPriceCents(FeatureTier.Audio, UserCountTier.Tier50));
+        item.Tier.Should().Be("Basic");
+        item.MediaEnabled.Should().BeTrue();
+        item.PriceCents.Should().Be(TierDefaults.GetTotalPriceCents(InstanceTier.Basic, mediaEnabled: true));
     }
 
     [Fact]
@@ -231,7 +230,7 @@ public sealed class BillingTests : IAsyncLifetime
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task ChangePlan_NoStripe_UpgradesToAudioTier_UpdatesBillingAndConfig()
+    public async Task ChangePlan_NoStripe_UpgradesToBasicWithMedia_UpdatesBillingAndConfig()
     {
         await using var dbContext = CreateDbContext();
         var (user, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 10, "change_plan_1");
@@ -244,26 +243,25 @@ public sealed class BillingTests : IAsyncLifetime
             new AesEncryptionService(TestEncryptionKey),
             BuildConfiguration());
 
-        var command = new ChangePlanCommand(instanceId, FeatureTier.Audio, UserCountTier.Tier50);
+        var command = new ChangePlanCommand(instanceId, InstanceTier.Basic, MediaEnabled: true);
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.RequiresCheckout.Should().BeFalse(
             "no Stripe configured, plan change should be applied directly");
         result.Value.CheckoutUrl.Should().BeNull();
-        result.Value.FeatureTier.Should().Be("Audio");
-        result.Value.UserCountTier.Should().Be("Tier50");
-        result.Value.PriceCents.Should().Be(TierDefaults.GetPriceCents(FeatureTier.Audio, UserCountTier.Tier50));
+        result.Value.Tier.Should().Be("Basic");
+        result.Value.PriceCents.Should().Be(TierDefaults.GetTotalPriceCents(InstanceTier.Basic, mediaEnabled: true));
 
         await using var verifyCtx = CreateDbContext();
         var billing = await verifyCtx.InstanceBillings
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.Should().NotBeNull();
-        billing!.FeatureTier.Should().Be(FeatureTier.Audio,
-            "billing record must reflect the upgraded feature tier");
-        billing.UserCountTier.Should().Be(UserCountTier.Tier50,
-            "billing record must reflect the upgraded user count tier");
+        billing!.Tier.Should().Be(InstanceTier.Basic,
+            "billing record must reflect the upgraded tier");
+        billing.MediaEnabled.Should().BeTrue(
+            "billing record must reflect the upgraded media enabled flag");
 
         var config = await verifyCtx.InstanceConfigs
             .FirstOrDefaultAsync(c => c.ManagedInstanceId == instanceId);
@@ -271,13 +269,13 @@ public sealed class BillingTests : IAsyncLifetime
         config.Should().NotBeNull();
         var flags = JsonSerializer.Deserialize<FeatureFlags>(config!.FeatureFlagsJson);
         flags!.CanUseVoiceChannels.Should().BeTrue(
-            "Audio tier should enable voice channels in feature flags");
-        flags.CanUseVideoChannels.Should().BeFalse(
-            "Audio tier should not enable video channels");
+            "mediaEnabled should enable voice channels in feature flags");
+        flags.CanUseVideoChannels.Should().BeTrue(
+            "mediaEnabled should enable video channels in feature flags");
     }
 
     [Fact]
-    public async Task ChangePlan_NoStripe_UpgradesToVideoHd_SetsFlagsCorrectly()
+    public async Task ChangePlan_NoStripe_UpgradesToProWithMedia_SetsFlagsCorrectly()
     {
         await using var dbContext = CreateDbContext();
         var (user, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 11, "change_plan_hd");
@@ -290,26 +288,27 @@ public sealed class BillingTests : IAsyncLifetime
             new AesEncryptionService(TestEncryptionKey),
             BuildConfiguration());
 
-        var command = new ChangePlanCommand(instanceId, FeatureTier.Video, UserCountTier.Tier100, HdUpgrade: true);
+        var command = new ChangePlanCommand(instanceId, InstanceTier.Pro, MediaEnabled: true);
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.FeatureTier.Should().Be("Video");
+        result.Value.Tier.Should().Be("Pro");
 
         await using var verifyCtx = CreateDbContext();
         var billing = await verifyCtx.InstanceBillings
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
-        billing!.FeatureTier.Should().Be(FeatureTier.Video);
-        billing.HdUpgrade.Should().BeTrue();
+        billing!.Tier.Should().Be(InstanceTier.Pro);
+        billing.MediaEnabled.Should().BeTrue();
 
         var config = await verifyCtx.InstanceConfigs
             .FirstOrDefaultAsync(c => c.ManagedInstanceId == instanceId);
 
         var flags = JsonSerializer.Deserialize<FeatureFlags>(config!.FeatureFlagsJson);
-        flags!.CanUseHdVideo.Should().BeTrue("HD upgrade flag must be reflected in feature flags");
+        flags!.CanUseHdVideo.Should().BeTrue("mediaEnabled must enable HD video in feature flags");
         flags.CanUseSimulcast.Should().BeTrue();
-        flags.CanUseRecording.Should().BeTrue();
+        flags.CanUseRecording.Should().BeTrue(
+            "Pro tier with mediaEnabled must enable recording in feature flags");
     }
 
     [Fact]
@@ -329,7 +328,7 @@ public sealed class BillingTests : IAsyncLifetime
             new AesEncryptionService(TestEncryptionKey),
             BuildConfiguration());
 
-        var command = new ChangePlanCommand(instanceId, FeatureTier.Audio, UserCountTier.Tier50);
+        var command = new ChangePlanCommand(instanceId, InstanceTier.Basic, MediaEnabled: true);
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -347,7 +346,7 @@ public sealed class BillingTests : IAsyncLifetime
         var billing = await verifyCtx.InstanceBillings
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
-        billing!.FeatureTier.Should().Be(FeatureTier.Chat,
+        billing!.Tier.Should().Be(InstanceTier.Free,
             "billing must not change until the Stripe webhook confirms payment");
     }
 
@@ -365,8 +364,8 @@ public sealed class BillingTests : IAsyncLifetime
             new AesEncryptionService(TestEncryptionKey),
             BuildConfiguration());
 
-        // Instance starts on Chat+Tier10 (the default) — try to "change" to the same plan
-        var command = new ChangePlanCommand(instanceId, FeatureTier.Chat, UserCountTier.Tier10);
+        // Instance starts on Free (the default) — try to "change" to the same plan
+        var command = new ChangePlanCommand(instanceId, InstanceTier.Free, MediaEnabled: false);
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
@@ -388,7 +387,7 @@ public sealed class BillingTests : IAsyncLifetime
             new AesEncryptionService(TestEncryptionKey),
             BuildConfiguration());
 
-        var command = new ChangePlanCommand(instanceId, FeatureTier.Audio, UserCountTier.Tier50);
+        var command = new ChangePlanCommand(instanceId, InstanceTier.Basic, MediaEnabled: true);
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
@@ -396,12 +395,10 @@ public sealed class BillingTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ChangePlan_HdUpgradeWithoutVideoTier_ReturnsValidationError()
+    public async Task ChangePlan_InvalidTier_ReturnsValidationError()
     {
         await using var dbContext = CreateDbContext();
 
-        // Validation runs before Handle() via the IValidatable contract.
-        // Test it directly to verify the validator's guard on HD + non-Video tier.
         var handler = new ChangePlanHandler(
             dbContext,
             StubUser(UserIdBase + 15),
@@ -410,13 +407,13 @@ public sealed class BillingTests : IAsyncLifetime
             new AesEncryptionService(TestEncryptionKey),
             BuildConfiguration());
 
-        // HD upgrade is only valid when TargetFeatureTier == Video
-        var command = new ChangePlanCommand(999L, FeatureTier.Audio, UserCountTier.Tier50, HdUpgrade: true);
+        // Pass an out-of-range enum value to trigger validation
+        var command = new ChangePlanCommand(999L, (InstanceTier)99);
         var error = handler.Validate(command);
 
         error.Should().NotBeNull();
         error!.Code.Should().Be("VALIDATION_FAILED",
-            "HD upgrade without Video tier must be rejected by the validator");
+            "an invalid tier value must be rejected by the validator");
     }
 
     [Fact]
@@ -450,7 +447,7 @@ public sealed class BillingTests : IAsyncLifetime
             new AesEncryptionService(TestEncryptionKey),
             BuildConfiguration());
 
-        var command = new ChangePlanCommand(999_000_000_000L, FeatureTier.Audio, UserCountTier.Tier50);
+        var command = new ChangePlanCommand(999_000_000_000L, InstanceTier.Basic, MediaEnabled: true);
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
@@ -466,7 +463,7 @@ public sealed class BillingTests : IAsyncLifetime
     {
         await using var dbContext = CreateDbContext();
         var (user, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 20, "cancel_1",
-            FeatureTier.Audio, UserCountTier.Tier50);
+            InstanceTier.Basic, mediaEnabled: true);
 
         var handler = new CancelInstanceBillingHandler(
             dbContext,
@@ -479,17 +476,15 @@ public sealed class BillingTests : IAsyncLifetime
             new CancelInstanceBillingCommand(instanceId), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.FeatureTier.Should().Be("Chat");
-        result.Value.UserCountTier.Should().Be("Tier10");
+        result.Value.Tier.Should().Be("Free");
 
         await using var verifyCtx = CreateDbContext();
         var billing = await verifyCtx.InstanceBillings
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.Should().NotBeNull();
-        billing!.FeatureTier.Should().Be(FeatureTier.Chat);
-        billing.UserCountTier.Should().Be(UserCountTier.Tier10);
-        billing.HdUpgrade.Should().BeFalse();
+        billing!.Tier.Should().Be(InstanceTier.Free);
+        billing.MediaEnabled.Should().BeFalse();
         billing.BillingStatus.Should().Be(BillingStatus.Cancelled);
         billing.StripeSubscriptionId.Should().BeNull();
         billing.StripePriceId.Should().BeNull();
@@ -502,7 +497,7 @@ public sealed class BillingTests : IAsyncLifetime
     {
         await using var dbContext = CreateDbContext();
         var (user, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 21, "cancel_stripe",
-            FeatureTier.Video, UserCountTier.Tier100);
+            InstanceTier.Pro, mediaEnabled: true);
 
         // Inject a fake Stripe subscription ID into the billing record
         var billing = await dbContext.InstanceBillings
@@ -532,7 +527,7 @@ public sealed class BillingTests : IAsyncLifetime
     public async Task CancelBilling_AlreadyOnFreePlan_ReturnsBadRequest()
     {
         await using var dbContext = CreateDbContext();
-        // Default seed is Chat+Tier10 (free plan)
+        // Default seed is Free tier, mediaEnabled=false (free plan)
         var (user, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 22, "cancel_free");
 
         var handler = new CancelInstanceBillingHandler(
@@ -554,7 +549,7 @@ public sealed class BillingTests : IAsyncLifetime
     {
         await using var dbContext = CreateDbContext();
         var (_, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 23, "cancel_forbid",
-            FeatureTier.Audio, UserCountTier.Tier50);
+            InstanceTier.Basic, mediaEnabled: true);
 
         var differentUserId = UserIdBase + 91;
         var handler = new CancelInstanceBillingHandler(
@@ -576,7 +571,7 @@ public sealed class BillingTests : IAsyncLifetime
     {
         await using var dbContext = CreateDbContext();
         var (user, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 24, "cancel_config",
-            FeatureTier.Video, UserCountTier.Tier500);
+            InstanceTier.Enterprise, mediaEnabled: true);
 
         var handler = new CancelInstanceBillingHandler(
             dbContext,
@@ -594,13 +589,13 @@ public sealed class BillingTests : IAsyncLifetime
         config.Should().NotBeNull();
         var limits = JsonSerializer.Deserialize<ResourceLimits>(config!.ResourceLimitsJson);
         limits!.MaxUsers.Should().Be(10,
-            "cancellation must reset resource limits to the free Tier10 maximums");
+            "cancellation must reset resource limits to the free tier maximums");
 
         var flags = JsonSerializer.Deserialize<FeatureFlags>(config.FeatureFlagsJson);
         flags!.CanUseVoiceChannels.Should().BeFalse(
-            "cancellation must disable voice channels (Chat tier)");
+            "cancellation must disable voice channels (Free tier, mediaEnabled=false)");
         flags.CanUseVideoChannels.Should().BeFalse(
-            "cancellation must disable video channels (Chat tier)");
+            "cancellation must disable video channels (Free tier, mediaEnabled=false)");
     }
 
     // ---------------------------------------------------------------------------
@@ -798,22 +793,21 @@ public sealed class BillingTests : IAsyncLifetime
     {
         await using var dbContext = CreateDbContext();
         var (_, instanceId) = await SeedInstanceAsync(dbContext, UserIdBase + 43, "webhook_sub_deleted",
-            FeatureTier.Video, UserCountTier.Tier100);
+            InstanceTier.Pro, mediaEnabled: true);
 
         var billing = await dbContext.InstanceBillings
             .FirstAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.StripeSubscriptionId = "sub_deleted_001";
-        billing.StripePriceId = "price_xcord_video_100";
+        billing.StripePriceId = "price_xcord_pro_media";
         billing.BillingStatus = BillingStatus.Active;
         billing.CurrentPeriodEnd = DateTimeOffset.UtcNow.AddDays(15);
         billing.NextBillingDate = DateTimeOffset.UtcNow.AddDays(15);
         await dbContext.SaveChangesAsync();
 
         // Simulate HandleSubscriptionDeleted logic
-        billing.FeatureTier = FeatureTier.Chat;
-        billing.UserCountTier = UserCountTier.Tier10;
-        billing.HdUpgrade = false;
+        billing.Tier = InstanceTier.Free;
+        billing.MediaEnabled = false;
         billing.BillingStatus = BillingStatus.Cancelled;
         billing.StripeSubscriptionId = null;
         billing.StripePriceId = null;
@@ -823,9 +817,9 @@ public sealed class BillingTests : IAsyncLifetime
         var config = await dbContext.InstanceConfigs
             .FirstAsync(c => c.ManagedInstanceId == instanceId);
         config.ResourceLimitsJson = JsonSerializer.Serialize(
-            TierDefaults.GetResourceLimits(UserCountTier.Tier10));
+            TierDefaults.GetResourceLimits(InstanceTier.Free));
         config.FeatureFlagsJson = JsonSerializer.Serialize(
-            TierDefaults.GetFeatureFlags(FeatureTier.Chat));
+            TierDefaults.GetFeatureFlags(InstanceTier.Free));
         config.UpdatedAt = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync();
@@ -834,11 +828,9 @@ public sealed class BillingTests : IAsyncLifetime
         var updated = await verifyCtx.InstanceBillings
             .FirstAsync(b => b.ManagedInstanceId == instanceId);
 
-        updated.FeatureTier.Should().Be(FeatureTier.Chat,
-            "subscription deletion must downgrade to free Chat tier");
-        updated.UserCountTier.Should().Be(UserCountTier.Tier10,
-            "subscription deletion must downgrade to free Tier10");
-        updated.HdUpgrade.Should().BeFalse();
+        updated.Tier.Should().Be(InstanceTier.Free,
+            "subscription deletion must downgrade to free tier");
+        updated.MediaEnabled.Should().BeFalse();
         updated.BillingStatus.Should().Be(BillingStatus.Cancelled);
         updated.StripeSubscriptionId.Should().BeNull(
             "Stripe subscription ID must be cleared after subscription deletion");

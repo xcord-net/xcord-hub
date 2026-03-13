@@ -26,12 +26,6 @@ namespace XcordHub.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: "");
 
-            migrationBuilder.AddColumn<bool>(
-                name: "HdUpgrade",
-                table: "instance_billing",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
         }
 
         /// <inheritdoc />
@@ -45,9 +39,6 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "DatabaseUsername",
                 table: "instance_infrastructure");
 
-            migrationBuilder.DropColumn(
-                name: "HdUpgrade",
-                table: "instance_billing");
         }
     }
 }

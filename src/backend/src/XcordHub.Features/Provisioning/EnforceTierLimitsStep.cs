@@ -29,8 +29,8 @@ public sealed class EnforceTierLimitsStep : IProvisioningStep
         }
 
         // Resolve resource limits from the billing tier
-        var resourceLimits = TierDefaults.GetResourceLimits(instance.Billing.UserCountTier);
-        var featureFlags = TierDefaults.GetFeatureFlags(instance.Billing.FeatureTier, instance.Billing.HdUpgrade);
+        var resourceLimits = TierDefaults.GetResourceLimits(instance.Billing.Tier);
+        var featureFlags = TierDefaults.GetFeatureFlags(instance.Billing.Tier, instance.Billing.MediaEnabled);
 
         // Store resolved limits in InstanceConfig so StartApiContainerStep can apply them
         if (instance.Config == null)

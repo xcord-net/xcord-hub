@@ -2,68 +2,96 @@ import { A } from '@solidjs/router';
 import { createSignal, For, Show } from 'solid-js';
 import PageMeta from '../components/PageMeta';
 
-type UserCount = 10 | 50 | 100 | 500;
+interface TierFeature {
+  label: string;
+  comingSoon?: boolean;
+}
 
-interface FeatureCard {
+interface Tier {
   name: string;
-  price: string;
+  basePrice: string;
+  basePriceNote?: string;
+  memberLimit: string;
+  mediaAddon: string;
+  mediaTotal: string;
+  fullPrice: string;
   isFree: boolean;
-  hdAddon?: string;
-  features: { label: string; included: boolean }[];
+  isEnterprise: boolean;
+  features: TierFeature[];
+  cta: 'get-started' | 'notify' | 'contact';
 }
 
-const userCounts: UserCount[] = [10, 50, 100, 500];
-
-const featureList = [
-  'Text messaging',
-  'Bots & webhooks',
-  'Custom emoji',
-  'Threads & forums',
-  'Voice channels',
-  'Video & screen share',
+const tiers: Tier[] = [
+  {
+    name: 'Free',
+    basePrice: 'Free',
+    memberLimit: 'Up to 10 members',
+    mediaAddon: '+$4 per user for voice & video',
+    mediaTotal: '$40/mo total with media',
+    fullPrice: '$40',
+    isFree: true,
+    isEnterprise: false,
+    features: [
+      { label: 'Text messaging' },
+      { label: 'Bots & webhooks' },
+      { label: 'Custom emoji' },
+    ],
+    cta: 'get-started',
+  },
+  {
+    name: 'Basic',
+    basePrice: '$60',
+    basePriceNote: '/mo',
+    memberLimit: 'Up to 50 members',
+    mediaAddon: '+$3 per user for voice & video',
+    mediaTotal: '$210/mo total with media',
+    fullPrice: '$210',
+    isFree: false,
+    isEnterprise: false,
+    features: [
+      { label: 'Text messaging' },
+      { label: 'Bots & webhooks' },
+      { label: 'Custom emoji' },
+    ],
+    cta: 'notify',
+  },
+  {
+    name: 'Pro',
+    basePrice: '$150',
+    basePriceNote: '/mo',
+    memberLimit: 'Up to 200 members',
+    mediaAddon: '+$2 per user for voice & video',
+    mediaTotal: '$550/mo total with media',
+    fullPrice: '$550',
+    isFree: false,
+    isEnterprise: false,
+    features: [
+      { label: 'Text messaging' },
+      { label: 'Bots & webhooks' },
+      { label: 'Custom emoji' },
+      { label: 'Monetization tools', comingSoon: true },
+    ],
+    cta: 'notify',
+  },
+  {
+    name: 'Enterprise',
+    basePrice: '$300+',
+    basePriceNote: '/mo',
+    memberLimit: '500+ members',
+    mediaAddon: '+$1 per user for voice & video',
+    mediaTotal: '$800+/mo total with media',
+    fullPrice: '$800+',
+    isFree: false,
+    isEnterprise: true,
+    features: [
+      { label: 'Text messaging' },
+      { label: 'Bots & webhooks' },
+      { label: 'Custom emoji' },
+      { label: 'Monetization tools', comingSoon: true },
+    ],
+    cta: 'contact',
+  },
 ];
-
-function getCards(users: UserCount): FeatureCard[] {
-  // Prices must match backend TierDefaults.GetPriceCents and PRICING.md
-  const prices: Record<UserCount, [string, string, string, string]> = {
-    10: ['Free', '$20', '$40', '+$25'],
-    50: ['$20', '$45', '$70', '+$50'],
-    100: ['$60', '$110', '$160', '+$75'],
-    500: ['$200', '$400', '$550', '+$150'],
-  };
-  const [chat, audio, video, hd] = prices[users];
-
-  return [
-    {
-      name: 'Chat',
-      price: chat,
-      isFree: chat === 'Free',
-      features: [true, true, true, true, false, false].map((v, i) => ({
-        label: featureList[i],
-        included: v,
-      })),
-    },
-    {
-      name: 'Chat + Audio',
-      price: audio,
-      isFree: false,
-      features: [true, true, true, true, true, false].map((v, i) => ({
-        label: featureList[i],
-        included: v,
-      })),
-    },
-    {
-      name: 'Chat + Audio + Video',
-      price: video,
-      isFree: false,
-      hdAddon: hd,
-      features: [true, true, true, true, true, true].map((v, i) => ({
-        label: featureList[i],
-        included: v,
-      })),
-    },
-  ];
-}
 
 const faqs = [
   { q: 'Can I switch plans later?', a: 'Yes, you can upgrade or downgrade at any time. Changes take effect immediately and billing is prorated.' },
@@ -74,7 +102,6 @@ const faqs = [
 ];
 
 export default function Pricing() {
-  const [selectedUsers, setSelectedUsers] = createSignal<UserCount>(10);
   const [openFaq, setOpenFaq] = createSignal<number | null>(null);
   const [notifyCardKey, setNotifyCardKey] = createSignal<string | null>(null);
   const [notifyEmail, setNotifyEmail] = createSignal('');
@@ -112,13 +139,11 @@ export default function Pricing() {
     }
   }
 
-  const cards = () => getCards(selectedUsers());
-
   return (
     <>
       <PageMeta
         title="Pricing - Xcord Hub"
-        description="Choose a plan based on your community size. Free tier for up to 10 users. Voice, video, and text included."
+        description="Choose a plan based on your community size. Free tier for up to 10 members. Voice, video, and text included."
         path="/pricing"
       />
       <section class="max-w-7xl mx-auto px-6 py-20 text-center">
@@ -130,114 +155,54 @@ export default function Pricing() {
           Choose a plan based on your community size and the features you need.
         </p>
 
-        {/* User count tabs */}
-        <div class="flex justify-center gap-2 mb-12">
-          <For each={userCounts}>
-            {(count) => (
-              <button
-                onClick={() => setSelectedUsers(count)}
-                class={`px-5 py-2 rounded-lg text-sm font-medium transition ${
-                  selectedUsers() === count
-                    ? 'bg-xcord-brand text-white'
-                    : 'bg-xcord-landing-surface text-xcord-landing-text-muted hover:text-white hover:bg-xcord-landing-surface/80'
-                }`}
-              >
-                {count} users
-              </button>
-            )}
-          </For>
-        </div>
-
-        {/* Feature tier cards */}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-6">
-          <For each={cards()}>
-            {(card) => (
+        {/* Tier cards */}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-6">
+          <For each={tiers}>
+            {(tier) => (
               <div class="bg-xcord-landing-surface border border-xcord-landing-border rounded-xl p-6 flex flex-col text-left">
-                <h3 class="text-lg font-semibold text-white">{card.name}</h3>
-                <div class="mt-3 mb-6">
+
+                <h3 class="text-lg font-semibold text-white">{tier.name}</h3>
+
+                {/* Base price */}
+                <div class="mt-3 mb-1">
                   <Show
-                    when={!card.isFree}
+                    when={!tier.isFree}
                     fallback={<span class="text-3xl font-bold text-xcord-brand">Free</span>}
                   >
-                    <span class="text-3xl font-bold text-white">{card.price}</span>
-                    <span class="text-sm text-xcord-landing-text-muted">/mo</span>
-                  </Show>
-                  <Show when={card.hdAddon}>
-                    <span class="ml-2 text-sm font-medium text-xcord-brand">{card.hdAddon} HD</span>
+                    <span class="text-3xl font-bold text-white">{tier.basePrice}</span>
+                    <span class="text-sm text-xcord-landing-text-muted">{tier.basePriceNote}</span>
                   </Show>
                 </div>
 
+                {/* Member limit */}
+                <p class="text-sm text-xcord-landing-text-muted mb-2">{tier.memberLimit}</p>
+
+                {/* Media add-on */}
+                <p class="text-xs text-xcord-brand font-medium mb-6">{tier.mediaAddon}</p>
+
+                {/* Feature list */}
                 <ul class="space-y-3 flex-1 mb-6">
-                  <For each={card.features}>
+                  <For each={tier.features}>
                     {(feat) => (
                       <li class="flex items-center gap-2 text-sm">
-                        <Show
-                          when={feat.included}
-                          fallback={
-                            <svg class="w-4 h-4 text-xcord-landing-text-muted/40 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          }
-                        >
-                          <svg class="w-4 h-4 text-xcord-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                          </svg>
-                        </Show>
-                        <span class={feat.included ? 'text-xcord-landing-text' : 'text-xcord-landing-text-muted/40 line-through'}>
+                        <svg class="w-4 h-4 text-xcord-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span class="text-xcord-landing-text">
                           {feat.label}
                         </span>
+                        <Show when={feat.comingSoon}>
+                          <span class="text-xs font-medium bg-xcord-brand/20 text-xcord-brand px-1.5 py-0.5 rounded-full leading-none shrink-0">
+                            Soon
+                          </span>
+                        </Show>
                       </li>
                     )}
                   </For>
                 </ul>
 
-                <Show
-                  when={card.isFree}
-                  fallback={
-                    <Show
-                      when={notifyCardKey() === `${card.name} (${selectedUsers()} users)`}
-                      fallback={
-                        <button
-                          onClick={() => {
-                            setNotifyCardKey(`${card.name} (${selectedUsers()} users)`);
-                            setNotifyStatus('idle');
-                            setNotifyMessage('');
-                            setNotifyEmail('');
-                          }}
-                          class="w-full py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
-                        >
-                          Notify Me
-                        </button>
-                      }
-                    >
-                      <Show
-                        when={notifyStatus() !== 'success'}
-                        fallback={<p class="text-sm text-green-400 text-center py-2.5">{notifyMessage()}</p>}
-                      >
-                        <form onSubmit={handleNotify} class="flex gap-2">
-                          <input
-                            type="email"
-                            required
-                            placeholder="you@example.com"
-                            value={notifyEmail()}
-                            onInput={(e) => setNotifyEmail(e.currentTarget.value)}
-                            class="flex-1 px-3 py-2 rounded-lg bg-xcord-landing-bg border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
-                          />
-                          <button
-                            type="submit"
-                            disabled={notifyStatus() === 'loading'}
-                            class="px-4 py-2 rounded-lg font-medium bg-xcord-brand text-white text-sm hover:bg-xcord-brand-hover disabled:opacity-50"
-                          >
-                            {notifyStatus() === 'loading' ? '...' : 'Go'}
-                          </button>
-                        </form>
-                        <Show when={notifyStatus() === 'error'}>
-                          <p class="text-xs text-red-400 mt-1">{notifyMessage()}</p>
-                        </Show>
-                      </Show>
-                    </Show>
-                  }
-                >
+                {/* CTA */}
+                <Show when={tier.cta === 'get-started'}>
                   <A
                     href="/register"
                     class="block text-center py-2.5 rounded-lg font-medium transition bg-xcord-brand hover:bg-xcord-brand-hover text-white"
@@ -245,20 +210,67 @@ export default function Pricing() {
                     Get Started
                   </A>
                 </Show>
+
+                <Show when={tier.cta === 'contact'}>
+                  <a
+                    href="mailto:sales@xcord.net"
+                    class="block text-center py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
+                  >
+                    Contact Us
+                  </a>
+                </Show>
+
+                <Show when={tier.cta === 'notify'}>
+                  <Show
+                    when={notifyCardKey() === tier.name}
+                    fallback={
+                      <button
+                        onClick={() => {
+                          setNotifyCardKey(tier.name);
+                          setNotifyStatus('idle');
+                          setNotifyMessage('');
+                          setNotifyEmail('');
+                        }}
+                        class="w-full py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
+                      >
+                        Notify Me
+                      </button>
+                    }
+                  >
+                    <Show
+                      when={notifyStatus() !== 'success'}
+                      fallback={<p class="text-sm text-green-400 text-center py-2.5">{notifyMessage()}</p>}
+                    >
+                      <form onSubmit={handleNotify} class="flex gap-2">
+                        <input
+                          type="email"
+                          required
+                          placeholder="you@example.com"
+                          value={notifyEmail()}
+                          onInput={(e) => setNotifyEmail(e.currentTarget.value)}
+                          class="flex-1 px-3 py-2 rounded-lg bg-xcord-landing-bg border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
+                        />
+                        <button
+                          type="submit"
+                          disabled={notifyStatus() === 'loading'}
+                          class="px-4 py-2 rounded-lg font-medium bg-xcord-brand text-white text-sm hover:bg-xcord-brand-hover disabled:opacity-50"
+                        >
+                          {notifyStatus() === 'loading' ? '...' : 'Go'}
+                        </button>
+                      </form>
+                      <Show when={notifyStatus() === 'error'}>
+                        <p class="text-xs text-red-400 mt-1">{notifyMessage()}</p>
+                      </Show>
+                    </Show>
+                  </Show>
+                </Show>
               </div>
             )}
           </For>
         </div>
 
-        <p class="text-sm text-xcord-landing-text-muted mb-4">
-          All plans are billed monthly. No long-term contracts.
-        </p>
         <p class="text-sm text-xcord-landing-text-muted mb-20">
-          Need more than 500 users?{' '}
-          <a href="mailto:sales@xcord.net" class="text-xcord-brand hover:underline">
-            Contact us
-          </a>{' '}
-          for a custom plan.
+          All plans are billed monthly. No long-term contracts.
         </p>
 
         {/* Split card: Self-Hosted */}

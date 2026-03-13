@@ -5,9 +5,8 @@ interface InstanceBillingItem {
   instanceId: string;
   domain: string;
   displayName: string;
-  featureTier: string;
-  userCountTier: string;
-  hdUpgrade: boolean;
+  tier: string;
+  mediaEnabled: boolean;
   priceCents: number;
   billingStatus: string;
 }
@@ -31,31 +30,24 @@ interface InvoicesData {
 }
 
 interface ChangePlanResponse {
-  featureTier: string;
-  userCountTier: string;
+  tier: string;
   priceCents: number;
   checkoutUrl: string | null;
   requiresCheckout: boolean;
 }
 
-type FeatureTier = 'Chat' | 'Audio' | 'Video';
-type UserCountTier = 'Tier10' | 'Tier50' | 'Tier100' | 'Tier500';
+type Tier = 'Free' | 'Basic' | 'Pro' | 'Enterprise';
 
-// Price matrix matching backend TierDefaults.GetPriceCents (in cents)
-const PRICE_MATRIX: Record<FeatureTier, Record<UserCountTier, number>> = {
-  Chat:  { Tier10: 0,    Tier50: 2000, Tier100: 6000,  Tier500: 20000 },
-  Audio: { Tier10: 2000, Tier50: 4500, Tier100: 11000, Tier500: 40000 },
-  Video: { Tier10: 4000, Tier50: 7000, Tier100: 16000, Tier500: 55000 },
+const TIER_CONFIG: Record<Tier, { baseCents: number; mediaPerUserCents: number; maxUsers: number; label: string }> = {
+  Free:       { baseCents: 0,     mediaPerUserCents: 400, maxUsers: 10,  label: 'Free' },
+  Basic:      { baseCents: 6000,  mediaPerUserCents: 300, maxUsers: 50,  label: 'Basic' },
+  Pro:        { baseCents: 15000, mediaPerUserCents: 200, maxUsers: 200, label: 'Pro' },
+  Enterprise: { baseCents: 30000, mediaPerUserCents: 100, maxUsers: 500, label: 'Enterprise' },
 };
 
-const HD_UPGRADE_PRICE: Record<UserCountTier, number> = {
-  Tier10: 2500, Tier50: 5000, Tier100: 7500, Tier500: 15000,
-};
-
-function getPriceCents(feature: FeatureTier, users: UserCountTier, hd: boolean): number {
-  const base = PRICE_MATRIX[feature]?.[users] ?? 0;
-  const hdCost = (hd && feature === 'Video') ? (HD_UPGRADE_PRICE[users] ?? 0) : 0;
-  return base + hdCost;
+function getPriceCents(tier: Tier, mediaEnabled: boolean): number {
+  const cfg = TIER_CONFIG[tier];
+  return cfg.baseCents + (mediaEnabled ? cfg.mediaPerUserCents * cfg.maxUsers : 0);
 }
 
 function authHeaders(): HeadersInit {
@@ -107,39 +99,15 @@ function formatPrice(cents: number): string {
   return `${formatted}/mo`;
 }
 
-function formatUserCount(tier: string): string {
-  const map: Record<string, string> = {
-    Tier10: '10 users',
-    Tier50: '50 users',
-    Tier100: '100 users',
-    Tier500: '500 users',
-  };
-  return map[tier] ?? tier;
+function formatTier(tier: string, media: boolean): string {
+  return media ? `${tier} + Media` : tier;
 }
 
-function formatFeature(tier: string, hd: boolean): string {
-  const map: Record<string, string> = {
-    Chat: 'Chat',
-    Audio: 'Chat + Audio',
-    Video: 'Chat + Audio + Video',
-  };
-  const base = map[tier] ?? tier;
-  return hd && tier === 'Video' ? `${base} + HD` : base;
-}
-
-const USER_TIERS: [UserCountTier, string][] = [
-  ['Tier10', '10'],
-  ['Tier50', '50'],
-  ['Tier100', '100'],
-  ['Tier500', '500'],
-];
-
-const SALES_EMAIL = 'sales@xcord.net';
-
-const FEATURE_TIERS: { id: FeatureTier; label: string; desc: string }[] = [
-  { id: 'Chat', label: 'Chat', desc: 'Text only' },
-  { id: 'Audio', label: '+Audio', desc: 'Text + voice' },
-  { id: 'Video', label: '+Video', desc: 'Text + voice + video' },
+const TIERS: { id: Tier; label: string; desc: string }[] = [
+  { id: 'Free',       label: 'Free',       desc: 'Up to 10 members' },
+  { id: 'Basic',      label: 'Basic',      desc: 'Up to 50 members' },
+  { id: 'Pro',        label: 'Pro',        desc: 'Up to 200 members' },
+  { id: 'Enterprise', label: 'Enterprise', desc: 'Up to 500 members' },
 ];
 
 function PlanEditor(props: {
@@ -147,45 +115,35 @@ function PlanEditor(props: {
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [feature, setFeature] = createSignal<FeatureTier>(props.instance.featureTier as FeatureTier);
-  const [users, setUsers] = createSignal<UserCountTier>(props.instance.userCountTier as UserCountTier);
-  const [hd, setHd] = createSignal(props.instance.hdUpgrade);
+  const [tier, setTier] = createSignal<Tier>(props.instance.tier as Tier);
+  const [media, setMedia] = createSignal(props.instance.mediaEnabled);
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal('');
   const [confirmingDowngrade, setConfirmingDowngrade] = createSignal(false);
   const [confirmingCancel, setConfirmingCancel] = createSignal(false);
-  const [customTier, setCustomTier] = createSignal(false);
 
-  const newPrice = () => getPriceCents(feature(), users(), hd());
+  const newPrice = () => getPriceCents(tier(), media());
   const currentPrice = () => props.instance.priceCents;
   const isChanged = () =>
-    feature() !== props.instance.featureTier ||
-    users() !== props.instance.userCountTier ||
-    hd() !== props.instance.hdUpgrade;
+    tier() !== props.instance.tier ||
+    media() !== props.instance.mediaEnabled;
   const isUpgrade = () => newPrice() > currentPrice();
   const isDowngrade = () => newPrice() < currentPrice();
   const isFree = () => newPrice() === 0;
 
-  // Reset HD when not on Video tier
-  const handleFeatureChange = (tier: FeatureTier) => {
-    setFeature(tier);
-    if (tier !== 'Video') setHd(false);
-  };
-
   const lostFeatures = (): string[] => {
     const lost: string[] = [];
-    const cur = props.instance.featureTier;
-    const next = feature();
-    if ((cur === 'Video' || cur === 'Audio') && next === 'Chat')
-      lost.push('Voice channels');
-    if (cur === 'Video' && next !== 'Video')
-      lost.push('Video channels');
-    if (props.instance.hdUpgrade && !hd())
-      lost.push('HD video, simulcast, recording');
-    const curUsers = parseInt(props.instance.userCountTier.replace('Tier', ''));
-    const nextUsers = parseInt(users().replace('Tier', ''));
-    if (nextUsers < curUsers)
-      lost.push(`User capacity reduced from ${curUsers} to ${nextUsers}`);
+    const tierOrder: Tier[] = ['Free', 'Basic', 'Pro', 'Enterprise'];
+    const curIdx = tierOrder.indexOf(props.instance.tier as Tier);
+    const nextIdx = tierOrder.indexOf(tier());
+    if (nextIdx < curIdx) {
+      const curCfg = TIER_CONFIG[props.instance.tier as Tier];
+      const nextCfg = TIER_CONFIG[tier()];
+      lost.push(`User capacity reduced from ${curCfg.maxUsers} to ${nextCfg.maxUsers}`);
+    }
+    if (props.instance.mediaEnabled && !media()) {
+      lost.push('Voice & Video channels');
+    }
     return lost;
   };
 
@@ -200,9 +158,8 @@ function PlanEditor(props: {
           headers: authHeaders(),
           body: JSON.stringify({
             instanceId: parseInt(props.instance.instanceId),
-            targetFeatureTier: feature(),
-            targetUserCountTier: users(),
-            hdUpgrade: hd(),
+            targetTier: tier(),
+            mediaEnabled: media(),
           }),
         }
       );
@@ -276,111 +233,53 @@ function PlanEditor(props: {
             </button>
           </div>
 
-          {/* Feature tier */}
+          {/* Tier selector */}
           <div class="mb-5">
-            <p class="text-xs font-bold uppercase text-xcord-text-muted mb-2">Features</p>
-            <div class="grid grid-cols-3 gap-2">
-              <For each={FEATURE_TIERS}>
-                {(tier) => (
+            <p class="text-xs font-bold uppercase text-xcord-text-muted mb-2">Plan</p>
+            <div class="grid grid-cols-4 gap-2">
+              <For each={TIERS}>
+                {(t) => (
                   <button
                     type="button"
-                    onClick={() => handleFeatureChange(tier.id)}
+                    onClick={() => setTier(t.id)}
                     disabled={loading()}
                     class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${
-                      feature() === tier.id
+                      tier() === t.id
                         ? 'ring-2 ring-xcord-brand'
                         : 'hover:bg-xcord-bg-accent'
                     }`}
                   >
-                    <div class="font-semibold">{tier.label}</div>
-                    <div class="text-xs text-xcord-text-muted mt-1">{tier.desc}</div>
+                    <div class="font-semibold">{t.label}</div>
+                    <div class="text-xs text-xcord-text-muted mt-1">{t.desc}</div>
                   </button>
                 )}
               </For>
             </div>
           </div>
 
-          {/* User count */}
+          {/* Media toggle */}
           <div class="mb-5">
-            <p class="text-xs font-bold uppercase text-xcord-text-muted mb-2">User Capacity</p>
-            <div class="flex gap-2">
-              <For each={USER_TIERS}>
-                {([value, label]) => (
-                  <button
-                    type="button"
-                    onClick={() => { setUsers(value); setCustomTier(false); }}
-                    disabled={loading()}
-                    class={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                      users() === value && !customTier()
-                        ? 'ring-2 ring-xcord-brand bg-xcord-bg-tertiary text-xcord-text-primary'
-                        : 'bg-xcord-bg-tertiary text-xcord-text-muted hover:text-xcord-text-primary'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                )}
-              </For>
-              <button
-                type="button"
-                onClick={() => setCustomTier(true)}
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={media()}
+                onChange={(e) => setMedia(e.currentTarget.checked)}
                 disabled={loading()}
-                class={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                  customTier()
-                    ? 'ring-2 ring-xcord-brand bg-xcord-bg-tertiary text-xcord-text-primary'
-                    : 'bg-xcord-bg-tertiary text-xcord-text-muted hover:text-xcord-text-primary'
-                }`}
-              >
-                Custom
-              </button>
-            </div>
-          </div>
-
-          {/* HD upgrade toggle */}
-          <Show when={feature() === 'Video'}>
-            <div class="mb-5">
-              <label class="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hd()}
-                  onChange={(e) => setHd(e.currentTarget.checked)}
-                  disabled={loading()}
-                  class="w-4 h-4 rounded border-xcord-bg-tertiary text-xcord-brand focus:ring-xcord-brand"
-                />
-                <div>
-                  <span class="text-sm font-medium text-xcord-text-primary">HD Upgrade</span>
-                  <span class="text-xs text-xcord-text-muted ml-2">
-                    +{formatPrice(HD_UPGRADE_PRICE[users()] ?? 0)}
-                  </span>
-                  <div class="text-xs text-xcord-text-muted mt-0.5">
-                    1080p video, simulcast, recording
-                  </div>
+                class="w-4 h-4 rounded border-xcord-bg-tertiary text-xcord-brand focus:ring-xcord-brand"
+              />
+              <div>
+                <span class="text-sm font-medium text-xcord-text-primary">Voice &amp; Video</span>
+                <span class="text-xs text-xcord-text-muted ml-2">
+                  +{formatPrice(TIER_CONFIG[tier()].mediaPerUserCents * TIER_CONFIG[tier()].maxUsers)}
+                </span>
+                <div class="text-xs text-xcord-text-muted mt-0.5">
+                  Voice channels, video calls, screen share
                 </div>
-              </label>
-            </div>
-          </Show>
-
-          {/* Contact Sales for custom tier */}
-          <Show when={customTier()}>
-            <div class="bg-xcord-brand/5 border border-xcord-brand/20 rounded-lg p-5 mb-5">
-              <p class="text-sm font-semibold text-xcord-text-primary mb-2">
-                Need more than 500 users?
-              </p>
-              <p class="text-xs text-xcord-text-muted mb-4">
-                Custom plans include dedicated infrastructure, priority support,
-                SLA guarantees, and flexible user limits. Contact our sales team
-                to discuss your requirements.
-              </p>
-              <a
-                href={`mailto:${SALES_EMAIL}?subject=${encodeURIComponent(`Custom plan inquiry — ${props.instance.displayName}`)}`}
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-xcord-brand rounded hover:bg-xcord-brand-hover transition"
-              >
-                Contact Sales
-              </a>
-            </div>
-          </Show>
+              </div>
+            </label>
+          </div>
 
           {/* Price summary */}
-          <Show when={!customTier()}>
           <div class="bg-xcord-bg-secondary rounded-lg p-4 mb-5">
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs text-xcord-text-muted">Current plan</span>
@@ -430,7 +329,7 @@ function PlanEditor(props: {
                 Cancel subscription?
               </p>
               <p class="text-xs text-xcord-red/80">
-                This will downgrade your instance to the free plan (Chat + 10 users).
+                This will downgrade your instance to the Free plan (10 users, no media).
                 All paid features will be removed immediately.
               </p>
             </div>
@@ -503,7 +402,6 @@ function PlanEditor(props: {
               </button>
             </Show>
           </div>
-          </Show>
         </div>
       </div>
     </div>
@@ -575,15 +473,15 @@ export default function Billing() {
 
                       <div class="grid grid-cols-3 gap-4 mb-4">
                         <div>
-                          <div class="text-xs text-xcord-text-muted mb-1">Features</div>
+                          <div class="text-xs text-xcord-text-muted mb-1">Plan</div>
                           <div class="text-sm text-xcord-text-primary font-medium">
-                            {formatFeature(instance.featureTier, instance.hdUpgrade)}
+                            {formatTier(instance.tier, instance.mediaEnabled)}
                           </div>
                         </div>
                         <div>
                           <div class="text-xs text-xcord-text-muted mb-1">User Limit</div>
                           <div class="text-sm text-xcord-text-primary font-medium">
-                            {formatUserCount(instance.userCountTier)}
+                            {TIER_CONFIG[instance.tier as Tier]?.maxUsers ?? '—'} users
                           </div>
                         </div>
                         <div>

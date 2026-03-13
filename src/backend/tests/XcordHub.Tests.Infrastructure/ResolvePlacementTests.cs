@@ -64,7 +64,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
             dataPools: [new DataPoolConfig { Name = "data-1", Database = new() { ConnectionString = "Host=db;Database=xcord" } }]);
 
         var step = CreateStep(topoOptions);
-        var instanceId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var instanceId = await SeedPendingInstance(InstanceTier.Free);
 
         var result = await step.ExecuteAsync(instanceId);
 
@@ -88,7 +88,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
             ]);
 
         var step = CreateStep(topoOptions);
-        var instanceId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var instanceId = await SeedPendingInstance(InstanceTier.Free);
 
         var result = await step.ExecuteAsync(instanceId);
 
@@ -109,7 +109,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
             dataPools: []);
 
         var step = CreateStep(topoOptions);
-        var instanceId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var instanceId = await SeedPendingInstance(InstanceTier.Free);
 
         var result = await step.ExecuteAsync(instanceId);
 
@@ -123,10 +123,10 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Chat tier (free) instance is placed in the free compute pool.
+    /// Free tier instance is placed in the free compute pool.
     /// </summary>
     [Fact]
-    public async Task Execute_ChatTier_PlacesInFreePool()
+    public async Task Execute_FreeTier_PlacesInFreePool()
     {
         var topoOptions = CreateTopologyOptions(
             computePools:
@@ -136,7 +136,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
             ]);
 
         var step = CreateStep(topoOptions);
-        var instanceId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var instanceId = await SeedPendingInstance(InstanceTier.Free);
 
         var result = await step.ExecuteAsync(instanceId);
 
@@ -146,10 +146,10 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Video + Tier100 instance maps to "pro" tier and is placed in the pro pool.
+    /// Pro tier instance maps to "pro" tier and is placed in the pro pool.
     /// </summary>
     [Fact]
-    public async Task Execute_VideoTier100_PlacesInProPool()
+    public async Task Execute_ProTier_PlacesInProPool()
     {
         var topoOptions = CreateTopologyOptions(
             computePools:
@@ -159,7 +159,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
             ]);
 
         var step = CreateStep(topoOptions);
-        var instanceId = await SeedPendingInstance(FeatureTier.Video, UserCountTier.Tier100);
+        var instanceId = await SeedPendingInstance(InstanceTier.Pro);
 
         var result = await step.ExecuteAsync(instanceId);
 
@@ -185,12 +185,12 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var step = CreateStep(topoOptions);
 
         // Fill the free pool to capacity
-        var existingId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var existingId = await SeedPendingInstance(InstanceTier.Free);
         var fillResult = await step.ExecuteAsync(existingId);
         fillResult.IsSuccess.Should().BeTrue("should fill the free pool");
 
         // Another free-tier instance — pool is full, returns error (no cross-tier fallback)
-        var newInstanceId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var newInstanceId = await SeedPendingInstance(InstanceTier.Free);
         var result = await step.ExecuteAsync(newInstanceId);
 
         result.IsFailure.Should().BeTrue();
@@ -199,7 +199,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
 
     /// <summary>
     /// When no pool exists for the requested tier, placement falls back to the next tier up.
-    /// e.g. Audio→basic, but no "basic" pool exists → falls back to "pro" pool.
+    /// e.g. Basic tier, but no "basic" pool exists → falls back to "pro" pool.
     /// </summary>
     [Fact]
     public async Task Execute_NoPoolForTier_FallsBackToNextTierUp()
@@ -207,12 +207,12 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var topoOptions = CreateTopologyOptions(
             computePools:
             [
-                // No "basic" pool — Audio tier should fall back to "pro"
+                // No "basic" pool — Basic tier should fall back to "pro"
                 new ComputePoolConfig { Name = "pro-pool", Tier = "pro", Capacity = new() { TenantSlots = 50 } }
             ]);
 
         var step = CreateStep(topoOptions);
-        var instanceId = await SeedPendingInstance(FeatureTier.Audio, UserCountTier.Tier50);
+        var instanceId = await SeedPendingInstance(InstanceTier.Basic);
 
         var result = await step.ExecuteAsync(instanceId);
 
@@ -236,12 +236,12 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var step = CreateStep(topoOptions);
 
         // Fill the only pool
-        var existingId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var existingId = await SeedPendingInstance(InstanceTier.Free);
         var fillResult = await step.ExecuteAsync(existingId);
         fillResult.IsSuccess.Should().BeTrue();
 
         // Try another — no fallback available
-        var newInstanceId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var newInstanceId = await SeedPendingInstance(InstanceTier.Free);
         var result = await step.ExecuteAsync(newInstanceId);
 
         result.IsFailure.Should().BeTrue();
@@ -249,17 +249,17 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Tier500 maps to enterprise, placing on a dedicated host instead of a pool.
+    /// Enterprise tier maps to "enterprise", placing on a dedicated host instead of a pool.
     /// </summary>
     [Fact]
-    public async Task Execute_Tier500_PlacesOnDedicatedHost()
+    public async Task Execute_EnterpriseTier_PlacesOnDedicatedHost()
     {
         var topoOptions = CreateTopologyOptions(
             computePools: [new ComputePoolConfig { Name = "free-pool", Tier = "free", Capacity = new() { TenantSlots = 50 } }],
             dedicatedHosts: [new DedicatedHostConfig { Id = "ded-1", Tier = "enterprise" }]);
 
         var step = CreateStep(topoOptions);
-        var instanceId = await SeedPendingInstance(FeatureTier.Video, UserCountTier.Tier500);
+        var instanceId = await SeedPendingInstance(InstanceTier.Enterprise);
 
         var result = await step.ExecuteAsync(instanceId);
 
@@ -276,7 +276,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
     {
         var topoOptions = new TopologyOptions(); // empty — IsConfigured = false
         var step = CreateStep(topoOptions);
-        var instanceId = await SeedPendingInstance(FeatureTier.Chat, UserCountTier.Tier10);
+        var instanceId = await SeedPendingInstance(InstanceTier.Free);
 
         var result = await step.ExecuteAsync(instanceId);
 
@@ -308,7 +308,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         };
     }
 
-    private async Task<long> SeedPendingInstance(FeatureTier featureTier, UserCountTier userCountTier)
+    private async Task<long> SeedPendingInstance(InstanceTier tier, bool mediaEnabled = false)
     {
         var id = Interlocked.Add(ref _nextId, 10);
         var db = _dbContext!;
@@ -341,8 +341,8 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         {
             Id = id + 3,
             ManagedInstanceId = instance.Id,
-            FeatureTier = featureTier,
-            UserCountTier = userCountTier,
+            Tier = tier,
+            MediaEnabled = mediaEnabled,
             BillingStatus = BillingStatus.Active,
             CreatedAt = DateTimeOffset.UtcNow
         };

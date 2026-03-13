@@ -171,9 +171,8 @@ public sealed class StripeWebhookHandler(
         if (billing == null) return;
 
         // Downgrade to free tier
-        billing.FeatureTier = FeatureTier.Chat;
-        billing.UserCountTier = UserCountTier.Tier10;
-        billing.HdUpgrade = false;
+        billing.Tier = InstanceTier.Free;
+        billing.MediaEnabled = false;
         billing.BillingStatus = BillingStatus.Cancelled;
         billing.StripeSubscriptionId = null;
         billing.StripePriceId = null;
@@ -183,9 +182,9 @@ public sealed class StripeWebhookHandler(
         if (billing.ManagedInstance?.Config != null)
         {
             billing.ManagedInstance.Config.ResourceLimitsJson = JsonSerializer.Serialize(
-                TierDefaults.GetResourceLimits(UserCountTier.Tier10));
+                TierDefaults.GetResourceLimits(InstanceTier.Free));
             billing.ManagedInstance.Config.FeatureFlagsJson = JsonSerializer.Serialize(
-                TierDefaults.GetFeatureFlags(FeatureTier.Chat));
+                TierDefaults.GetFeatureFlags(InstanceTier.Free, false));
             billing.ManagedInstance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 

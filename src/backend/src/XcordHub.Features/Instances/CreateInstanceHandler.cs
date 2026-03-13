@@ -18,9 +18,8 @@ namespace XcordHub.Features.Instances;
 public sealed record CreateInstanceCommand(
     string Subdomain,
     string DisplayName,
-    FeatureTier FeatureTier = FeatureTier.Chat,
-    UserCountTier UserCountTier = UserCountTier.Tier10,
-    bool HdUpgrade = false,
+    InstanceTier Tier = InstanceTier.Free,
+    bool MediaEnabled = false,
     string? AdminPassword = null,
     string? CaptchaId = null,
     string? CaptchaAnswer = null
@@ -59,22 +58,16 @@ public sealed class CreateInstanceHandler(
         if (request.DisplayName.Length > 255)
             return Error.Validation("VALIDATION_FAILED", "DisplayName must not exceed 255 characters");
 
-        if (!Enum.IsDefined(request.FeatureTier))
-            return Error.Validation("VALIDATION_FAILED", "Invalid feature tier");
-
-        if (!Enum.IsDefined(request.UserCountTier))
-            return Error.Validation("VALIDATION_FAILED", "Invalid user count tier");
-
-        if (request.HdUpgrade && request.FeatureTier != FeatureTier.Video)
-            return Error.Validation("VALIDATION_FAILED", "HD upgrade requires Video feature tier");
+        if (!Enum.IsDefined(request.Tier))
+            return Error.Validation("VALIDATION_FAILED", "Invalid tier");
 
         return null;
     }
 
     public async Task<Result<CreateInstanceResponse>> Handle(CreateInstanceCommand request, CancellationToken cancellationToken)
     {
-        // Validate captcha for free tier (Chat + Tier10) — paid tiers skip captcha
-        var isFreeTier = request.FeatureTier == FeatureTier.Chat && request.UserCountTier == UserCountTier.Tier10;
+        // Validate captcha for free tier — paid tiers skip captcha
+        var isFreeTier = request.Tier == InstanceTier.Free && !request.MediaEnabled;
         if (isFreeTier && !await captchaService.ValidateAsync(request.CaptchaId ?? "", request.CaptchaAnswer ?? ""))
         {
             return Error.BadRequest("CAPTCHA_FAILED", "Invalid or expired captcha");
@@ -130,9 +123,8 @@ public sealed class CreateInstanceHandler(
         {
             Id = snowflakeGenerator.NextId(),
             ManagedInstanceId = instanceId,
-            FeatureTier = request.FeatureTier,
-            UserCountTier = request.UserCountTier,
-            HdUpgrade = request.HdUpgrade,
+            Tier = request.Tier,
+            MediaEnabled = request.MediaEnabled,
             BillingStatus = BillingStatus.Active,
             BillingExempt = false,
             NextBillingDate = now.AddMonths(1),
@@ -142,8 +134,8 @@ public sealed class CreateInstanceHandler(
         dbContext.InstanceBillings.Add(billing);
 
         // Create config with tier defaults and hashed admin password — offloaded to thread pool to avoid starvation
-        var resourceLimits = TierDefaults.GetResourceLimits(request.UserCountTier);
-        var featureFlags = TierDefaults.GetFeatureFlags(request.FeatureTier, request.HdUpgrade);
+        var resourceLimits = TierDefaults.GetResourceLimits(request.Tier);
+        var featureFlags = TierDefaults.GetFeatureFlags(request.Tier, request.MediaEnabled);
         var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(adminPassword, _authOptions.BcryptWorkFactor));
 
         var config = new InstanceConfig

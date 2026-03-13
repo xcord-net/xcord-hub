@@ -1753,8 +1753,8 @@
           "displayName",
           "domain",
           "status",
-          "featureTier",
-          "userCountTier",
+          "tier",
+          "mediaEnabled",
           "createdAt",
           "suspendedAt",
           "destroyedAt",
@@ -1782,11 +1782,11 @@
           "status": {
             "type": "string"
           },
-          "featureTier": {
+          "tier": {
             "type": "string"
           },
-          "userCountTier": {
-            "type": "string"
+          "mediaEnabled": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",
@@ -1820,8 +1820,8 @@
           "subdomain",
           "displayName",
           "status",
-          "featureTier",
-          "userCountTier",
+          "tier",
+          "mediaEnabled",
           "createdAt",
           "ownerUsername"
         ],
@@ -1839,11 +1839,11 @@
           "status": {
             "type": "string"
           },
-          "featureTier": {
+          "tier": {
             "type": "string"
           },
-          "userCountTier": {
-            "type": "string"
+          "mediaEnabled": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",
@@ -2076,18 +2076,14 @@
       "CancelInstanceBillingResponse": {
         "required": [
           "message",
-          "featureTier",
-          "userCountTier"
+          "tier"
         ],
         "type": "object",
         "properties": {
           "message": {
             "type": "string"
           },
-          "featureTier": {
-            "type": "string"
-          },
-          "userCountTier": {
+          "tier": {
             "type": "string"
           }
         }
@@ -2146,8 +2142,7 @@
       "ChangePlanCommand": {
         "required": [
           "instanceId",
-          "targetFeatureTier",
-          "targetUserCountTier"
+          "targetTier"
         ],
         "type": "object",
         "properties": {
@@ -2155,13 +2150,10 @@
             "type": "integer",
             "format": "int64"
           },
-          "targetFeatureTier": {
-            "$ref": "#/components/schemas/FeatureTier2"
+          "targetTier": {
+            "$ref": "#/components/schemas/InstanceTier2"
           },
-          "targetUserCountTier": {
-            "$ref": "#/components/schemas/UserCountTier2"
-          },
-          "hdUpgrade": {
+          "mediaEnabled": {
             "type": "boolean",
             "default": false
           }
@@ -2169,18 +2161,14 @@
       },
       "ChangePlanResponse": {
         "required": [
-          "featureTier",
-          "userCountTier",
+          "tier",
           "priceCents",
           "checkoutUrl",
           "requiresCheckout"
         ],
         "type": "object",
         "properties": {
-          "featureTier": {
-            "type": "string"
-          },
-          "userCountTier": {
+          "tier": {
             "type": "string"
           },
           "priceCents": {
@@ -2209,13 +2197,10 @@
           "displayName": {
             "type": "string"
           },
-          "featureTier": {
-            "$ref": "#/components/schemas/FeatureTier"
+          "tier": {
+            "$ref": "#/components/schemas/InstanceTier"
           },
-          "userCountTier": {
-            "$ref": "#/components/schemas/UserCountTier"
-          },
-          "hdUpgrade": {
+          "mediaEnabled": {
             "type": "boolean",
             "default": false
           },
@@ -2299,21 +2284,6 @@
             "type": "string"
           }
         }
-      },
-      "FeatureTier": {
-        "enum": [
-          "Chat",
-          "Audio",
-          "Video"
-        ],
-        "default": "Chat"
-      },
-      "FeatureTier2": {
-        "enum": [
-          "Chat",
-          "Audio",
-          "Video"
-        ]
       },
       "ForgotPasswordRequest": {
         "required": [
@@ -2505,9 +2475,8 @@
           "instanceId",
           "domain",
           "displayName",
-          "featureTier",
-          "userCountTier",
-          "hdUpgrade",
+          "tier",
+          "mediaEnabled",
           "priceCents",
           "billingStatus"
         ],
@@ -2522,13 +2491,10 @@
           "displayName": {
             "type": "string"
           },
-          "featureTier": {
+          "tier": {
             "type": "string"
           },
-          "userCountTier": {
-            "type": "string"
-          },
-          "hdUpgrade": {
+          "mediaEnabled": {
             "type": "boolean"
           },
           "priceCents": {
@@ -2667,8 +2633,8 @@
           "domain",
           "displayName",
           "status",
-          "featureTier",
-          "userCountTier",
+          "tier",
+          "mediaEnabled",
           "createdAt"
         ],
         "type": "object",
@@ -2685,17 +2651,34 @@
           "status": {
             "type": "string"
           },
-          "featureTier": {
+          "tier": {
             "type": "string"
           },
-          "userCountTier": {
-            "type": "string"
+          "mediaEnabled": {
+            "type": "boolean"
           },
           "createdAt": {
             "type": "string",
             "format": "date-time"
           }
         }
+      },
+      "InstanceTier": {
+        "enum": [
+          "Free",
+          "Basic",
+          "Pro",
+          "Enterprise"
+        ],
+        "default": "Free"
+      },
+      "InstanceTier2": {
+        "enum": [
+          "Free",
+          "Basic",
+          "Pro",
+          "Enterprise"
+        ]
       },
       "InvoiceSummary": {
         "required": [
@@ -3024,13 +3007,10 @@
           "adminPassword": {
             "type": "string"
           },
-          "featureTier": {
-            "$ref": "#/components/schemas/FeatureTier"
+          "tier": {
+            "$ref": "#/components/schemas/InstanceTier"
           },
-          "userCountTier": {
-            "$ref": "#/components/schemas/UserCountTier"
-          },
-          "hdUpgrade": {
+          "mediaEnabled": {
             "type": "boolean",
             "default": false
           }
@@ -3756,23 +3736,6 @@
             "nullable": true
           }
         }
-      },
-      "UserCountTier": {
-        "enum": [
-          "Tier10",
-          "Tier50",
-          "Tier100",
-          "Tier500"
-        ],
-        "default": "Tier10"
-      },
-      "UserCountTier2": {
-        "enum": [
-          "Tier10",
-          "Tier50",
-          "Tier100",
-          "Tier500"
-        ]
       },
       "Verify2FARequest": {
         "required": [

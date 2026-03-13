@@ -64,19 +64,15 @@ public sealed class TopologyResolver
         return FindDedicatedHost(hostId);
     }
 
-    public static string MapBillingTierToTopologyTier(
-        FeatureTier featureTier,
-        UserCountTier userCountTier)
+    public string ResolvePoolName(InstanceTier tier)
     {
-        if (userCountTier >= UserCountTier.Tier500)
-            return "enterprise";
-
-        return featureTier switch
+        return tier switch
         {
-            FeatureTier.Chat => "free",
-            FeatureTier.Audio => "basic",
-            FeatureTier.Video => userCountTier >= UserCountTier.Tier100 ? "pro" : "basic",
-            _ => "free"
+            InstanceTier.Free => "free",
+            InstanceTier.Basic => "basic",
+            InstanceTier.Pro => "pro",
+            InstanceTier.Enterprise => "enterprise",
+            _ => "basic"
         };
     }
 

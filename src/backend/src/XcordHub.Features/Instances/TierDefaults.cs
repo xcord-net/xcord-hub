@@ -4,11 +4,23 @@ namespace XcordHub.Features.Instances;
 
 public static class TierDefaults
 {
-    public static ResourceLimits GetResourceLimits(UserCountTier tier)
+    public static int GetMaxUsers(InstanceTier tier)
     {
         return tier switch
         {
-            UserCountTier.Tier10 => new ResourceLimits
+            InstanceTier.Free => 10,
+            InstanceTier.Basic => 50,
+            InstanceTier.Pro => 200,
+            InstanceTier.Enterprise => 500,
+            _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown instance tier")
+        };
+    }
+
+    public static ResourceLimits GetResourceLimits(InstanceTier tier)
+    {
+        return tier switch
+        {
+            InstanceTier.Free => new ResourceLimits
             {
                 MaxUsers = 10,
                 MaxServers = 3,
@@ -19,7 +31,7 @@ public static class TierDefaults
                 MaxVoiceConcurrency = 5,
                 MaxVideoConcurrency = 3
             },
-            UserCountTier.Tier50 => new ResourceLimits
+            InstanceTier.Basic => new ResourceLimits
             {
                 MaxUsers = 50,
                 MaxServers = 10,
@@ -30,18 +42,18 @@ public static class TierDefaults
                 MaxVoiceConcurrency = 15,
                 MaxVideoConcurrency = 10
             },
-            UserCountTier.Tier100 => new ResourceLimits
+            InstanceTier.Pro => new ResourceLimits
             {
-                MaxUsers = 100,
-                MaxServers = 25,
-                MaxStorageMb = 5120,
-                MaxCpuPercent = 100,
-                MaxMemoryMb = 1024,
-                MaxRateLimit = 120,
-                MaxVoiceConcurrency = 30,
-                MaxVideoConcurrency = 20
+                MaxUsers = 200,
+                MaxServers = 50,
+                MaxStorageMb = 10240,
+                MaxCpuPercent = 150,
+                MaxMemoryMb = 1536,
+                MaxRateLimit = 200,
+                MaxVoiceConcurrency = 60,
+                MaxVideoConcurrency = 40
             },
-            UserCountTier.Tier500 => new ResourceLimits
+            InstanceTier.Enterprise => new ResourceLimits
             {
                 MaxUsers = 500,
                 MaxServers = 100,
@@ -52,16 +64,14 @@ public static class TierDefaults
                 MaxVoiceConcurrency = 100,
                 MaxVideoConcurrency = 50
             },
-            _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown user count tier")
+            _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown instance tier")
         };
     }
 
-    public static FeatureFlags GetFeatureFlags(FeatureTier tier, bool hdUpgrade = false)
+    public static FeatureFlags GetFeatureFlags(InstanceTier tier, bool mediaEnabled = false)
     {
         if (!Enum.IsDefined(tier))
-            throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown feature tier");
-
-        var isHd = hdUpgrade && tier == FeatureTier.Video;
+            throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown instance tier");
 
         return new FeatureFlags
         {
@@ -69,52 +79,50 @@ public static class TierDefaults
             CanUseWebhooks = true,
             CanUseCustomEmoji = true,
             CanUseThreads = true,
-            CanUseVoiceChannels = tier >= FeatureTier.Audio,
-            CanUseVideoChannels = tier >= FeatureTier.Video,
             CanUseForumChannels = true,
             CanUseScheduledEvents = true,
-            CanUseHdVideo = isHd,
-            CanUseSimulcast = isHd,
-            CanUseRecording = isHd
+            CanUseVoiceChannels = mediaEnabled,
+            CanUseVideoChannels = mediaEnabled,
+            CanUseHdVideo = mediaEnabled,
+            CanUseSimulcast = mediaEnabled,
+            CanUseRecording = mediaEnabled && tier >= InstanceTier.Pro
         };
     }
 
-    public static int GetPriceCents(FeatureTier feature, UserCountTier users, bool hdUpgrade = false)
+    public static int GetBasePriceCents(InstanceTier tier)
     {
-        var baseCents = (feature, users) switch
+        return tier switch
         {
-            (FeatureTier.Chat, UserCountTier.Tier10) => 0,
-            (FeatureTier.Chat, UserCountTier.Tier50) => 20_00,
-            (FeatureTier.Chat, UserCountTier.Tier100) => 60_00,
-            (FeatureTier.Chat, UserCountTier.Tier500) => 200_00,
-            (FeatureTier.Audio, UserCountTier.Tier10) => 20_00,
-            (FeatureTier.Audio, UserCountTier.Tier50) => 45_00,
-            (FeatureTier.Audio, UserCountTier.Tier100) => 110_00,
-            (FeatureTier.Audio, UserCountTier.Tier500) => 400_00,
-            (FeatureTier.Video, UserCountTier.Tier10) => 40_00,
-            (FeatureTier.Video, UserCountTier.Tier50) => 70_00,
-            (FeatureTier.Video, UserCountTier.Tier100) => 160_00,
-            (FeatureTier.Video, UserCountTier.Tier500) => 550_00,
-            _ => throw new ArgumentOutOfRangeException()
+            InstanceTier.Free => 0,
+            InstanceTier.Basic => 60_00,
+            InstanceTier.Pro => 150_00,
+            InstanceTier.Enterprise => 300_00,
+            _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown instance tier")
         };
-
-        if (hdUpgrade && feature == FeatureTier.Video)
-        {
-            baseCents += GetHdUpgradePriceCents(users);
-        }
-
-        return baseCents;
     }
 
-    public static int GetHdUpgradePriceCents(UserCountTier users)
+    public static int GetMediaPerUserCents(InstanceTier tier)
     {
-        return users switch
+        return tier switch
         {
-            UserCountTier.Tier10 => 25_00,
-            UserCountTier.Tier50 => 50_00,
-            UserCountTier.Tier100 => 75_00,
-            UserCountTier.Tier500 => 150_00,
-            _ => throw new ArgumentOutOfRangeException(nameof(users), users, "Unknown user count tier")
+            InstanceTier.Free => 4_00,
+            InstanceTier.Basic => 3_00,
+            InstanceTier.Pro => 2_00,
+            InstanceTier.Enterprise => 1_00,
+            _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown instance tier")
         };
+    }
+
+    public static int GetMediaPriceCents(InstanceTier tier)
+    {
+        return GetMediaPerUserCents(tier) * GetMaxUsers(tier);
+    }
+
+    public static int GetTotalPriceCents(InstanceTier tier, bool mediaEnabled = false)
+    {
+        var total = GetBasePriceCents(tier);
+        if (mediaEnabled)
+            total += GetMediaPriceCents(tier);
+        return total;
     }
 }

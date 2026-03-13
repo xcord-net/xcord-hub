@@ -15,14 +15,12 @@ namespace XcordHub.Features.Billing;
 
 public sealed record ChangePlanCommand(
     long InstanceId,
-    FeatureTier TargetFeatureTier,
-    UserCountTier TargetUserCountTier,
-    bool HdUpgrade = false
+    InstanceTier TargetTier,
+    bool MediaEnabled = false
 );
 
 public sealed record ChangePlanResponse(
-    string FeatureTier,
-    string UserCountTier,
+    string Tier,
     int PriceCents,
     string? CheckoutUrl,
     bool RequiresCheckout
@@ -43,14 +41,8 @@ public sealed class ChangePlanHandler(
         if (request.InstanceId <= 0)
             return Error.Validation("VALIDATION_FAILED", "InstanceId is required");
 
-        if (!Enum.IsDefined(request.TargetFeatureTier))
-            return Error.Validation("VALIDATION_FAILED", "Invalid feature tier");
-
-        if (!Enum.IsDefined(request.TargetUserCountTier))
-            return Error.Validation("VALIDATION_FAILED", "Invalid user count tier");
-
-        if (request.HdUpgrade && request.TargetFeatureTier != FeatureTier.Video)
-            return Error.Validation("VALIDATION_FAILED", "HD upgrade requires Video feature tier");
+        if (!Enum.IsDefined(request.TargetTier))
+            return Error.Validation("VALIDATION_FAILED", "Invalid tier");
 
         return null;
     }
@@ -76,12 +68,11 @@ public sealed class ChangePlanHandler(
         if (instance.Billing == null)
             return Error.NotFound("BILLING_NOT_FOUND", "Billing record not found for this instance");
 
-        if (instance.Billing.FeatureTier == request.TargetFeatureTier &&
-            instance.Billing.UserCountTier == request.TargetUserCountTier &&
-            instance.Billing.HdUpgrade == request.HdUpgrade)
+        if (instance.Billing.Tier == request.TargetTier &&
+            instance.Billing.MediaEnabled == request.MediaEnabled)
             return Error.BadRequest("SAME_PLAN", "Instance is already on this plan");
 
-        var priceCents = TierDefaults.GetPriceCents(request.TargetFeatureTier, request.TargetUserCountTier, request.HdUpgrade);
+        var priceCents = TierDefaults.GetTotalPriceCents(request.TargetTier, request.MediaEnabled);
 
         // If Stripe is configured and this is a paid plan, create a checkout session
         var options = stripeOptions.Value;
@@ -102,7 +93,7 @@ public sealed class ChangePlanHandler(
             }
 
             // Build a Stripe Price ID from the plan combination
-            var priceId = BuildStripePriceId(request.TargetFeatureTier, request.TargetUserCountTier, request.HdUpgrade);
+            var priceId = BuildStripePriceId(request.TargetTier, request.MediaEnabled);
 
             var baseUrl = configuration.GetValue<string>("Hub:BaseUrl") ?? "https://xcord-dev.net";
             var checkout = await stripeService.CreateCheckoutSessionAsync(new CreateCheckoutRequest(
@@ -114,8 +105,7 @@ public sealed class ChangePlanHandler(
             ), cancellationToken);
 
             return new ChangePlanResponse(
-                FeatureTier: request.TargetFeatureTier.ToString(),
-                UserCountTier: request.TargetUserCountTier.ToString(),
+                Tier: request.TargetTier.ToString(),
                 PriceCents: priceCents,
                 CheckoutUrl: checkout.CheckoutUrl,
                 RequiresCheckout: true
@@ -123,37 +113,35 @@ public sealed class ChangePlanHandler(
         }
 
         // No Stripe configured (dev/self-hosted): apply plan change directly
-        instance.Billing.FeatureTier = request.TargetFeatureTier;
-        instance.Billing.UserCountTier = request.TargetUserCountTier;
-        instance.Billing.HdUpgrade = request.HdUpgrade;
+        instance.Billing.Tier = request.TargetTier;
+        instance.Billing.MediaEnabled = request.MediaEnabled;
 
         // Update config with new resource limits + feature flags
         if (instance.Config != null)
         {
             instance.Config.ResourceLimitsJson = JsonSerializer.Serialize(
-                TierDefaults.GetResourceLimits(request.TargetUserCountTier));
+                TierDefaults.GetResourceLimits(request.TargetTier));
             instance.Config.FeatureFlagsJson = JsonSerializer.Serialize(
-                TierDefaults.GetFeatureFlags(request.TargetFeatureTier, request.HdUpgrade));
+                TierDefaults.GetFeatureFlags(request.TargetTier, request.MediaEnabled));
             instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new ChangePlanResponse(
-            FeatureTier: request.TargetFeatureTier.ToString(),
-            UserCountTier: request.TargetUserCountTier.ToString(),
+            Tier: request.TargetTier.ToString(),
             PriceCents: priceCents,
             CheckoutUrl: null,
             RequiresCheckout: false
         );
     }
 
-    private static string BuildStripePriceId(FeatureTier feature, UserCountTier users, bool hdUpgrade)
+    private static string BuildStripePriceId(InstanceTier tier, bool mediaEnabled)
     {
-        // Convention: price_xcord_{feature}_{users}[_hd]
-        // e.g. price_xcord_video_50_hd, price_xcord_chat_100
-        var suffix = hdUpgrade ? "_hd" : "";
-        return $"price_xcord_{feature.ToString().ToLowerInvariant()}_{(int)users}{suffix}";
+        // Convention: price_xcord_{tier}[_media]
+        // e.g. price_xcord_basic_media, price_xcord_pro
+        var suffix = mediaEnabled ? "_media" : "";
+        return $"price_xcord_{tier.ToString().ToLowerInvariant()}{suffix}";
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)

@@ -4,9 +4,8 @@ public sealed class InstanceBilling
 {
     public long Id { get; set; }
     public long ManagedInstanceId { get; set; }
-    public FeatureTier FeatureTier { get; set; }
-    public UserCountTier UserCountTier { get; set; }
-    public bool HdUpgrade { get; set; }
+    public InstanceTier Tier { get; set; }
+    public bool MediaEnabled { get; set; }
     public BillingStatus BillingStatus { get; set; }
     public bool BillingExempt { get; set; }
     public string? StripePriceId { get; set; }

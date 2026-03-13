@@ -165,6 +165,7 @@ namespace XcordHub.Infrastructure.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
                     Tier = table.Column<int>(type: "integer", nullable: false),
+                    MediaEnabled = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     BillingStatus = table.Column<int>(type: "integer", nullable: false),
                     BillingExempt = table.Column<bool>(type: "boolean", nullable: false),
                     StripePriceId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),

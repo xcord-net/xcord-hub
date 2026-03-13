@@ -147,8 +147,10 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("CurrentPeriodEnd")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("FeatureTier")
-                        .HasColumnType("integer");
+                    b.Property<bool>("MediaEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<long>("ManagedInstanceId")
                         .HasColumnType("bigint");
@@ -164,7 +166,7 @@ namespace XcordHub.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<int>("UserCountTier")
+                    b.Property<int>("Tier")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");

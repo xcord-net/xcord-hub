@@ -26,8 +26,8 @@ public sealed record AdminInstanceListItem(
     string Subdomain,
     string DisplayName,
     string Status,
-    string FeatureTier,
-    string UserCountTier,
+    string Tier,
+    bool MediaEnabled,
     DateTimeOffset CreatedAt,
     string OwnerUsername
 );
@@ -63,8 +63,8 @@ public sealed class AdminListInstancesHandler(HubDbContext dbContext)
                 i.Domain,
                 i.DisplayName,
                 i.Status,
-                FeatureTier = i.Billing != null ? i.Billing.FeatureTier : (FeatureTier?)null,
-                UserCountTier = i.Billing != null ? i.Billing.UserCountTier : (UserCountTier?)null,
+                Tier = i.Billing != null ? i.Billing.Tier : (InstanceTier?)null,
+                MediaEnabled = i.Billing != null ? i.Billing.MediaEnabled : (bool?)null,
                 i.CreatedAt,
                 OwnerUsername = i.Owner.Username
             })
@@ -75,8 +75,8 @@ public sealed class AdminListInstancesHandler(HubDbContext dbContext)
             i.Domain.Contains('.') ? i.Domain[..i.Domain.IndexOf('.')] : i.Domain,
             i.DisplayName,
             i.Status.ToString(),
-            i.FeatureTier?.ToString() ?? "Chat",
-            i.UserCountTier?.ToString() ?? "Tier10",
+            i.Tier?.ToString() ?? "Free",
+            i.MediaEnabled ?? false,
             i.CreatedAt,
             i.OwnerUsername
         )).ToList();

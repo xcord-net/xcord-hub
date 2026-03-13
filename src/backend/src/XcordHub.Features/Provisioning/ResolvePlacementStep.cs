@@ -40,8 +40,7 @@ public sealed class ResolvePlacementStep : IProvisioningStep
             return true;
         }
 
-        var topoTier = TopologyResolver.MapBillingTierToTopologyTier(
-            instance.Billing.FeatureTier, instance.Billing.UserCountTier);
+        var topoTier = _resolver.ResolvePoolName(instance.Billing.Tier);
 
         if (topoTier == "enterprise")
         {

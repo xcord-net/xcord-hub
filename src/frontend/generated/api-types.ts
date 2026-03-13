@@ -421,6 +421,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/instances/{id}/backups/{backupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["AdminDeleteBackup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/instances/{id}/backup-policy": {
         parameters: {
             query?: never;
@@ -429,8 +445,56 @@ export interface paths {
             cookie?: never;
         };
         get: operations["AdminGetBackupPolicy"];
+        put: operations["AdminUpdateBackupPolicy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/instances/{id}/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminListBackupRecords"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/instances/{id}/backups/trigger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AdminTriggerBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/instances/{id}/backups/{backupId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AdminTriggerRestore"];
         delete?: never;
         options?: never;
         head?: never;
@@ -790,8 +854,8 @@ export interface components {
             displayName: string;
             domain: string;
             status: string;
-            featureTier: string;
-            userCountTier: string;
+            tier: string;
+            mediaEnabled: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -810,8 +874,8 @@ export interface components {
             subdomain: string;
             displayName: string;
             status: string;
-            featureTier: string;
-            userCountTier: string;
+            tier: string;
+            mediaEnabled: boolean;
             /** Format: date-time */
             createdAt: string;
             ownerUsername: string;
@@ -867,10 +931,23 @@ export interface components {
             backupFiles: boolean;
             backupRedis: boolean;
         };
+        BackupRecordItem: {
+            id: string;
+            instanceId: string;
+            status: string;
+            kind: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            storagePath: string;
+            errorMessage: string | null;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            completedAt: string | null;
+        };
         CancelInstanceBillingResponse: {
             message: string;
-            featureTier: string;
-            userCountTier: string;
+            tier: string;
         };
         CancelUpgradeResponse: {
             id: string;
@@ -889,14 +966,12 @@ export interface components {
         ChangePlanCommand: {
             /** Format: int64 */
             instanceId: number;
-            targetFeatureTier: components["schemas"]["FeatureTier2"];
-            targetUserCountTier: components["schemas"]["UserCountTier2"];
+            targetTier: components["schemas"]["InstanceTier2"];
             /** @default false */
-            hdUpgrade: boolean;
+            mediaEnabled: boolean;
         };
         ChangePlanResponse: {
-            featureTier: string;
-            userCountTier: string;
+            tier: string;
             /** Format: int32 */
             priceCents: number;
             checkoutUrl: string | null;
@@ -905,10 +980,9 @@ export interface components {
         CreateInstanceCommand: {
             subdomain: string;
             displayName: string;
-            featureTier?: components["schemas"]["FeatureTier"];
-            userCountTier?: components["schemas"]["UserCountTier"];
+            tier?: components["schemas"]["InstanceTier"];
             /** @default false */
-            hdUpgrade: boolean;
+            mediaEnabled: boolean;
             /** @default null */
             adminPassword: string | null;
             /** @default null */
@@ -933,13 +1007,6 @@ export interface components {
             secret: string;
             qrCodeUrl: string;
         };
-        /**
-         * @default Chat
-         * @enum {unknown}
-         */
-        FeatureTier: "Chat" | "Audio" | "Video";
-        /** @enum {unknown} */
-        FeatureTier2: "Chat" | "Audio" | "Video";
         ForgotPasswordRequest: {
             email: string;
         };
@@ -993,9 +1060,8 @@ export interface components {
             instanceId: string;
             domain: string;
             displayName: string;
-            featureTier: string;
-            userCountTier: string;
-            hdUpgrade: boolean;
+            tier: string;
+            mediaEnabled: boolean;
             /** Format: int32 */
             priceCents: number;
             billingStatus: string;
@@ -1040,11 +1106,18 @@ export interface components {
             domain: string;
             displayName: string;
             status: string;
-            featureTier: string;
-            userCountTier: string;
+            tier: string;
+            mediaEnabled: boolean;
             /** Format: date-time */
             createdAt: string;
         };
+        /**
+         * @default Free
+         * @enum {unknown}
+         */
+        InstanceTier: "Free" | "Basic" | "Pro" | "Enterprise";
+        /** @enum {unknown} */
+        InstanceTier2: "Free" | "Basic" | "Pro" | "Enterprise";
         InvoiceSummary: {
             id: string;
             description: string | null;
@@ -1055,6 +1128,15 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             pdfUrl: string | null;
+        };
+        ListBackupRecordsResponse: {
+            backups: components["schemas"]["BackupRecordItem"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
         };
         ListInstancesResponse: {
             instances: components["schemas"]["InstanceSummary"][];
@@ -1129,10 +1211,9 @@ export interface components {
             domain: string;
             displayName: string;
             adminPassword: string;
-            featureTier?: components["schemas"]["FeatureTier"];
-            userCountTier?: components["schemas"]["UserCountTier"];
+            tier?: components["schemas"]["InstanceTier"];
             /** @default false */
-            hdUpgrade: boolean;
+            mediaEnabled: boolean;
         };
         ProvisionInstanceResponse: {
             instanceId: string;
@@ -1237,6 +1318,23 @@ export interface components {
         SuccessResponse: {
             success: boolean;
         };
+        TriggerBackupRequest: {
+            kind: string;
+        };
+        TriggerRestoreResponse: {
+            message: string;
+            backupId: string;
+            instanceId: string;
+        };
+        UpdateBackupPolicyRequest: {
+            enabled: boolean;
+            frequency: string;
+            /** Format: int32 */
+            retentionDays: number;
+            backupDatabase: boolean;
+            backupFiles: boolean;
+            backupRedis: boolean;
+        };
         UpdateFeatureFlagsRequest: {
             canCreateBots: boolean;
             canUseWebhooks: boolean;
@@ -1332,13 +1430,6 @@ export interface components {
             /** Format: date-time */
             completedAt: string | null;
         };
-        /**
-         * @default Tier10
-         * @enum {unknown}
-         */
-        UserCountTier: "Tier10" | "Tier50" | "Tier100" | "Tier500";
-        /** @enum {unknown} */
-        UserCountTier2: "Tier10" | "Tier50" | "Tier100" | "Tier500";
         Verify2FARequest: {
             code: string;
         };
@@ -2011,6 +2102,29 @@ export interface operations {
             };
         };
     };
+    AdminDeleteBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                backupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"];
+                };
+            };
+        };
+    };
     AdminGetBackupPolicy: {
         parameters: {
             query?: never;
@@ -2029,6 +2143,106 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupPolicyResponse"];
+                };
+            };
+        };
+    };
+    AdminUpdateBackupPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBackupPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupPolicyResponse"];
+                };
+            };
+        };
+    };
+    AdminListBackupRecords: {
+        parameters: {
+            query: {
+                page: number;
+                pageSize: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListBackupRecordsResponse"];
+                };
+            };
+        };
+    };
+    AdminTriggerBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TriggerBackupRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRecordItem"];
+                };
+            };
+        };
+    };
+    AdminTriggerRestore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                backupId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerRestoreResponse"];
                 };
             };
         };

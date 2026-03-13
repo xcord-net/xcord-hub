@@ -166,6 +166,11 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("CurrentPeriodEnd")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("MediaEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<long>("ManagedInstanceId")
                         .HasColumnType("bigint");
 

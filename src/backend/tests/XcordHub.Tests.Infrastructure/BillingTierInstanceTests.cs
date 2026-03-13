@@ -15,7 +15,7 @@ namespace XcordHub.Tests.Infrastructure;
 
 /// <summary>
 /// Integration tests for billing tier assignment in CreateInstanceHandler.
-/// Verifies that the FeatureTier and UserCountTier passed to CreateInstanceCommand
+/// Verifies that the InstanceTier and MediaEnabled values passed to CreateInstanceCommand
 /// are correctly propagated to the InstanceBilling record.
 /// Uses a real PostgreSQL instance via Testcontainers (no Docker-in-Docker required).
 /// </summary>
@@ -131,28 +131,28 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task CreateInstance_ChatPlusTier10_AssignsCorrectTiersToBillingRecord()
+    public async Task CreateInstance_FreeTier_AssignsCorrectTierToBillingRecord()
     {
         // Arrange
         await using var dbContext = CreateDbContext();
 
-        var user = MakeUser(UserIdBase + 1, "billing_chat_tier10_user");
+        var user = MakeUser(UserIdBase + 1, "billing_free_user");
         dbContext.HubUsers.Add(user);
         await dbContext.SaveChangesAsync();
 
         var handler = BuildHandler(dbContext, StubCurrentUser(user.Id));
         var command = new CreateInstanceCommand(
-            "billing-chat-tier10-test",
-            "Chat Tier10 Instance",
-            FeatureTier.Chat,
-            UserCountTier.Tier10);
+            "billing-free-test",
+            "Free Instance",
+            InstanceTier.Free,
+            MediaEnabled: false);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         result.IsSuccess.Should().BeTrue(
-            "creating an instance with Chat+Tier10 (free plan) should succeed");
+            "creating an instance with the Free tier (no media) should succeed");
 
         await using var verifyCtx = CreateDbContext();
         var instanceId = long.Parse(result.Value.InstanceId);
@@ -160,35 +160,35 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.Should().NotBeNull();
-        billing!.FeatureTier.Should().Be(FeatureTier.Chat,
-            "the billing record must reflect the Chat feature tier passed to the command");
-        billing.UserCountTier.Should().Be(UserCountTier.Tier10,
-            "the billing record must reflect the Tier10 user count tier passed to the command");
+        billing!.Tier.Should().Be(InstanceTier.Free,
+            "the billing record must reflect the Free tier passed to the command");
+        billing.MediaEnabled.Should().BeFalse(
+            "the billing record must reflect mediaEnabled=false passed to the command");
     }
 
     [Fact]
-    public async Task CreateInstance_AudioPlusTier50_AssignsCorrectTiersToBillingRecord()
+    public async Task CreateInstance_BasicTierWithMedia_AssignsCorrectTierToBillingRecord()
     {
         // Arrange
         await using var dbContext = CreateDbContext();
 
-        var user = MakeUser(UserIdBase + 2, "billing_audio_tier50_user");
+        var user = MakeUser(UserIdBase + 2, "billing_basic_media_user");
         dbContext.HubUsers.Add(user);
         await dbContext.SaveChangesAsync();
 
         var handler = BuildHandler(dbContext, StubCurrentUser(user.Id));
         var command = new CreateInstanceCommand(
-            "billing-audio-tier50-test",
-            "Audio Tier50 Instance",
-            FeatureTier.Audio,
-            UserCountTier.Tier50);
+            "billing-basic-media-test",
+            "Basic Media Instance",
+            InstanceTier.Basic,
+            MediaEnabled: true);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         result.IsSuccess.Should().BeTrue(
-            "creating an instance with Audio+Tier50 (paid plan) should succeed");
+            "creating an instance with Basic tier and media enabled should succeed");
 
         await using var verifyCtx = CreateDbContext();
         var instanceId = long.Parse(result.Value.InstanceId);
@@ -196,10 +196,10 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
 
         billing.Should().NotBeNull();
-        billing!.FeatureTier.Should().Be(FeatureTier.Audio,
-            "the billing record must reflect the Audio feature tier passed to the command");
-        billing.UserCountTier.Should().Be(UserCountTier.Tier50,
-            "the billing record must reflect the Tier50 user count tier passed to the command");
+        billing!.Tier.Should().Be(InstanceTier.Basic,
+            "the billing record must reflect the Basic tier passed to the command");
+        billing.MediaEnabled.Should().BeTrue(
+            "the billing record must reflect mediaEnabled=true passed to the command");
     }
 }
 
