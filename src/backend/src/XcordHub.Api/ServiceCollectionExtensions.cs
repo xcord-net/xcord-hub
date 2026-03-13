@@ -23,6 +23,8 @@ using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 using CloudflareOptions = XcordHub.Infrastructure.Services.CloudflareOptions;
 using DockerOptions = XcordHub.Infrastructure.Services.DockerOptions;
+using LinodeOptions = XcordHub.Infrastructure.Services.LinodeOptions;
+using Route53Options = XcordHub.Infrastructure.Services.Route53Options;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -117,6 +119,7 @@ public static class ServiceCollectionExtensions
         // Request handlers
         services.AddRequestHandlers(typeof(FeaturesAssemblyMarker).Assembly);
         services.AddScoped<RefreshTokenHandler>();
+        services.AddScoped<SetupHandler>();
 
         // Rate limiting
         AddRateLimiting(services, config);
@@ -149,6 +152,8 @@ public static class ServiceCollectionExtensions
         services.Configure<RateLimitingOptions>(config.GetSection("RateLimiting"));
         services.Configure<AdminOptions>(config.GetSection("Admin"));
         services.Configure<CloudflareOptions>(config.GetSection("Cloudflare"));
+        services.Configure<LinodeOptions>(config.GetSection("Linode"));
+        services.Configure<Route53Options>(config.GetSection("Route53"));
         services.Configure<DockerOptions>(config.GetSection("Docker"));
         services.Configure<CaddyOptions>(config.GetSection("Caddy"));
         services.Configure<EmailOptions>(config.GetSection("Email"));
@@ -263,6 +268,14 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
+        var linodeApiToken = config.GetValue<string>("Linode:ApiToken") ?? string.Empty;
+        services.AddHttpClient("Linode", client =>
+        {
+            client.BaseAddress = new Uri("https://api.linode.com/v4");
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {linodeApiToken}");
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
         // MinIO — root client and provisioning service
         var minioOptions = config.GetSection(MinioOptions.SectionName).Get<MinioOptions>() ?? new MinioOptions();
         var minioEndpoint = minioOptions.Endpoint;
@@ -318,7 +331,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProvisioningQueue, DatabaseProvisioningQueue>();
 
         var useRealDocker = config.GetValue<bool>("Docker:UseReal", false);
-        var useRealDns = config.GetValue<bool>("Cloudflare:UseReal", false);
         var useRealCaddy = config.GetValue<bool>("Caddy:UseReal", false);
 
         if (useRealDocker)
@@ -326,10 +338,22 @@ public static class ServiceCollectionExtensions
         else
             services.AddSingleton<IDockerService, NoopDockerService>();
 
-        if (useRealDns)
-            services.AddSingleton<IDnsProvider, CloudflareDnsProvider>();
-        else
-            services.AddSingleton<IDnsProvider, NoopDnsProvider>();
+        var dnsProvider = config.GetValue<string>("Dns:Provider", "noop");
+        switch (dnsProvider.ToLowerInvariant())
+        {
+            case "cloudflare":
+                services.AddSingleton<IDnsProvider, CloudflareDnsProvider>();
+                break;
+            case "linode":
+                services.AddSingleton<IDnsProvider, LinodeDnsProvider>();
+                break;
+            case "route53":
+                services.AddSingleton<IDnsProvider, Route53DnsProvider>();
+                break;
+            default:
+                services.AddSingleton<IDnsProvider, NoopDnsProvider>();
+                break;
+        }
 
         if (useRealCaddy)
             services.AddSingleton<ICaddyProxyManager, CaddyProxyManager>();

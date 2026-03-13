@@ -66,7 +66,7 @@ public sealed class AdminEndpointFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Encryption__Key", TestEncryptionKey);
         Environment.SetEnvironmentVariable("Docker__UseReal", "false");
         Environment.SetEnvironmentVariable("Caddy__UseReal", "false");
-        Environment.SetEnvironmentVariable("Cloudflare__UseReal", "false");
+        Environment.SetEnvironmentVariable("Dns__Provider", "noop");
 
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -93,7 +93,7 @@ public sealed class AdminEndpointFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Encryption__Key", null);
         Environment.SetEnvironmentVariable("Docker__UseReal", null);
         Environment.SetEnvironmentVariable("Caddy__UseReal", null);
-        Environment.SetEnvironmentVariable("Cloudflare__UseReal", null);
+        Environment.SetEnvironmentVariable("Dns__Provider", null);
 
         if (_redis is not null)
             await _redis.DisposeAsync();
