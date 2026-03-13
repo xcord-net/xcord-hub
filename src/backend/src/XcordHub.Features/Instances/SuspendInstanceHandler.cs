@@ -55,7 +55,7 @@ public sealed class SuspendInstanceHandler(
                 instance.Id, instance.Domain);
 
             // Notify the instance so it can relay System_ShuttingDown to connected clients.
-            // The notifier absorbs all errors — if the instance is already unreachable we
+            // The notifier absorbs all errors - if the instance is already unreachable we
             // still proceed with the suspension.
             await instanceNotifier.NotifyShuttingDownAsync(
                 instance.Domain,
@@ -70,7 +70,7 @@ public sealed class SuspendInstanceHandler(
                 instance.Infrastructure.DockerContainerId,
                 cancellationToken);
 
-            // Update status — optimistic concurrency via xmin ensures only one concurrent
+            // Update status - optimistic concurrency via xmin ensures only one concurrent
             // suspension wins; the other gets DbUpdateConcurrencyException → 409 Conflict.
             instance.Status = InstanceStatus.Suspended;
             await dbContext.SaveChangesAsync(cancellationToken);

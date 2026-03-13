@@ -40,7 +40,7 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
             .IsRequired()
             .HasMaxLength(255);
 
-        // Sensitive credential — stored encrypted as bytea
+        // Sensitive credential - stored encrypted as bytea
         builder.Property(x => x.DatabasePassword)
             .IsRequired()
             .HasColumnType("bytea")
@@ -49,12 +49,12 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
         builder.Property(x => x.RedisDb)
             .IsRequired();
 
-        // Access key is not secret — stored as plaintext
+        // Access key is not secret - stored as plaintext
         builder.Property(x => x.MinioAccessKey)
             .IsRequired()
             .HasMaxLength(255);
 
-        // Secret key is sensitive — stored encrypted as bytea
+        // Secret key is sensitive - stored encrypted as bytea
         builder.Property(x => x.MinioSecretKey)
             .IsRequired()
             .HasColumnType("bytea")
@@ -64,12 +64,12 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
             .IsRequired()
             .HasMaxLength(255);
 
-        // API key is not secret — stored as plaintext
+        // API key is not secret - stored as plaintext
         builder.Property(x => x.LiveKitApiKey)
             .IsRequired()
             .HasMaxLength(255);
 
-        // Secret key is sensitive — stored encrypted as bytea
+        // Secret key is sensitive - stored encrypted as bytea
         builder.Property(x => x.LiveKitSecretKey)
             .IsRequired()
             .HasColumnType("bytea")

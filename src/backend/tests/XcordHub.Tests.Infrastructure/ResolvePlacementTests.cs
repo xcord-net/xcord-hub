@@ -12,7 +12,7 @@ using XcordHub.Infrastructure.Services;
 namespace XcordHub.Tests.Infrastructure;
 
 /// <summary>
-/// Integration tests for ResolvePlacementStep — verifies that hub provisioning
+/// Integration tests for ResolvePlacementStep - verifies that hub provisioning
 /// correctly places instances into compute pools and resolves data pools.
 /// Uses real PostgreSQL via Testcontainers.
 /// </summary>
@@ -98,7 +98,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// When no data pools are configured, PlacedInDataPool remains empty —
+    /// When no data pools are configured, PlacedInDataPool remains empty -
     /// data services are co-located on the compute pool.
     /// </summary>
     [Fact]
@@ -170,7 +170,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
 
     /// <summary>
     /// When the matching pool is at capacity, placement returns an error.
-    /// Current behavior: no cross-tier fallback on capacity — only when no pool exists for the tier.
+    /// Current behavior: no cross-tier fallback on capacity - only when no pool exists for the tier.
     /// </summary>
     [Fact]
     public async Task Execute_FreePoolAtCapacity_ReturnsCapacityError()
@@ -189,7 +189,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var fillResult = await step.ExecuteAsync(existingId);
         fillResult.IsSuccess.Should().BeTrue("should fill the free pool");
 
-        // Another free-tier instance — pool is full, returns error (no cross-tier fallback)
+        // Another free-tier instance - pool is full, returns error (no cross-tier fallback)
         var newInstanceId = await SeedPendingInstance(InstanceTier.Free);
         var result = await step.ExecuteAsync(newInstanceId);
 
@@ -207,7 +207,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var topoOptions = CreateTopologyOptions(
             computePools:
             [
-                // No "basic" pool — Basic tier should fall back to "pro"
+                // No "basic" pool - Basic tier should fall back to "pro"
                 new ComputePoolConfig { Name = "pro-pool", Tier = "pro", Capacity = new() { TenantSlots = 50 } }
             ]);
 
@@ -240,7 +240,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var fillResult = await step.ExecuteAsync(existingId);
         fillResult.IsSuccess.Should().BeTrue();
 
-        // Try another — no fallback available
+        // Try another - no fallback available
         var newInstanceId = await SeedPendingInstance(InstanceTier.Free);
         var result = await step.ExecuteAsync(newInstanceId);
 
@@ -274,7 +274,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
     [Fact]
     public async Task Execute_NoTopologyConfigured_PlacesInDefault()
     {
-        var topoOptions = new TopologyOptions(); // empty — IsConfigured = false
+        var topoOptions = new TopologyOptions(); // empty - IsConfigured = false
         var step = CreateStep(topoOptions);
         var instanceId = await SeedPendingInstance(InstanceTier.Free);
 

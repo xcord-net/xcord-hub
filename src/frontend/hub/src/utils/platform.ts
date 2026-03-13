@@ -3,7 +3,7 @@ export type Platform = 'windows' | 'macos' | 'linux' | 'android' | 'ios' | 'unkn
 export function detectPlatform(): Platform {
   const ua = navigator.userAgent;
 
-  // Mobile checks first — Android UA also contains "Linux"
+  // Mobile checks first - Android UA also contains "Linux"
   if (/Android/i.test(ua)) return 'android';
   if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
 

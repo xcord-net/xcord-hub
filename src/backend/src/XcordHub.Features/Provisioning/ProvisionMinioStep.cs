@@ -8,7 +8,7 @@ namespace XcordHub.Features.Provisioning;
 
 /// <summary>
 /// Creates a per-instance MinIO bucket with a dedicated IAM user.
-/// Provisioning fails hard if per-instance credentials cannot be verified —
+/// Provisioning fails hard if per-instance credentials cannot be verified -
 /// never falls back to root credentials (which would give cross-bucket access).
 /// </summary>
 public sealed class ProvisionMinioStep : IProvisioningStep
@@ -56,7 +56,7 @@ public sealed class ProvisionMinioStep : IProvisioningStep
                 infra.MinioSecretKey,
                 cancellationToken);
 
-            // Verify per-instance credentials work — never fall back to root credentials
+            // Verify per-instance credentials work - never fall back to root credentials
             var perUserWorks = await _minioService.VerifyBucketAsync(
                 bucketName, infra.MinioAccessKey, infra.MinioSecretKey, cancellationToken);
 

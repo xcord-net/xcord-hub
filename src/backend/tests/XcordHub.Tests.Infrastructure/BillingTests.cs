@@ -95,7 +95,7 @@ public sealed class BillingTests : IAsyncLifetime
 
     /// <summary>
     /// Returns a StripeOptions wrapper that reports Stripe as configured.
-    /// The key is fake — no real API calls should be made because the stub IStripeService
+    /// The key is fake - no real API calls should be made because the stub IStripeService
     /// is injected instead of the real StripeService.
     /// </summary>
     private static IOptions<StripeOptions> FakeStripeOptions() =>
@@ -160,7 +160,7 @@ public sealed class BillingTests : IAsyncLifetime
     }
 
     // ---------------------------------------------------------------------------
-    // GetBillingHandler — list instance billing records for a user
+    // GetBillingHandler - list instance billing records for a user
     // ---------------------------------------------------------------------------
 
     [Fact]
@@ -226,7 +226,7 @@ public sealed class BillingTests : IAsyncLifetime
     }
 
     // ---------------------------------------------------------------------------
-    // ChangePlanHandler — no-Stripe path (plan applied directly)
+    // ChangePlanHandler - no-Stripe path (plan applied directly)
     // ---------------------------------------------------------------------------
 
     [Fact]
@@ -341,7 +341,7 @@ public sealed class BillingTests : IAsyncLifetime
         stripeStub.CreateCheckoutCalled.Should().BeTrue(
             "handler must call CreateCheckoutSessionAsync when Stripe is configured");
 
-        // Billing record should NOT be modified yet — plan only activates after webhook
+        // Billing record should NOT be modified yet - plan only activates after webhook
         await using var verifyCtx = CreateDbContext();
         var billing = await verifyCtx.InstanceBillings
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId);
@@ -364,7 +364,7 @@ public sealed class BillingTests : IAsyncLifetime
             new AesEncryptionService(TestEncryptionKey),
             BuildConfiguration());
 
-        // Instance starts on Free (the default) — try to "change" to the same plan
+        // Instance starts on Free (the default) - try to "change" to the same plan
         var command = new ChangePlanCommand(instanceId, InstanceTier.Free, MediaEnabled: false);
         var result = await handler.Handle(command, CancellationToken.None);
 
@@ -703,7 +703,7 @@ public sealed class BillingTests : IAsyncLifetime
     }
 
     // ---------------------------------------------------------------------------
-    // StripeWebhookHandler — database-mutation tests (no HTTP required)
+    // StripeWebhookHandler - database-mutation tests (no HTTP required)
     // ---------------------------------------------------------------------------
 
     [Fact]
@@ -873,7 +873,7 @@ public sealed class BillingTests : IAsyncLifetime
 }
 
 // ---------------------------------------------------------------------------
-// Inline stubs — file-scoped so they do not pollute the test assembly
+// Inline stubs - file-scoped so they do not pollute the test assembly
 // ---------------------------------------------------------------------------
 
 file sealed class FixedCurrentUserService : ICurrentUserService
@@ -896,7 +896,7 @@ file sealed class NoOpProvisioningQueue : IProvisioningQueue
 }
 
 /// <summary>
-/// IStripeService stub that does nothing — used when Stripe is not configured
+/// IStripeService stub that does nothing - used when Stripe is not configured
 /// and no API calls are expected.
 /// </summary>
 file sealed class NoOpStripeService : IStripeService

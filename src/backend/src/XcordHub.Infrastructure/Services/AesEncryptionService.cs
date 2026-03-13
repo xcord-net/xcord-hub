@@ -92,7 +92,7 @@ public sealed class AesEncryptionService : IEncryptionService
             return DecryptGcm(ciphertext);
         }
 
-        // AES-CBC (v0) format — IV is 16 bytes, so minimum ciphertext length is 32
+        // AES-CBC (v0) format - IV is 16 bytes, so minimum ciphertext length is 32
         if (ciphertext.Length >= 32)
         {
             return DecryptLegacyCbc(ciphertext);

@@ -16,7 +16,7 @@ export default function TermsOfService() {
         <h2 class="text-xl font-bold text-white mb-3">1. Acceptance of Terms</h2>
         <p class="text-sm leading-relaxed">
           By creating an account or using any Xcord hosted service, you agree to these Terms of Service.
-          If you do not agree, do not use the service. These terms apply to Xcord's hosted platform only —
+          If you do not agree, do not use the service. These terms apply to Xcord's hosted platform only -
           self-hosted instances are governed by the Apache 2.0 license.
         </p>
       </section>

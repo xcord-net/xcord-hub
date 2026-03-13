@@ -17,7 +17,7 @@ export default function CreateInstance() {
   const [captchaId, setCaptchaId] = createSignal('');
   const [captchaAnswer, setCaptchaAnswer] = createSignal('');
 
-  // Prices in cents — must match backend TierDefaults
+  // Prices in cents - must match backend TierDefaults
   const TIER_CONFIG: Record<string, { baseCents: number; mediaPerUserCents: number; maxUsers: number }> = {
     Free:       { baseCents: 0,     mediaPerUserCents: 400, maxUsers: 10 },
     Basic:      { baseCents: 6000,  mediaPerUserCents: 300, maxUsers: 50 },

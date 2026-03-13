@@ -81,7 +81,7 @@ public sealed class LoginHandler(
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
-        // Verify password — offloaded to thread pool to avoid starvation
+        // Verify password - offloaded to thread pool to avoid starvation
         if (!await Task.Run(() => BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)))
         {
             await IncrementAttemptCounterAsync(db, rateLimitKey);
@@ -90,7 +90,7 @@ public sealed class LoginHandler(
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
-        // Successful login — clear the brute-force counter
+        // Successful login - clear the brute-force counter
         await db.KeyDeleteAsync(rateLimitKey);
 
         // Check if account is disabled
@@ -146,7 +146,7 @@ public sealed class LoginHandler(
         var count = await db.StringIncrementAsync(key);
         if (count == 1)
         {
-            // First failure — set the TTL so the lockout window starts now
+            // First failure - set the TTL so the lockout window starts now
             await db.KeyExpireAsync(key, LockoutDuration);
         }
     }

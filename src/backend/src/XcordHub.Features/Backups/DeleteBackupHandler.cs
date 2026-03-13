@@ -35,7 +35,7 @@ public sealed class DeleteBackupHandler(
         backup.DeletedAt = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Delete storage objects — best effort; log but don't fail if storage deletion fails
+        // Delete storage objects - best effort; log but don't fail if storage deletion fails
         if (!string.IsNullOrEmpty(backup.StoragePath))
         {
             try

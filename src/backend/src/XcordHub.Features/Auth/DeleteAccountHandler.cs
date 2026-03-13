@@ -35,7 +35,7 @@ public sealed class DeleteAccountHandler(
             return Error.NotFound("USER_NOT_FOUND", "User not found");
         }
 
-        // Verify password before allowing deletion — offloaded to thread pool to avoid starvation
+        // Verify password before allowing deletion - offloaded to thread pool to avoid starvation
         if (!await Task.Run(() => BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)))
         {
             return Error.Validation("INVALID_PASSWORD", "Password is incorrect");
@@ -73,7 +73,7 @@ public sealed class DeleteAccountHandler(
                     "Failed to stop instance {InstanceId} ({Domain}) during account deletion",
                     instance.Id, instance.Domain);
 
-                // Mark as destroyed even if stop failed — account deletion takes priority
+                // Mark as destroyed even if stop failed - account deletion takes priority
                 instance.Status = InstanceStatus.Destroyed;
                 instance.DeletedAt = now;
             }

@@ -132,7 +132,7 @@ public sealed class UpgradeOrchestrator
                 }
             }
 
-            // Success — update records
+            // Success - update records
             instance.Infrastructure.DeployedImage = targetImage;
 
             if (newVersion != null && instance.Health != null)

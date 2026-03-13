@@ -102,7 +102,7 @@ public sealed class SnowflakeIdTests
         // Arrange
         var generator = new SnowflakeId(workerId: 1);
 
-        // Generate two IDs in the same millisecond — call them back-to-back so the
+        // Generate two IDs in the same millisecond - call them back-to-back so the
         // timestamp doesn't advance between calls. The first ID in a new millisecond
         // always gets sequence 0; the second (within the same ms) gets sequence 1.
         // Generate a burst of IDs and find the first adjacent pair that share the same

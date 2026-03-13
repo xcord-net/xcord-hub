@@ -16,10 +16,10 @@ export default function PrivacyPolicy() {
         <h2 class="text-xl font-bold text-white mb-3">1. What We Collect</h2>
         <p class="text-sm leading-relaxed mb-3">We collect only what is necessary to operate the service:</p>
         <ul class="text-sm space-y-1.5 list-disc list-inside text-xcord-landing-text-muted">
-          <li><strong class="text-white">Account data</strong> — email address, username, display name, hashed password</li>
-          <li><strong class="text-white">Billing data</strong> — payment method details (processed by Stripe, never stored by us)</li>
-          <li><strong class="text-white">Usage data</strong> — server logs, error reports, aggregate analytics</li>
-          <li><strong class="text-white">Content</strong> — messages, files, and media you upload to your instance</li>
+          <li><strong class="text-white">Account data</strong> - email address, username, display name, hashed password</li>
+          <li><strong class="text-white">Billing data</strong> - payment method details (processed by Stripe, never stored by us)</li>
+          <li><strong class="text-white">Usage data</strong> - server logs, error reports, aggregate analytics</li>
+          <li><strong class="text-white">Content</strong> - messages, files, and media you upload to your instance</li>
         </ul>
       </section>
 
@@ -41,7 +41,7 @@ export default function PrivacyPolicy() {
         <h2 class="text-xl font-bold text-white mb-3">3. Encryption</h2>
         <p class="text-sm leading-relaxed">
           Data is encrypted at rest using AES-256-GCM with envelope encryption (KEK wrapping DEK). Each
-          instance generates its own encryption keys on first boot — Xcord infrastructure operators do not
+          instance generates its own encryption keys on first boot - Xcord infrastructure operators do not
           have access to instance encryption keys. Communications between services use TLS.
         </p>
       </section>
@@ -58,10 +58,10 @@ export default function PrivacyPolicy() {
       <section class="mb-10">
         <h2 class="text-xl font-bold text-white mb-3">5. Data Retention</h2>
         <ul class="text-sm space-y-1.5 list-disc list-inside text-xcord-landing-text-muted">
-          <li><strong class="text-white">Active accounts</strong> — data retained while your account is active</li>
-          <li><strong class="text-white">Deleted accounts</strong> — data retained for 30 days, then permanently deleted</li>
-          <li><strong class="text-white">Billing records</strong> — retained as required by tax law (typically 7 years)</li>
-          <li><strong class="text-white">Server logs</strong> — rotated and deleted after 90 days</li>
+          <li><strong class="text-white">Active accounts</strong> - data retained while your account is active</li>
+          <li><strong class="text-white">Deleted accounts</strong> - data retained for 30 days, then permanently deleted</li>
+          <li><strong class="text-white">Billing records</strong> - retained as required by tax law (typically 7 years)</li>
+          <li><strong class="text-white">Server logs</strong> - rotated and deleted after 90 days</li>
         </ul>
       </section>
 
@@ -69,10 +69,10 @@ export default function PrivacyPolicy() {
         <h2 class="text-xl font-bold text-white mb-3">6. Your Rights</h2>
         <p class="text-sm leading-relaxed mb-3">You have the right to:</p>
         <ul class="text-sm space-y-1.5 list-disc list-inside text-xcord-landing-text-muted">
-          <li><strong class="text-white">Access</strong> — request a copy of your data</li>
-          <li><strong class="text-white">Correction</strong> — update inaccurate information</li>
-          <li><strong class="text-white">Deletion</strong> — delete your account and all associated data</li>
-          <li><strong class="text-white">Export</strong> — download your data in a standard format</li>
+          <li><strong class="text-white">Access</strong> - request a copy of your data</li>
+          <li><strong class="text-white">Correction</strong> - update inaccurate information</li>
+          <li><strong class="text-white">Deletion</strong> - delete your account and all associated data</li>
+          <li><strong class="text-white">Export</strong> - download your data in a standard format</li>
         </ul>
         <p class="text-sm leading-relaxed mt-3">
           To exercise these rights, contact{' '}
@@ -83,8 +83,8 @@ export default function PrivacyPolicy() {
       <section class="mb-10">
         <h2 class="text-xl font-bold text-white mb-3">7. Third-Party Services</h2>
         <ul class="text-sm space-y-1.5 list-disc list-inside text-xcord-landing-text-muted">
-          <li><strong class="text-white">Stripe</strong> — payment processing (subject to Stripe's privacy policy)</li>
-          <li><strong class="text-white">Cloud providers</strong> — infrastructure hosting (Linode, AWS) for instance provisioning</li>
+          <li><strong class="text-white">Stripe</strong> - payment processing (subject to Stripe's privacy policy)</li>
+          <li><strong class="text-white">Cloud providers</strong> - infrastructure hosting (Linode, AWS) for instance provisioning</li>
         </ul>
         <p class="text-sm leading-relaxed mt-3">
           We do not use analytics trackers, advertising networks, or social media pixels.

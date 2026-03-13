@@ -89,7 +89,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
 
             // Start container with config secret + KEK secret (separate Docker secrets).
             // The KEK secret was created in GenerateSecretsStep and is reused across
-            // container recreations — only deleted during full instance destruction.
+            // container recreations - only deleted during full instance destruction.
             var kekSecretId = !string.IsNullOrWhiteSpace(instance.Infrastructure.DockerKekSecretId)
                 ? instance.Infrastructure.DockerKekSecretId
                 : null;
@@ -155,7 +155,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
         FeatureFlags? featureFlags = null,
         ResourceLimits? resourceLimits = null)
     {
-        // Domain format for the instance: subdomain is used as-is (no suffix appended here —
+        // Domain format for the instance: subdomain is used as-is (no suffix appended here -
         // the full domain (e.g. "test.localhost") is stored in ManagedInstance.Domain).
         var subdomain = ValidationHelpers.ExtractSubdomain(domain);
 

@@ -42,7 +42,7 @@ public sealed class ProvisionInstanceHandler(
 
     public Error? Validate(ProvisionInstanceCommand request)
     {
-        // OwnerId == 0 is allowed — means "use the calling user's ID"
+        // OwnerId == 0 is allowed - means "use the calling user's ID"
 
         var domainError = ValidationHelpers.ValidateDomain(request.Domain);
         if (domainError != null)
@@ -132,7 +132,7 @@ public sealed class ProvisionInstanceHandler(
         var resourceLimits = TierDefaults.GetResourceLimits(request.Tier);
         var featureFlags = TierDefaults.GetFeatureFlags(request.Tier, request.MediaEnabled);
 
-        // Create config record with admin password (BCrypt hashed) — offloaded to thread pool to avoid starvation
+        // Create config record with admin password (BCrypt hashed) - offloaded to thread pool to avoid starvation
         var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, _authOptions.BcryptWorkFactor));
         var config = new InstanceConfig
         {

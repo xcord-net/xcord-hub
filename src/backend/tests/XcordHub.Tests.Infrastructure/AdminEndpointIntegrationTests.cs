@@ -74,7 +74,7 @@ public sealed class AdminEndpointFixture : IAsyncLifetime
                 builder.UseEnvironment("Development");
             });
 
-        // Trigger host creation — this runs EnsureCreatedAsync on the schema.
+        // Trigger host creation - this runs EnsureCreatedAsync on the schema.
         _ = _factory.Server;
     }
 
@@ -175,7 +175,7 @@ public sealed class AdminEndpointIntegrationTests
         LastLoginAt = DateTimeOffset.UtcNow
     };
 
-    // ── GET /api/v1/admin/instances — authorization ───────────────────────────
+    // ── GET /api/v1/admin/instances - authorization ───────────────────────────
 
     [Fact]
     public async Task ListInstances_WithAdminToken_Returns200()
@@ -216,7 +216,7 @@ public sealed class AdminEndpointIntegrationTests
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    // ── GET /api/v1/admin/instances — paginated response schema ──────────────
+    // ── GET /api/v1/admin/instances - paginated response schema ──────────────
 
     [Fact]
     public async Task ListInstances_WithAdminToken_ReturnsPaginatedResponseSchema()
@@ -230,7 +230,7 @@ public sealed class AdminEndpointIntegrationTests
 
         var body = await response.Content.ReadFromJsonAsync<AdminListInstancesResponseDto>();
 
-        // Assert — verify the paginated response schema
+        // Assert - verify the paginated response schema
         body.Should().NotBeNull();
         body!.Instances.Should().NotBeNull();
         body.Page.Should().Be(1);
@@ -241,7 +241,7 @@ public sealed class AdminEndpointIntegrationTests
     [Fact]
     public async Task ListInstances_WithRunningInstance_InstanceAppearsInResponse()
     {
-        // Arrange — seed a running instance with a known domain
+        // Arrange - seed a running instance with a known domain
         await using var dbContext = CreateDbContext();
 
         var owner = MakeOwner(8_100_000_001L, "adminep-list-owner");
@@ -281,10 +281,10 @@ public sealed class AdminEndpointIntegrationTests
     [Fact]
     public async Task ListInstances_PaginationDefaults_WhenPageAndSizeAreZero()
     {
-        // Arrange — the handler clamps page=0 to 1 and pageSize=0 to 25
+        // Arrange - the handler clamps page=0 to 1 and pageSize=0 to 25
         using var client = CreateAdminClient();
 
-        // Act — send page=0, pageSize=0 so the handler applies defaults
+        // Act - send page=0, pageSize=0 so the handler applies defaults
         var response = await client.GetAsync("/api/v1/admin/instances?page=0&pageSize=0");
         response.EnsureSuccessStatusCode();
 
@@ -296,12 +296,12 @@ public sealed class AdminEndpointIntegrationTests
         body.PageSize.Should().Be(25, "pageSize 0 should default to 25");
     }
 
-    // ── GET /api/v1/admin/instances/{id} — authorization and schema ───────────
+    // ── GET /api/v1/admin/instances/{id} - authorization and schema ───────────
 
     [Fact]
     public async Task GetInstance_WithAdminToken_Returns200AndInstanceDetails()
     {
-        // Arrange — seed an instance
+        // Arrange - seed an instance
         await using var dbContext = CreateDbContext();
 
         var owner = MakeOwner(8_200_000_001L, "adminep-get-owner");
@@ -345,7 +345,7 @@ public sealed class AdminEndpointIntegrationTests
         // Arrange
         using var client = CreateUserClient();
 
-        // Act — auth check happens before handler executes
+        // Act - auth check happens before handler executes
         var response = await client.GetAsync("/api/v1/admin/instances/123456789");
 
         // Assert
@@ -358,7 +358,7 @@ public sealed class AdminEndpointIntegrationTests
         // Arrange
         using var client = CreateAdminClient();
 
-        // Act — use an ID that doesn't exist
+        // Act - use an ID that doesn't exist
         var response = await client.GetAsync("/api/v1/admin/instances/99999999999999");
 
         // Assert

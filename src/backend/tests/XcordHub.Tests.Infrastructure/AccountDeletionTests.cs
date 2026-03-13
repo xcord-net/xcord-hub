@@ -102,10 +102,10 @@ public sealed class AccountDeletionTests : IAsyncLifetime
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
-        // Assert — handler succeeded
+        // Assert - handler succeeded
         result.IsSuccess.Should().BeTrue();
 
-        // Assert — user record has DeletedAt set (soft delete)
+        // Assert - user record has DeletedAt set (soft delete)
         var deletedUser = await _dbContext.HubUsers
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Id == user.Id);
@@ -128,14 +128,14 @@ public sealed class AccountDeletionTests : IAsyncLifetime
         var deleteHandler = CreateHandler();
         await deleteHandler.Handle(new DeleteAccountCommand(user.Id, TestPassword), CancellationToken.None);
 
-        // Act — LoginHandler looks up the user by EmailHash without IgnoreQueryFilters.
+        // Act - LoginHandler looks up the user by EmailHash without IgnoreQueryFilters.
         // HubUserConfiguration sets HasQueryFilter(x => x.DeletedAt == null), so a
         // deleted user will not appear, causing login to fail with INVALID_CREDENTIALS.
         var emailHash = _encryptionService!.ComputeHmac("deleted_login@example.com");
         var found = await _dbContext.HubUsers
             .FirstOrDefaultAsync(u => u.EmailHash == emailHash);
 
-        // Assert — deleted user is invisible to the standard query
+        // Assert - deleted user is invisible to the standard query
         found.Should().BeNull(
             "the global query filter (DeletedAt == null) must hide soft-deleted users, " +
             "so LoginHandler cannot authenticate the deleted account");
@@ -152,11 +152,11 @@ public sealed class AccountDeletionTests : IAsyncLifetime
         var handler = CreateHandler();
         await handler.Handle(new DeleteAccountCommand(user.Id, TestPassword), CancellationToken.None);
 
-        // Act — DeleteAccountHandler itself uses DeletedAt == null filter
+        // Act - DeleteAccountHandler itself uses DeletedAt == null filter
         var found = await _dbContext.HubUsers
             .FirstOrDefaultAsync(u => u.Id == user.Id && u.DeletedAt == null);
 
-        // Assert — deleted user must not be found with the standard filter
+        // Assert - deleted user must not be found with the standard filter
         found.Should().BeNull("deleted user must not be returned when filtering by DeletedAt == null");
     }
 
@@ -233,7 +233,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
-        // Assert — user deletion succeeds even with already-destroyed instances
+        // Assert - user deletion succeeds even with already-destroyed instances
         result.IsSuccess.Should().BeTrue();
     }
 

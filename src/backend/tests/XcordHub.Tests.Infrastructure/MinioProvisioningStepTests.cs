@@ -12,7 +12,7 @@ using Xunit;
 namespace XcordHub.Tests.Infrastructure;
 
 /// <summary>
-/// Tests for <see cref="ProvisionMinioStep"/> — the provisioning pipeline step that
+/// Tests for <see cref="ProvisionMinioStep"/> - the provisioning pipeline step that
 /// creates a per-instance MinIO bucket and IAM user.
 ///
 /// These tests use spy implementations of <see cref="IMinioProvisioningService"/>
@@ -25,7 +25,7 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
     private PostgreSqlContainer? _postgres;
     private HubDbContext? _dbContext;
 
-    // ID ranges reserved for this test class — must not overlap with other test classes.
+    // ID ranges reserved for this test class - must not overlap with other test classes.
     // User IDs: 9_278_000_000 – 9_278_000_099
     // Instance IDs: 9_279_000_000 – 9_279_000_099
     private const long UserIdBase     = 9_278_000_000L;
@@ -215,7 +215,7 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
     [Fact]
     public async Task ExecuteAsync_PerInstanceVerifyFails_ReturnsFailure()
     {
-        // Per-instance credentials must work — provisioning fails hard rather than
+        // Per-instance credentials must work - provisioning fails hard rather than
         // falling back to root credentials (which would give cross-bucket access).
         var (_, instance, _) = await SeedInstanceAsync(
             InstanceIdBase + 20, "fallback", "per-instance-key", "per-instance-secret");
@@ -248,7 +248,7 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
     [Fact]
     public async Task ExecuteAsync_InfrastructureNotFound_ReturnsNotFoundError()
     {
-        // Use a non-existent instance ID — no infrastructure seeded
+        // Use a non-existent instance ID - no infrastructure seeded
         const long nonExistentId = 999_000_000_000L;
 
         var minioSpy = new RecordingMinioService();

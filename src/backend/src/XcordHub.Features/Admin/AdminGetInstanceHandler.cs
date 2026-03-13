@@ -94,7 +94,7 @@ public sealed class AdminGetInstanceHandler(HubDbContext dbContext)
             instance.Billing?.Tier.ToString() ?? "Free",
             instance.Billing?.MediaEnabled ?? false,
             instance.CreatedAt,
-            null, // SuspendedAt — ManagedInstance does not have a dedicated SuspendedAt field
+            null, // SuspendedAt - ManagedInstance does not have a dedicated SuspendedAt field
             instance.DeletedAt,
             instance.OwnerId.ToString(),
             instance.Owner.Username,

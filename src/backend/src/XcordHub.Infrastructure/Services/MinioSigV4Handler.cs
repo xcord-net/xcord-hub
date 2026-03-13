@@ -91,7 +91,7 @@ public sealed class MinioSigV4Handler : DelegatingHandler
     private static List<string> BuildSignedHeaders(HttpRequestMessage request)
     {
         // Sign only the headers that MinIO expects: content-type, host, x-amz-* headers.
-        // Content-Length must NOT be signed — it may be modified by transport layers.
+        // Content-Length must NOT be signed - it may be modified by transport layers.
         var headers = new SortedSet<string>(StringComparer.OrdinalIgnoreCase) { "host" };
         foreach (var h in request.Headers)
         {

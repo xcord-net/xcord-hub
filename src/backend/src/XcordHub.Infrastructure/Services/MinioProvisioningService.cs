@@ -62,7 +62,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
     {
         _logger.LogInformation("Deprovisioning MinIO bucket {Bucket} for user {AccessKey}", bucketName, accessKey);
 
-        // Best-effort cleanup — log and continue on each step
+        // Best-effort cleanup - log and continue on each step
         // 1. Remove IAM user and policy
         try
         {
@@ -71,7 +71,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
-                "MinIO Admin API deprovisioning failed for user {AccessKey} — continuing bucket cleanup",
+                "MinIO Admin API deprovisioning failed for user {AccessKey} - continuing bucket cleanup",
                 accessKey);
         }
 
@@ -132,7 +132,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
                 .WithSSL(useHttps)
                 .Build();
 
-            // ListObjects requires s3:ListBucket — will fail with 403 for invalid credentials
+            // ListObjects requires s3:ListBucket - will fail with 403 for invalid credentials
             var listArgs = new ListObjectsArgs()
                 .WithBucket(bucketName)
                 .WithRecursive(false)
@@ -183,7 +183,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
 
         if (!exists)
         {
-            _logger.LogDebug("MinIO bucket {Bucket} not found during cleanup — skipping", bucketName);
+            _logger.LogDebug("MinIO bucket {Bucket} not found during cleanup - skipping", bucketName);
             return;
         }
 
@@ -243,10 +243,10 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
     {
         using var http = _httpClientFactory.CreateClient("MinioAdmin");
 
-        // 1. Create IAM user (encrypted body — contains secret key)
+        // 1. Create IAM user (encrypted body - contains secret key)
         await AddUserAsync(http, accessKey, secretKey, cancellationToken);
 
-        // 2. Create bucket-scoped canned policy (plain body — not secret)
+        // 2. Create bucket-scoped canned policy (plain body - not secret)
         var policyName = $"xcord-policy-{accessKey.ToLowerInvariant()}";
         var policyDoc = BuildBucketPolicy(bucketName);
         await AddCannedPolicyAsync(http, policyName, policyDoc, cancellationToken);

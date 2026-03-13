@@ -204,7 +204,7 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
 }
 
 // ---------------------------------------------------------------------------
-// Inline stubs — private to this test file
+// Inline stubs - private to this test file
 // ---------------------------------------------------------------------------
 
 file sealed class FixedCurrentUserService : ICurrentUserService

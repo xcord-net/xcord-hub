@@ -72,7 +72,7 @@ public sealed class LoginWith2FAHandler(
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
-        // Verify password — offloaded to thread pool to avoid starvation
+        // Verify password - offloaded to thread pool to avoid starvation
         if (!await Task.Run(() => BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)))
         {
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_CREDENTIALS", user.Id));

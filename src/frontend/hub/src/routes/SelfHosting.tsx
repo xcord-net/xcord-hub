@@ -11,7 +11,7 @@ export default function SelfHosting() {
       />
       <h1 class="text-4xl font-bold text-white mb-2">Self-Hosting Guide</h1>
       <p class="text-xcord-landing-text-muted mb-12">
-        Deploy your own xcord instance — you own your data, your keys, and your infrastructure.
+        Deploy your own xcord instance - you own your data, your keys, and your infrastructure.
       </p>
 
       {/* Prerequisites */}
@@ -65,16 +65,16 @@ git clone https://github.com/xcord-net/xcord-topo.git`}</code>
         <h2 class="text-2xl font-bold text-white mb-4">3. Design Your Infrastructure</h2>
         <ol class="space-y-3 text-sm list-decimal list-inside">
           <li>Open <code class="text-xcord-brand">http://localhost:8090</code> and click <strong class="text-white">New Topology</strong></li>
-          <li>Drag a <strong class="text-white">Host</strong> container from the catalog onto the canvas — this represents your server</li>
+          <li>Drag a <strong class="text-white">Host</strong> container from the catalog onto the canvas - this represents your server</li>
           <li>
             Add images inside the host by dragging from the catalog:
             <ul class="mt-2 ml-5 space-y-1 list-disc text-xcord-landing-text-muted">
-              <li><strong class="text-white">FederationServer</strong> — the xcord instance</li>
-              <li><strong class="text-white">PostgreSQL</strong> — database</li>
-              <li><strong class="text-white">Redis</strong> — cache and message broker</li>
-              <li><strong class="text-white">MinIO</strong> — file storage</li>
-              <li><strong class="text-white">LiveKit</strong> — voice/video server</li>
-              <li><strong class="text-white">Caddy</strong> — reverse proxy with automatic TLS</li>
+              <li><strong class="text-white">FederationServer</strong> - the xcord instance</li>
+              <li><strong class="text-white">PostgreSQL</strong> - database</li>
+              <li><strong class="text-white">Redis</strong> - cache and message broker</li>
+              <li><strong class="text-white">MinIO</strong> - file storage</li>
+              <li><strong class="text-white">LiveKit</strong> - voice/video server</li>
+              <li><strong class="text-white">Caddy</strong> - reverse proxy with automatic TLS</li>
             </ul>
           </li>
           <li>Draw <strong class="text-white">wires</strong> between services to establish connections (e.g., FederationServer → PostgreSQL)</li>
@@ -92,7 +92,7 @@ git clone https://github.com/xcord-net/xcord-topo.git`}</code>
             { step: 'Select Provider', desc: 'Choose your cloud provider. Linode and AWS are supported with native integration.' },
             { step: 'Configure', desc: 'Enter your API token, region, domain, and SSH key. The wizard shows help links for each credential.' },
             { step: 'Review', desc: 'Inspect the generated Terraform, resource summary, and monthly cost estimate.' },
-            { step: 'Execute', desc: 'Click Deploy — Terraform runs init, plan, and apply with real-time streaming output.' },
+            { step: 'Execute', desc: 'Click Deploy - Terraform runs init, plan, and apply with real-time streaming output.' },
           ].map((item) => (
             <div class="flex gap-3 text-sm">
               <span class="shrink-0 w-28 font-medium text-xcord-brand">{item.step}</span>
@@ -120,7 +120,7 @@ git clone https://github.com/xcord-net/xcord-topo.git`}</code>
         <div class="rounded-lg bg-xcord-landing-surface border border-xcord-landing-border overflow-hidden text-sm">
           {[
             { problem: 'Site not loading', solution: 'Verify DNS A record points to your server IP' },
-            { problem: '502 Bad Gateway', solution: 'Container may still be starting — check docker logs' },
+            { problem: '502 Bad Gateway', solution: 'Container may still be starting - check docker logs' },
           ].map((row, i) => (
             <div class={`flex gap-4 px-4 py-3 ${i > 0 ? 'border-t border-xcord-landing-border' : ''}`}>
               <span class="shrink-0 w-40 font-medium text-white">{row.problem}</span>

@@ -77,7 +77,7 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
                 _logger.LogInformation("Created database {Database} for instance {Domain}", dbName, instance.Domain);
             }
 
-            // Create per-instance PG user (idempotent — skip if exists)
+            // Create per-instance PG user (idempotent - skip if exists)
             await using var checkUserCmd = new NpgsqlCommand(
                 "SELECT 1 FROM pg_roles WHERE rolname = @name", conn);
             checkUserCmd.Parameters.AddWithValue("name", dbUsername);
@@ -86,7 +86,7 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             if (userExists == null)
             {
                 // Use the already-generated DatabasePassword from GenerateSecretsStep.
-                // The password is stored encrypted in the hub DB — we decrypt it here
+                // The password is stored encrypted in the hub DB - we decrypt it here
                 // to pass to CREATE USER (PG requires the plaintext password).
                 var dbPassword = infra.DatabasePassword;
 
@@ -117,7 +117,7 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
                 "CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"", instanceConn);
             await extCmd.ExecuteNonQueryAsync(cancellationToken);
 
-            // Grant schema privileges (idempotent — GRANT is safe to repeat)
+            // Grant schema privileges (idempotent - GRANT is safe to repeat)
             var grantStatements = new[]
             {
                 $"GRANT ALL ON SCHEMA public TO \"{dbUsername}\"",

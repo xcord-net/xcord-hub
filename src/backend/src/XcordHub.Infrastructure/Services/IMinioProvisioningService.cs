@@ -4,7 +4,7 @@ public interface IMinioProvisioningService
 {
     /// <summary>
     /// Creates a MinIO user, bucket, and bucket policy restricted to that user.
-    /// Idempotent — safe to call if the bucket or user already exist.
+    /// Idempotent - safe to call if the bucket or user already exist.
     /// </summary>
     Task ProvisionBucketAsync(string bucketName, string accessKey, string secretKey, CancellationToken cancellationToken = default);
 

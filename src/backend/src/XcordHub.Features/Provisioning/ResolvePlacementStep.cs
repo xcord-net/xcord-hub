@@ -79,7 +79,7 @@ public sealed class ResolvePlacementStep : IProvisioningStep
 
         instance.Infrastructure.PlacedInPool = pool.Name;
 
-        // Resolve data pool — if data pools are configured, find one for this compute pool
+        // Resolve data pool - if data pools are configured, find one for this compute pool
         var dataPool = _resolver.FindDataPoolForPool(pool.Name);
         if (dataPool != null)
             instance.Infrastructure.PlacedInDataPool = dataPool.Name;

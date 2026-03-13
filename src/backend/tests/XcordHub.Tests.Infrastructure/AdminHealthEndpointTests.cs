@@ -79,7 +79,7 @@ public sealed class AdminHealthEndpointTests
         LastLoginAt = DateTimeOffset.UtcNow
     };
 
-    // ── GET /api/v1/admin/health — authorization ─────────────────────────────
+    // ── GET /api/v1/admin/health - authorization ─────────────────────────────
 
     [Fact]
     public async Task GetHealth_WithAdminToken_Returns200()
@@ -111,7 +111,7 @@ public sealed class AdminHealthEndpointTests
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    // ── GET /api/v1/admin/health — response schema ───────────────────────────
+    // ── GET /api/v1/admin/health - response schema ───────────────────────────
 
     [Fact]
     public async Task GetHealth_ReturnsCorrectResponseSchema()

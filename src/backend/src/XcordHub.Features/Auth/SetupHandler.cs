@@ -43,7 +43,7 @@ public sealed class SetupHandler(
                 return Error.BadRequest("SETUP_ALREADY_COMPLETED", "Setup already completed");
             }
 
-            // Hash password — offloaded to thread pool to avoid starvation
+            // Hash password - offloaded to thread pool to avoid starvation
             var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.Password, _authOptions.BcryptWorkFactor));
 
             // Encrypt email and compute HMAC for lookup

@@ -139,7 +139,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
             new ForgotPasswordCommand(email),
             CancellationToken.None);
 
-        // Assert — handler returns success (bool)
+        // Assert - handler returns success (bool)
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeTrue();
 
@@ -188,7 +188,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
 
         var countBefore = await db.PasswordResetTokens.CountAsync();
 
-        // Act — email enumeration protection: always returns 204/success
+        // Act - email enumeration protection: always returns 204/success
         var result = await handler.Handle(
             new ForgotPasswordCommand("nobody@notexist.example"),
             CancellationToken.None);
@@ -229,7 +229,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
     [Fact]
     public async Task ForgotPassword_FullResetFlow_AllowsLoginWithNewPassword()
     {
-        // Arrange — create user
+        // Arrange - create user
         await using var db = CreateDbContext();
         var enc = CreateEncryptionService();
         var emailSink = new CapturedEmailService();
@@ -294,7 +294,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
         var resetHandler1 = CreateResetPasswordHandler(resetDb1);
         await resetHandler1.Handle(new ResetPasswordCommand(rawToken, "NewPass456!"), CancellationToken.None);
 
-        // Act — try to use the same token again
+        // Act - try to use the same token again
         await using var resetDb2 = CreateDbContext();
         var resetHandler2 = CreateResetPasswordHandler(resetDb2);
         var result = await resetHandler2.Handle(new ResetPasswordCommand(rawToken, "AnotherPass789!"), CancellationToken.None);
@@ -323,7 +323,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
 }
 
 /// <summary>
-/// In-memory email sink for integration tests — captures all sent emails without SMTP.
+/// In-memory email sink for integration tests - captures all sent emails without SMTP.
 /// </summary>
 file sealed class CapturedEmailService : IEmailService
 {

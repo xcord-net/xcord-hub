@@ -162,7 +162,7 @@ export function SetupWizard(props: Props) {
         </form>
 
         <p class="mt-4 text-xs text-gray-500 text-center">
-          First-time setup — this will be the only admin account
+          First-time setup - this will be the only admin account
         </p>
       </div>
     </div>

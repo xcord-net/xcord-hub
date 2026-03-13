@@ -66,7 +66,7 @@ public sealed class ResumeInstanceHandler(
                     instance.Id);
             }
 
-            // Update status — optimistic concurrency via xmin ensures only one concurrent
+            // Update status - optimistic concurrency via xmin ensures only one concurrent
             // resume wins; the other gets DbUpdateConcurrencyException → 409 Conflict.
             instance.Status = InstanceStatus.Running;
             await dbContext.SaveChangesAsync(cancellationToken);

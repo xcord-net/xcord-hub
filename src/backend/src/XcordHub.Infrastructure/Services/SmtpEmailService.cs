@@ -68,7 +68,7 @@ public sealed class SmtpEmailService : IEmailService
         }
         catch (Exception ex)
         {
-            // Log but don't throw — emails are best-effort
+            // Log but don't throw - emails are best-effort
             _logger.LogError(ex, "Failed to send email to {To}", to);
         }
     }

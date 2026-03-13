@@ -15,7 +15,7 @@ export const InstanceStatus = {
 } as const;
 export type InstanceStatus = (typeof InstanceStatus)[keyof typeof InstanceStatus];
 
-// Nested types not yet in generated spec — AdminGetInstanceResponse returns
+// Nested types not yet in generated spec - AdminGetInstanceResponse returns
 // resourceLimits/featureFlags/health/infrastructure as untyped JSON.
 // These stay local until the backend OpenAPI spec properly types those fields.
 export interface ResourceLimits {

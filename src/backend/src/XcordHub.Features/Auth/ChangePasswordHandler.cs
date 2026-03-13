@@ -61,13 +61,13 @@ public sealed class ChangePasswordHandler(HubDbContext dbContext, IOptions<AuthO
             return Error.NotFound("USER_NOT_FOUND", "User not found");
         }
 
-        // Verify current password — offloaded to thread pool to avoid starvation
+        // Verify current password - offloaded to thread pool to avoid starvation
         if (!await Task.Run(() => BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash)))
         {
             return Error.Validation("INVALID_PASSWORD", "Current password is incorrect");
         }
 
-        // Hash new password — offloaded to thread pool to avoid starvation
+        // Hash new password - offloaded to thread pool to avoid starvation
         user.PasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.NewPassword, _authOptions.BcryptWorkFactor));
 
         await dbContext.SaveChangesAsync(cancellationToken);

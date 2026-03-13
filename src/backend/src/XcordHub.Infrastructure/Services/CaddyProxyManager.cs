@@ -22,7 +22,7 @@ public sealed class CaddyProxyManager : ICaddyProxyManager
         var routeId = $"xcord-{subdomain}-route";
 
         // Caddy Admin API route configuration with @id for later retrieval/deletion.
-        // Appended to the srv0 routes array — evaluated after the hub-domain route,
+        // Appended to the srv0 routes array - evaluated after the hub-domain route,
         // which only matches the exact hub domain, so subdomain requests fall through.
         var route = new Dictionary<string, object>
         {

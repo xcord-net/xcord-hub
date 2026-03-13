@@ -48,7 +48,7 @@ public sealed class GenerateSecretsStep : IProvisioningStep
         var bootstrapToken = TokenHelper.GenerateToken();
 
         // Generate KEK and store it as a write-only Docker secret.
-        // The KEK value is discarded after this method returns — it exists only
+        // The KEK value is discarded after this method returns - it exists only
         // in Docker Swarm's encrypted Raft store and at /run/secrets/xcord-kek
         // inside the running container. The hub retains only the opaque secret ID.
         var subdomain = ValidationHelpers.ExtractSubdomain(instance.Domain);
@@ -103,7 +103,7 @@ public sealed class GenerateSecretsStep : IProvisioningStep
 
     private static string GenerateSecurePassword(int length)
     {
-        // Alphanumeric only — avoids escaping issues in SQL literals, connection strings,
+        // Alphanumeric only - avoids escaping issues in SQL literals, connection strings,
         // and shell contexts. 62^32 ≈ 2^190 bits of entropy is more than sufficient
         // for internal service credentials.
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

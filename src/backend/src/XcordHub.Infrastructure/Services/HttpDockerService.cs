@@ -15,7 +15,7 @@ public sealed class HttpDockerService : IDockerService
     // xcord-shared-net: services (postgres, redis, minio, livekit, mailpit, caddy)
     // Instance services join xcord-shared-net so they can reach those services,
     // but xcord-hub-infra-net (where docker-socket-proxy lives) is never attached
-    // to instance containers — preventing a compromised instance from reaching
+    // to instance containers - preventing a compromised instance from reaching
     // the Docker API.
     private const string SharedNetworkName = "xcord-shared-net";
 
@@ -144,7 +144,7 @@ public sealed class HttpDockerService : IDockerService
         if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
         {
             // Secret already exists (e.g. from a previous provisioning run).
-            // Look up its ID by name and reuse it — KEK secrets persist across
+            // Look up its ID by name and reuse it - KEK secrets persist across
             // container recreations and should not be regenerated.
             _logger.LogInformation("Docker secret {SecretName} already exists, looking up ID", secretName);
             var existingId = await GetSecretIdByNameAsync(secretName, cancellationToken);
@@ -699,7 +699,7 @@ public sealed class HttpDockerService : IDockerService
                 Name = "xcord-kek",
                 UID = "1001", // xcord user inside the container
                 GID = "1001",
-                Mode = 256u // 0400 octal — owner-read only
+                Mode = 256u // 0400 octal - owner-read only
             }
         };
 

@@ -41,7 +41,7 @@ public sealed class WebApiTestFixture : IAsyncLifetime
     {
         if (Environment.GetEnvironmentVariable("XCORD_INFRA_TESTS") != "1")
         {
-            Console.Error.WriteLine("[WebApiTestFixture] Skipped — set XCORD_INFRA_TESTS=1 to enable");
+            Console.Error.WriteLine("[WebApiTestFixture] Skipped - set XCORD_INFRA_TESTS=1 to enable");
             return;
         }
 

@@ -61,7 +61,7 @@ public sealed class DestroyInstanceHandler(
             // Tombstone the worker ID (never reuse)
             await TombstoneWorkerIdAsync(instance.SnowflakeWorkerId, cancellationToken);
 
-            // Mark instance as destroyed (soft delete) — optimistic concurrency via xmin ensures
+            // Mark instance as destroyed (soft delete) - optimistic concurrency via xmin ensures
             // only one concurrent destroy wins; the other gets DbUpdateConcurrencyException → 409.
             instance.Status = InstanceStatus.Destroyed;
             instance.DeletedAt = DateTimeOffset.UtcNow;

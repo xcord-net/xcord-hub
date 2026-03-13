@@ -108,7 +108,7 @@ export default function AppShell(props: { children: JSX.Element }) {
 
       {/* Content area */}
       <div class="flex-1 relative overflow-hidden">
-        {/* Dashboard content (sidebar + page) — visible when hub tab active */}
+        {/* Dashboard content (sidebar + page) - visible when hub tab active */}
         <div
           class="absolute inset-0 flex"
           style={{ display: isHubActive() ? 'flex' : 'none' }}
@@ -119,7 +119,7 @@ export default function AppShell(props: { children: JSX.Element }) {
           </main>
         </div>
 
-        {/* Instance iframes — all stay loaded, display toggled */}
+        {/* Instance iframes - all stay loaded, display toggled */}
         <For each={instanceStore.connectedInstances()}>
           {(instance) => (
             <div

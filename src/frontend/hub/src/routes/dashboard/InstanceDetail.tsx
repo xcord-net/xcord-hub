@@ -145,7 +145,7 @@ export default function InstanceDetail() {
                 </div>
                 <div class="bg-xcord-bg-secondary rounded-lg p-4">
                   <div class="text-xs text-xcord-text-muted mb-1">Members</div>
-                  <div class="text-sm text-xcord-text-primary">{inst().memberCount ?? '—'}</div>
+                  <div class="text-sm text-xcord-text-primary">{inst().memberCount ?? '-'}</div>
                 </div>
                 <div class="bg-xcord-bg-secondary rounded-lg p-4">
                   <div class="text-xs text-xcord-text-muted mb-1">Tier</div>

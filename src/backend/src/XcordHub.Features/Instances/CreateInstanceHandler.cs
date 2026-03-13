@@ -66,7 +66,7 @@ public sealed class CreateInstanceHandler(
 
     public async Task<Result<CreateInstanceResponse>> Handle(CreateInstanceCommand request, CancellationToken cancellationToken)
     {
-        // Validate captcha for free tier — paid tiers skip captcha
+        // Validate captcha for free tier - paid tiers skip captcha
         var isFreeTier = request.Tier == InstanceTier.Free && !request.MediaEnabled;
         if (isFreeTier && !await captchaService.ValidateAsync(request.CaptchaId ?? "", request.CaptchaAnswer ?? ""))
         {
@@ -133,7 +133,7 @@ public sealed class CreateInstanceHandler(
 
         dbContext.InstanceBillings.Add(billing);
 
-        // Create config with tier defaults and hashed admin password — offloaded to thread pool to avoid starvation
+        // Create config with tier defaults and hashed admin password - offloaded to thread pool to avoid starvation
         var resourceLimits = TierDefaults.GetResourceLimits(request.Tier);
         var featureFlags = TierDefaults.GetFeatureFlags(request.Tier, request.MediaEnabled);
         var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(adminPassword, _authOptions.BcryptWorkFactor));

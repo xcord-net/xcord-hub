@@ -27,7 +27,7 @@ public sealed class EmailOptions
     public bool UseSsl { get; set; } = true;
 
     /// <summary>
-    /// When true, emails are logged instead of sent — for development/test environments.
+    /// When true, emails are logged instead of sent - for development/test environments.
     /// </summary>
     [Required]
     public bool DevMode { get; set; }

@@ -223,7 +223,7 @@ function PlanEditor(props: {
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-bold text-xcord-text-primary">
-              Change Plan — {props.instance.displayName}
+              Change Plan - {props.instance.displayName}
             </h2>
             <button
               onClick={props.onClose}
@@ -481,7 +481,7 @@ export default function Billing() {
                         <div>
                           <div class="text-xs text-xcord-text-muted mb-1">User Limit</div>
                           <div class="text-sm text-xcord-text-primary font-medium">
-                            {TIER_CONFIG[instance.tier as Tier]?.maxUsers ?? '—'} users
+                            {TIER_CONFIG[instance.tier as Tier]?.maxUsers ?? '-'} users
                           </div>
                         </div>
                         <div>

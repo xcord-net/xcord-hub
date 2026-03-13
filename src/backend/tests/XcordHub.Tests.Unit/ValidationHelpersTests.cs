@@ -5,7 +5,7 @@ namespace XcordHub.Tests.Unit;
 public sealed class ValidationHelpersTests
 {
     // -----------------------------------------------------------------------
-    // ValidateSubdomain — valid inputs
+    // ValidateSubdomain - valid inputs
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -33,7 +33,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateSubdomain — null/empty/whitespace
+    // ValidateSubdomain - null/empty/whitespace
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -48,7 +48,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateSubdomain — length violations
+    // ValidateSubdomain - length violations
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -73,7 +73,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateSubdomain — invalid characters
+    // ValidateSubdomain - invalid characters
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -90,7 +90,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateSubdomain — leading/trailing hyphens
+    // ValidateSubdomain - leading/trailing hyphens
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -104,7 +104,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateSubdomain — consecutive hyphens
+    // ValidateSubdomain - consecutive hyphens
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -116,7 +116,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateSubdomain — reserved names (those >= 6 chars hit reserved check,
+    // ValidateSubdomain - reserved names (those >= 6 chars hit reserved check,
     // shorter ones hit length check first)
     // -----------------------------------------------------------------------
 
@@ -154,7 +154,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateDomain — valid inputs
+    // ValidateDomain - valid inputs
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -168,7 +168,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateDomain — null/empty
+    // ValidateDomain - null/empty
     // -----------------------------------------------------------------------
 
     [Theory]
@@ -183,7 +183,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateDomain — must have at least two labels
+    // ValidateDomain - must have at least two labels
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateDomain — exceeds 253 chars
+    // ValidateDomain - exceeds 253 chars
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateDomain — label-level violations
+    // ValidateDomain - label-level violations
     // -----------------------------------------------------------------------
 
     [Fact]
@@ -248,7 +248,7 @@ public sealed class ValidationHelpersTests
     }
 
     // -----------------------------------------------------------------------
-    // ValidateDomain — reserved first label
+    // ValidateDomain - reserved first label
     // -----------------------------------------------------------------------
 
     [Theory]

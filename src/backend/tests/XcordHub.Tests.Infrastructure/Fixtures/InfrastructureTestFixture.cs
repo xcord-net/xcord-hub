@@ -33,7 +33,7 @@ public class InfrastructureTestFixture : IAsyncLifetime
     {
         if (Environment.GetEnvironmentVariable("XCORD_INFRA_TESTS") != "1")
         {
-            Console.Error.WriteLine("[InfrastructureTestFixture] Skipped — set XCORD_INFRA_TESTS=1 to enable");
+            Console.Error.WriteLine("[InfrastructureTestFixture] Skipped - set XCORD_INFRA_TESTS=1 to enable");
             return;
         }
 

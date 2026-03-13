@@ -7,7 +7,7 @@ namespace XcordHub.Infrastructure.Services;
 /// Sends lifecycle notifications to xcord-fed instance containers via their internal HTTP API.
 /// Calls the instance using its Docker container hostname (xcord-{subdomain}-api:80) so the
 /// request stays within the Docker network and does not require public DNS resolution.
-/// All failures are swallowed — if the instance is already unreachable the hub proceeds
+/// All failures are swallowed - if the instance is already unreachable the hub proceeds
 /// with the lifecycle operation (suspend/destroy) regardless.
 /// </summary>
 public sealed class HttpInstanceNotifier : IInstanceNotifier

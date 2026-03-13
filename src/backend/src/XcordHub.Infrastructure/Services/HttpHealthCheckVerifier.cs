@@ -67,7 +67,7 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
         }
         catch
         {
-            // Version parsing is best-effort — don't fail the health check
+            // Version parsing is best-effort - don't fail the health check
         }
 
         return null;

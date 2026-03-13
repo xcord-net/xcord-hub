@@ -38,7 +38,7 @@ public static class ServiceCollectionExtensions
         var services = builder.Services;
         var config = builder.Configuration;
 
-        // JSON serialization — explicit camelCase + converters
+        // JSON serialization - explicit camelCase + converters
         services.ConfigureHttpJsonOptions(options =>
         {
             options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
@@ -206,7 +206,7 @@ public static class ServiceCollectionExtensions
             else if (!string.IsNullOrEmpty(encryptionKeyRaw))
             {
                 resolvedEncryptionKey = encryptionKeyRaw;
-                Log.Warning("Hub has KEK configured but encryption key is plaintext — wrap the key for production use");
+                Log.Warning("Hub has KEK configured but encryption key is plaintext - wrap the key for production use");
             }
             else
             {
@@ -224,7 +224,7 @@ public static class ServiceCollectionExtensions
 
             resolvedEncryptionKey = encryptionKeyRaw
                 ?? throw new InvalidOperationException("Encryption key not configured");
-            Log.Warning("Hub encryption key loaded WITHOUT envelope encryption — configure a KEK for production use");
+            Log.Warning("Hub encryption key loaded WITHOUT envelope encryption - configure a KEK for production use");
         }
         services.AddSingleton<IEncryptionService>(new AesEncryptionService(resolvedEncryptionKey));
     }
@@ -292,7 +292,7 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
-        // MinIO — root client and provisioning service
+        // MinIO - root client and provisioning service
         var minioOptions = config.GetSection(MinioOptions.SectionName).Get<MinioOptions>() ?? new MinioOptions();
         var minioEndpoint = minioOptions.Endpoint;
         if (minioEndpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
@@ -559,7 +559,7 @@ public static class ServiceCollectionExtensions
             return; // Admin already exists
         }
 
-        // Create admin user — offloaded to thread pool to avoid starvation
+        // Create admin user - offloaded to thread pool to avoid starvation
         var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(adminPassword, authOptions.BcryptWorkFactor));
         var encryptedEmail = encryptionService.Encrypt(adminEmail.ToLowerInvariant());
         var now = DateTimeOffset.UtcNow;

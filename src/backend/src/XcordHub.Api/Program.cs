@@ -58,7 +58,7 @@ if (app.Environment.IsProduction())
 app.UseCors();
 
 // Admin SPA: rewrite non-file /admin paths to admin/index.html.
-// Must be BEFORE UseRouting — UseStaticFiles skips files when an endpoint is matched
+// Must be BEFORE UseRouting - UseStaticFiles skips files when an endpoint is matched
 // by routing, and the hub SPA fallback ({*path:nonfile}) matches /admin.
 app.Use(async (context, next) =>
 {
@@ -87,7 +87,7 @@ app.MapHealthEndpoint();
 // Auto-register all handler endpoints
 app.MapHandlerEndpoints(typeof(FeaturesAssemblyMarker).Assembly);
 
-// Stripe webhook endpoint (non-standard handler — registered manually)
+// Stripe webhook endpoint (non-standard handler - registered manually)
 XcordHub.Features.Billing.StripeWebhookHandler.Map(app);
 
 // OpenAPI endpoint (serves /openapi/v1.json)

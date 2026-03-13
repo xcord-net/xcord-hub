@@ -67,7 +67,7 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext, IOptions<AuthOp
             return Error.Validation("TOKEN_EXPIRED", "Reset token has expired");
         }
 
-        // Update password — offloaded to thread pool to avoid starvation
+        // Update password - offloaded to thread pool to avoid starvation
         resetToken.HubUser.PasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.NewPassword, _authOptions.BcryptWorkFactor));
 
         // Mark token as used

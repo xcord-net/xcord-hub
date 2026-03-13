@@ -59,16 +59,16 @@ public sealed class InstanceNotifierTests
         // Arrange
         var (notifier, handler) = CreateNotifier(new HttpResponseMessage(HttpStatusCode.OK));
 
-        // Act — must not throw
+        // Act - must not throw
         await notifier.NotifyShuttingDownAsync("alpha.xcord.net", "suspended by hub");
 
-        // Assert — exactly one request was sent to the expected container-internal URL
+        // Assert - exactly one request was sent to the expected container-internal URL
         handler.Requests.Should().HaveCount(1);
         var request = handler.Requests[0];
         request.Method.Should().Be(HttpMethod.Post);
         // HttpClient normalises http:// URIs by omitting the default port 80;
         // the notifier builds "http://xcord-alpha-api:80/..." but the Uri round-trips as
-        // "http://xcord-alpha-api/..." — assert on the effective URL.
+        // "http://xcord-alpha-api/..." - assert on the effective URL.
         request.RequestUri!.ToString().Should().Be("http://xcord-alpha-api/api/v1/internal/shutdown");
     }
 
@@ -82,7 +82,7 @@ public sealed class InstanceNotifierTests
         // Act
         await notifier.NotifyShuttingDownAsync("beta.xcord.net", reason);
 
-        // Assert — request body contains the reason
+        // Assert - request body contains the reason
         handler.Requests.Should().HaveCount(1);
         var body = await handler.Requests[0].Content!.ReadAsStringAsync();
         body.Should().Contain(reason, "the reason must be included in the JSON payload");
@@ -91,10 +91,10 @@ public sealed class InstanceNotifierTests
     [Fact]
     public async Task NotifyShuttingDownAsync_NonSuccessStatus_DoesNotThrow()
     {
-        // Arrange — server returns 503
+        // Arrange - server returns 503
         var (notifier, _) = CreateNotifier(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
 
-        // Act & Assert — failure must be absorbed; suspension should proceed normally
+        // Act & Assert - failure must be absorbed; suspension should proceed normally
         await notifier.Invoking(n => n.NotifyShuttingDownAsync("gamma.xcord.net", "admin action"))
             .Should().NotThrowAsync("non-2xx responses must not propagate");
     }
@@ -102,7 +102,7 @@ public sealed class InstanceNotifierTests
     [Fact]
     public async Task NotifyShuttingDownAsync_NetworkException_DoesNotThrow()
     {
-        // Arrange — simulates an instance that is already stopped (connection refused)
+        // Arrange - simulates an instance that is already stopped (connection refused)
         var notifier = CreateThrowingNotifier(new HttpRequestException("Connection refused"));
 
         // Act & Assert
@@ -113,7 +113,7 @@ public sealed class InstanceNotifierTests
     [Fact]
     public async Task NotifyShuttingDownAsync_TimeoutException_DoesNotThrow()
     {
-        // Arrange — simulates a slow/unresponsive instance
+        // Arrange - simulates a slow/unresponsive instance
         var notifier = CreateThrowingNotifier(new TaskCanceledException("Request timed out"));
 
         // Act & Assert
@@ -124,13 +124,13 @@ public sealed class InstanceNotifierTests
     [Fact]
     public async Task NotifyShuttingDownAsync_DerivesContainerHostFromSubdomain()
     {
-        // Arrange — domain with multi-segment public suffix; only the first label is used
+        // Arrange - domain with multi-segment public suffix; only the first label is used
         var (notifier, handler) = CreateNotifier(new HttpResponseMessage(HttpStatusCode.OK));
 
         // Act
         await notifier.NotifyShuttingDownAsync("myserver.xcord.net", "suspended by hub");
 
-        // Assert — container host is derived from just the subdomain label
+        // Assert - container host is derived from just the subdomain label
         handler.Requests.Should().HaveCount(1);
         var uri = handler.Requests[0].RequestUri!;
         uri.Host.Should().Be("xcord-myserver-api");

@@ -58,7 +58,7 @@ public sealed class NamingConventionTests
     [Fact]
     public void EndpointImplementors_ShouldBeHandlers()
     {
-        // Arrange — all IEndpoint implementors should follow the Handler naming convention
+        // Arrange - all IEndpoint implementors should follow the Handler naming convention
         var assembly = typeof(XcordHub.Features.FeaturesAssemblyMarker).Assembly;
 
         // Act

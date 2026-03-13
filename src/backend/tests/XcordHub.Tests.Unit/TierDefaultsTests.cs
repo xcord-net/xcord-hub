@@ -28,7 +28,7 @@ public sealed class TierDefaultsTests
     }
 
     // ---------------------------------------------------------------------------
-    // GetResourceLimits — verify each tier returns sensible limits and
+    // GetResourceLimits - verify each tier returns sensible limits and
     // that limits increase monotonically across tiers
     // ---------------------------------------------------------------------------
 
@@ -101,7 +101,7 @@ public sealed class TierDefaultsTests
     }
 
     // ---------------------------------------------------------------------------
-    // GetFeatureFlags — media disabled vs enabled
+    // GetFeatureFlags - media disabled vs enabled
     // ---------------------------------------------------------------------------
 
     [Theory]
@@ -197,7 +197,7 @@ public sealed class TierDefaultsTests
     }
 
     // ---------------------------------------------------------------------------
-    // GetMediaPriceCents — perUser * maxUsers
+    // GetMediaPriceCents - perUser * maxUsers
     // ---------------------------------------------------------------------------
 
     [Theory]
@@ -211,7 +211,7 @@ public sealed class TierDefaultsTests
     }
 
     // ---------------------------------------------------------------------------
-    // GetTotalPriceCents — base + optional media
+    // GetTotalPriceCents - base + optional media
     // ---------------------------------------------------------------------------
 
     [Theory]

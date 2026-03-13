@@ -27,7 +27,7 @@ public sealed class LifecycleTests : IAsyncLifetime
     private HubDbContext? _dbContext;
 
     // ---------------------------------------------------------------------------
-    // IAsyncLifetime — spin up a dedicated PostgreSQL container for this class.
+    // IAsyncLifetime - spin up a dedicated PostgreSQL container for this class.
     // ---------------------------------------------------------------------------
 
     public async Task InitializeAsync()
@@ -173,7 +173,7 @@ public sealed class LifecycleTests : IAsyncLifetime
     }
 
     // ---------------------------------------------------------------------------
-    // Helper — seeds a standard test user + instance + infrastructure.
+    // Helper - seeds a standard test user + instance + infrastructure.
     // ---------------------------------------------------------------------------
 
     private async Task<(HubUser owner, ManagedInstance instance, InstanceInfrastructure infra)> SeedInstanceAsync(
@@ -242,7 +242,7 @@ public sealed class LifecycleTests : IAsyncLifetime
     }
 
     // ---------------------------------------------------------------------------
-    // Suspend — verifies notification precedes container stop.
+    // Suspend - verifies notification precedes container stop.
     // ---------------------------------------------------------------------------
 
     /// <summary>
@@ -279,7 +279,7 @@ public sealed class LifecycleTests : IAsyncLifetime
     }
 
     // ---------------------------------------------------------------------------
-    // Resume — verifies status transition from Suspended to Running.
+    // Resume - verifies status transition from Suspended to Running.
     // ---------------------------------------------------------------------------
 
     [Fact]
@@ -320,7 +320,7 @@ public sealed class LifecycleTests : IAsyncLifetime
     }
 
     // ---------------------------------------------------------------------------
-    // Destroy — verifies resource cleanup and soft delete.
+    // Destroy - verifies resource cleanup and soft delete.
     // ---------------------------------------------------------------------------
 
     [Fact]

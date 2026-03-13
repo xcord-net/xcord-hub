@@ -23,7 +23,7 @@ public sealed class ConfigureBackupPolicyStep : IProvisioningStep
 
         if (existing != null)
         {
-            return true; // Already exists — idempotent
+            return true; // Already exists - idempotent
         }
 
         var now = DateTimeOffset.UtcNow;

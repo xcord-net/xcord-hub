@@ -15,11 +15,11 @@ public sealed class HubDbContextFactory : IDesignTimeDbContextFactory<HubDbConte
     {
         var optionsBuilder = new DbContextOptionsBuilder<HubDbContext>();
 
-        // Use an in-memory connection string placeholder — EF only needs to build the
+        // Use an in-memory connection string placeholder - EF only needs to build the
         // model at design time; no real database connection is established.
         optionsBuilder.UseNpgsql("Host=localhost;Database=xcordhub_design;Username=postgres");
 
-        // Dummy key — only used to satisfy the constructor; never contacts a DB.
+        // Dummy key - only used to satisfy the constructor; never contacts a DB.
         var encryptionService = new AesEncryptionService("design-time-dummy-key-not-used-in-production");
 
         return new HubDbContext(optionsBuilder.Options, encryptionService);

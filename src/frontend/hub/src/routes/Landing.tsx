@@ -79,24 +79,24 @@ export default function Landing() {
           <div class="text-center mb-16">
             <h2 class="text-3xl font-bold text-white">Why Xcord?</h2>
             <p class="mt-4 text-xcord-landing-text-muted max-w-xl mx-auto">
-              From plug-and-play to full control — your community, your way.
+              From plug-and-play to full control - your community, your way.
             </p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FeatureCard
               icon="🔀"
               title="Turnkey to Self-Hosted"
-              description="Start managed — we handle hosting, updates, and infrastructure. Migrate to your own servers anytime. Your data comes with you."
+              description="Start managed - we handle hosting, updates, and infrastructure. Migrate to your own servers anytime. Your data comes with you."
             />
             <FeatureCard
               icon="👥"
               title="Membership Tiers"
-              description="Create tiered access levels for your community. Gate channels, roles, and content, all built in — no third-party tools needed."
+              description="Create tiered access levels for your community. Gate channels, roles, and content, all built in - no third-party tools needed."
             />
             <FeatureCard
               icon="🌐"
               title="Federated + Open Source"
-              description="Communities connect across instances — like email, but for chat. Apache 2.0 licensed. Inspect the code, contribute, or fork it."
+              description="Communities connect across instances - like email, but for chat. Apache 2.0 licensed. Inspect the code, contribute, or fork it."
             />
           </div>
         </div>
@@ -134,14 +134,14 @@ export default function Landing() {
               </div>
               <h3 class="text-lg font-semibold text-white mb-2">Invite Your Community</h3>
               <p class="text-sm text-xcord-landing-text-muted">
-                Share your invite link and start chatting. Voice, video, and text — all in one place.
+                Share your invite link and start chatting. Voice, video, and text - all in one place.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section — hidden until real data is available */}
+      {/* Stats Section - hidden until real data is available */}
 
       {/* Final CTA */}
       <section class="py-20">

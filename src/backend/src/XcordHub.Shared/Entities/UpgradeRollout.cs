@@ -8,7 +8,7 @@ public sealed class UpgradeRollout
     public RolloutStatus Status { get; set; }
     public int TotalInstances { get; set; }
     public int CompletedInstances { get; set; }
-    // Not a FK — the instance ID is preserved for diagnostics even if the instance is later destroyed.
+    // Not a FK - the instance ID is preserved for diagnostics even if the instance is later destroyed.
     public long? FailedInstanceId { get; set; }
     public string? ErrorMessage { get; set; }
     public string? TargetPool { get; set; }
