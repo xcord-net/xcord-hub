@@ -43,17 +43,10 @@ public sealed class AllocateWorkerIdStep : IProvisioningStep
             .ToListAsync(cancellationToken))
             .ToHashSet();
 
-        int? availableWorkerId = null;
-        for (int i = MinWorkerId; i <= MaxWorkerId; i++)
-        {
-            if (!allocatedWorkerIds.Contains(i))
-            {
-                availableWorkerId = i;
-                break;
-            }
-        }
+        var availableWorkerId = Enumerable.Range(MinWorkerId, MaxWorkerId - MinWorkerId + 1)
+            .FirstOrDefault(i => !allocatedWorkerIds.Contains(i));
 
-        if (availableWorkerId == null)
+        if (availableWorkerId == 0)
         {
             return Error.Failure("NO_WORKER_IDS_AVAILABLE", "No worker IDs available for allocation");
         }
@@ -61,7 +54,7 @@ public sealed class AllocateWorkerIdStep : IProvisioningStep
         // Allocate the worker ID
         var registry = new WorkerIdRegistry
         {
-            WorkerId = availableWorkerId.Value,
+            WorkerId = availableWorkerId,
             ManagedInstanceId = instanceId,
             IsTombstoned = false,
             AllocatedAt = DateTimeOffset.UtcNow
@@ -69,7 +62,7 @@ public sealed class AllocateWorkerIdStep : IProvisioningStep
 
         _dbContext.Set<WorkerIdRegistry>().Add(registry);
 
-        instance.SnowflakeWorkerId = availableWorkerId.Value;
+        instance.SnowflakeWorkerId = availableWorkerId;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

@@ -60,11 +60,10 @@ public sealed class ResolvePlacementStep : IProvisioningStep
         {
             var fallbackOrder = new[] { "free", "basic", "pro" };
             var startIdx = Array.IndexOf(fallbackOrder, topoTier);
-            for (var i = Math.Max(0, startIdx + 1); i < fallbackOrder.Length; i++)
-            {
-                pool = _resolver.FindPoolForTier(fallbackOrder[i]);
-                if (pool != null) break;
-            }
+            pool = fallbackOrder
+                .Skip(Math.Max(0, startIdx + 1))
+                .Select(tier => _resolver.FindPoolForTier(tier))
+                .FirstOrDefault(p => p != null);
         }
 
         if (pool == null)
