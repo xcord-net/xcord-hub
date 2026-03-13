@@ -17,6 +17,7 @@ using XcordHub.Features.Auth;
 using XcordHub.Features.Monitoring;
 using XcordHub.Features.Destruction;
 using XcordHub.Features.Provisioning;
+using XcordHub.Features.Backups;
 using XcordHub.Features.Upgrades;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
@@ -62,6 +63,9 @@ public static class ServiceCollectionExtensions
         // Captcha
         AddCaptcha(services, config);
 
+        // Cold storage
+        AddColdStorage(services, config);
+
         // Email
         services.AddScoped<IEmailService, SmtpEmailService>();
 
@@ -90,6 +94,8 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<InstanceReconciler>();
         services.AddHostedService<UpgradeBackgroundService>();
         services.AddHostedService<MinimumVersionEnforcerService>();
+        services.AddScoped<BackupExecutor>();
+        services.AddHostedService<BackupBackgroundService>();
 
         // Metrics
         services.AddSingleton<GatewayMetrics>();
@@ -161,6 +167,7 @@ public static class ServiceCollectionExtensions
         services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
         services.Configure<AuthOptions>(config.GetSection(AuthOptions.SectionName));
         services.Configure<TopologyOptions>(config.GetSection(TopologyOptions.SectionName));
+        services.Configure<ColdStorageOptions>(config.GetSection(ColdStorageOptions.SectionName));
     }
 
     private static void AddEncryption(IServiceCollection services, IConfiguration config)
@@ -229,6 +236,15 @@ public static class ServiceCollectionExtensions
             services.AddScoped<ICaptchaService, CaptchaService>();
         else
             services.AddSingleton<ICaptchaService, NoOpCaptchaService>();
+    }
+
+    private static void AddColdStorage(IServiceCollection services, IConfiguration config)
+    {
+        var coldStorageEndpoint = config.GetSection("ColdStorage:Endpoint").Value;
+        if (!string.IsNullOrEmpty(coldStorageEndpoint))
+            services.AddSingleton<IColdStorageService, S3ColdStorageService>();
+        else
+            services.AddSingleton<IColdStorageService, NoopColdStorageService>();
     }
 
     private static void AddJwt(IServiceCollection services, IConfiguration config)
@@ -373,6 +389,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProvisioningStep, ProvisionMinioStep>();
         services.AddScoped<IProvisioningStep, StartApiContainerStep>();
         services.AddScoped<IProvisioningStep, ConfigureDnsAndProxyStep>();
+        services.AddScoped<IProvisioningStep, ConfigureBackupPolicyStep>();
 
         // Provisioning pipeline
         services.AddScoped<ProvisioningPipeline>();

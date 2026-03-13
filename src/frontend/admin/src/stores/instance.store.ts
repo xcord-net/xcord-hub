@@ -11,6 +11,27 @@ import type {
   InstanceStatus,
 } from '../types/instance';
 
+export interface BackupPolicy {
+  enabled: boolean;
+  frequency: 'Hourly' | 'Daily' | 'Weekly';
+  retentionDays: number;
+  backupDatabase: boolean;
+  backupFiles: boolean;
+  backupRedis: boolean;
+}
+
+export interface BackupRecord {
+  id: string;
+  managedInstanceId: string;
+  status: 'InProgress' | 'Completed' | 'Failed';
+  kind: 'Database' | 'Files' | 'Redis' | 'Full';
+  sizeBytes: number;
+  storagePath: string;
+  errorMessage?: string;
+  startedAt: string;
+  completedAt?: string;
+}
+
 const store = createRoot(() => {
   const [instances, setInstances] = createSignal<InstanceListItem[]>([]);
   const [selectedInstance, setSelectedInstance] = createSignal<InstanceDetail | null>(null);
@@ -125,6 +146,32 @@ export function useInstances() {
     async updateFeatureFlags(id: string, flags: FeatureFlags): Promise<void> {
       await api.patch(`/api/v1/admin/instances/${id}/feature-flags`, flags);
       await this.fetchInstanceDetail(id);
+    },
+
+    async fetchBackupPolicy(id: string): Promise<BackupPolicy> {
+      return await api.get<BackupPolicy>(`/api/v1/admin/instances/${id}/backup-policy`);
+    },
+
+    async updateBackupPolicy(id: string, policy: BackupPolicy): Promise<void> {
+      await api.put(`/api/v1/admin/instances/${id}/backup-policy`, policy);
+    },
+
+    async fetchBackupRecords(id: string, page = 1, pageSize = 20): Promise<BackupRecord[]> {
+      return await api.get<BackupRecord[]>(
+        `/api/v1/admin/instances/${id}/backups?page=${page}&pageSize=${pageSize}`
+      );
+    },
+
+    async triggerBackup(id: string, kind: string): Promise<BackupRecord> {
+      return await api.post<BackupRecord>(`/api/v1/admin/instances/${id}/backups/trigger`, { kind });
+    },
+
+    async triggerRestore(id: string, backupId: string): Promise<void> {
+      await api.post(`/api/v1/admin/instances/${id}/backups/${backupId}/restore`);
+    },
+
+    async deleteBackup(id: string, backupId: string): Promise<void> {
+      await api.delete(`/api/v1/admin/instances/${id}/backups/${backupId}`);
     },
 
     clearSelectedInstance() {

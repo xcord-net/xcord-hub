@@ -3,6 +3,8 @@ import { useInstances } from '../stores/instance.store';
 import { ResourceLimitsEditor } from './ResourceLimitsEditor';
 import { FeatureFlagsEditor } from './FeatureFlagsEditor';
 import { InstanceActions } from './InstanceActions';
+import { BackupPolicyEditor } from './BackupPolicyEditor';
+import { BackupHistory } from './BackupHistory';
 
 interface InstanceDetailProps {
   instanceId: string;
@@ -11,7 +13,7 @@ interface InstanceDetailProps {
 
 export function InstanceDetail(props: InstanceDetailProps) {
   const instanceStore = useInstances();
-  const [activeTab, setActiveTab] = createSignal<'overview' | 'health' | 'config' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = createSignal<'overview' | 'health' | 'config' | 'logs' | 'backups'>('overview');
 
   onMount(async () => {
     await instanceStore.fetchInstanceDetail(props.instanceId);
@@ -82,6 +84,16 @@ export function InstanceDetail(props: InstanceDetailProps) {
                 }`}
               >
                 Logs
+              </button>
+              <button
+                onClick={() => setActiveTab('backups')}
+                class={`px-6 py-3 font-medium text-sm border-b-2 ${
+                  activeTab() === 'backups'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Backups
               </button>
             </nav>
           </div>
@@ -203,6 +215,13 @@ export function InstanceDetail(props: InstanceDetailProps) {
                   </For>
                 </div>
               </Show>
+            </Show>
+
+            <Show when={activeTab() === 'backups'}>
+              <div class="space-y-6">
+                <BackupPolicyEditor instanceId={instance()!.id} />
+                <BackupHistory instanceId={instance()!.id} />
+              </div>
             </Show>
           </div>
         </div>

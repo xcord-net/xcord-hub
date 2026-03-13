@@ -38,6 +38,10 @@ public sealed class HubDbContext : DbContext
     public DbSet<InstanceRevenueConfig> InstanceRevenueConfigs => Set<InstanceRevenueConfig>();
     public DbSet<PlatformRevenue> PlatformRevenues => Set<PlatformRevenue>();
 
+    // Backup management
+    public DbSet<BackupPolicy> BackupPolicies => Set<BackupPolicy>();
+    public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -421,6 +421,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/instances/{id}/backup-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminGetBackupPolicy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/captcha": {
         parameters: {
             query?: never;
@@ -840,6 +856,16 @@ export interface components {
             minimumEnforcementDate: string | null;
             /** Format: date-time */
             publishedAt: string;
+        };
+        BackupPolicyResponse: {
+            instanceId: string;
+            enabled: boolean;
+            frequency: string;
+            /** Format: int32 */
+            retentionDays: number;
+            backupDatabase: boolean;
+            backupFiles: boolean;
+            backupRedis: boolean;
         };
         CancelInstanceBillingResponse: {
             message: string;
@@ -1981,6 +2007,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChangePlanResponse"];
+                };
+            };
+        };
+    };
+    AdminGetBackupPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupPolicyResponse"];
                 };
             };
         };

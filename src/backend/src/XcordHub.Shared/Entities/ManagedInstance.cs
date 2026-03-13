@@ -26,4 +26,6 @@ public sealed class ManagedInstance
     public ICollection<ProvisioningEvent> ProvisioningEvents { get; set; } = new List<ProvisioningEvent>();
     public ICollection<FederationToken> FederationTokens { get; set; } = new List<FederationToken>();
     public ICollection<UpgradeEvent> UpgradeEvents { get; set; } = new List<UpgradeEvent>();
+    public BackupPolicy? BackupPolicy { get; set; }
+    public ICollection<BackupRecord> BackupRecords { get; set; } = new List<BackupRecord>();
 }
