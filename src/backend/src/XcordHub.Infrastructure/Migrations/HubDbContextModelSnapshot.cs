@@ -70,6 +70,100 @@ namespace XcordHub.Infrastructure.Migrations
                     b.ToTable("available_versions", (string)null);
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.BackupPolicy", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("BackupDatabase")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("BackupFiles")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("BackupRedis")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<long>("ManagedInstanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("RetentionDays")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagedInstanceId")
+                        .IsUnique();
+
+                    b.ToTable("backup_policies", (string)null);
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.BackupRecord", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<long>("ManagedInstanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagedInstanceId", "StartedAt");
+
+                    b.ToTable("backup_records", (string)null);
+                });
+
             modelBuilder.Entity("XcordHub.Entities.FederationToken", b =>
                 {
                     b.Property<long>("Id")
@@ -924,6 +1018,28 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Navigation("Publisher");
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.BackupPolicy", b =>
+                {
+                    b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
+                        .WithOne("BackupPolicy")
+                        .HasForeignKey("XcordHub.Entities.BackupPolicy", "ManagedInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManagedInstance");
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.BackupRecord", b =>
+                {
+                    b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
+                        .WithMany("BackupRecords")
+                        .HasForeignKey("ManagedInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManagedInstance");
+                });
+
             modelBuilder.Entity("XcordHub.Entities.FederationToken", b =>
                 {
                     b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
@@ -1095,6 +1211,10 @@ namespace XcordHub.Infrastructure.Migrations
 
             modelBuilder.Entity("XcordHub.Entities.ManagedInstance", b =>
                 {
+                    b.Navigation("BackupPolicy");
+
+                    b.Navigation("BackupRecords");
+
                     b.Navigation("Billing");
 
                     b.Navigation("Config");

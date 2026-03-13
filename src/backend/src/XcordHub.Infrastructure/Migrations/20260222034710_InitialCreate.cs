@@ -298,6 +298,60 @@ namespace XcordHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "backup_policies",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    Enabled = table.Column<bool>(type: "boolean", nullable: false),
+                    Frequency = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    RetentionDays = table.Column<int>(type: "integer", nullable: false),
+                    BackupDatabase = table.Column<bool>(type: "boolean", nullable: false),
+                    BackupFiles = table.Column<bool>(type: "boolean", nullable: false),
+                    BackupRedis = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_backup_policies", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_backup_policies_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "backup_records",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Kind = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    SizeBytes = table.Column<long>(type: "bigint", nullable: false),
+                    StoragePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ErrorMessage = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_backup_records", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_backup_records_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "available_versions",
                 columns: table => new
                 {
@@ -406,6 +460,17 @@ namespace XcordHub.Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_backup_policies_ManagedInstanceId",
+                table: "backup_policies",
+                column: "ManagedInstanceId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_backup_records_ManagedInstanceId_StartedAt",
+                table: "backup_records",
+                columns: new[] { "ManagedInstanceId", "StartedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_federation_tokens_ManagedInstanceId",
@@ -554,6 +619,12 @@ namespace XcordHub.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "backup_policies");
+
+            migrationBuilder.DropTable(
+                name: "backup_records");
+
             migrationBuilder.DropTable(
                 name: "upgrade_events");
 

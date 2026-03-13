@@ -951,6 +951,246 @@
         }
       }
     },
+    "/api/v1/admin/instances/{id}/backups/{backupId}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminDeleteBackup",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "backupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{id}/backup-policy": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminGetBackupPolicy",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupPolicyResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminUpdateBackupPolicy",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBackupPolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupPolicyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{id}/backups": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminListBackupRecords",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListBackupRecordsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{id}/backups/trigger": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminTriggerBackup",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerBackupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupRecordItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{id}/backups/{backupId}/restore": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminTriggerRestore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "backupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerRestoreResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/captcha": {
       "get": {
         "tags": [
@@ -1749,6 +1989,90 @@
           }
         }
       },
+      "BackupPolicyResponse": {
+        "required": [
+          "instanceId",
+          "enabled",
+          "frequency",
+          "retentionDays",
+          "backupDatabase",
+          "backupFiles",
+          "backupRedis"
+        ],
+        "type": "object",
+        "properties": {
+          "instanceId": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "retentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backupDatabase": {
+            "type": "boolean"
+          },
+          "backupFiles": {
+            "type": "boolean"
+          },
+          "backupRedis": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BackupRecordItem": {
+        "required": [
+          "id",
+          "instanceId",
+          "status",
+          "kind",
+          "sizeBytes",
+          "storagePath",
+          "errorMessage",
+          "startedAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "instanceId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "storagePath": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
       "CancelInstanceBillingResponse": {
         "required": [
           "message",
@@ -2412,6 +2736,35 @@
           }
         }
       },
+      "ListBackupRecordsResponse": {
+        "required": [
+          "backups",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "backups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupRecordItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ListInstancesResponse": {
         "required": [
           "instances"
@@ -3024,6 +3377,68 @@
         "type": "object",
         "properties": {
           "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TriggerBackupRequest": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          }
+        }
+      },
+      "TriggerRestoreResponse": {
+        "required": [
+          "message",
+          "backupId",
+          "instanceId"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "backupId": {
+            "type": "string"
+          },
+          "instanceId": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateBackupPolicyRequest": {
+        "required": [
+          "enabled",
+          "frequency",
+          "retentionDays",
+          "backupDatabase",
+          "backupFiles",
+          "backupRedis"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "frequency": {
+            "type": "string"
+          },
+          "retentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backupDatabase": {
+            "type": "boolean"
+          },
+          "backupFiles": {
+            "type": "boolean"
+          },
+          "backupRedis": {
             "type": "boolean"
           }
         }
