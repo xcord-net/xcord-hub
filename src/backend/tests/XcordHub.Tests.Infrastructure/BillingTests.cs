@@ -417,6 +417,49 @@ public sealed class BillingTests : IAsyncLifetime
     }
 
     [Fact]
+    public void ChangePlan_ToPaidTier_RejectsWithPaidTierUnavailable()
+    {
+        using var dbContext = CreateDbContext();
+
+        var handler = new ChangePlanHandler(
+            dbContext,
+            StubUser(UserIdBase + 50),
+            NoStripeOptions(),
+            new NoOpStripeService(),
+            new AesEncryptionService(TestEncryptionKey),
+            BuildConfiguration());
+
+        // InstanceId 999999 doesn't exist in DB - validation runs before Handle so that's fine
+        var command = new ChangePlanCommand(999999L, InstanceTier.Basic);
+        var error = handler.Validate(command);
+
+        error.Should().NotBeNull();
+        error!.Code.Should().Be("PAID_TIER_UNAVAILABLE",
+            "beta gate must reject any paid tier upgrade attempt");
+    }
+
+    [Fact]
+    public void ChangePlan_EnableMedia_RejectsWithMediaUnavailable()
+    {
+        using var dbContext = CreateDbContext();
+
+        var handler = new ChangePlanHandler(
+            dbContext,
+            StubUser(UserIdBase + 51),
+            NoStripeOptions(),
+            new NoOpStripeService(),
+            new AesEncryptionService(TestEncryptionKey),
+            BuildConfiguration());
+
+        var command = new ChangePlanCommand(999999L, InstanceTier.Free, MediaEnabled: true);
+        var error = handler.Validate(command);
+
+        error.Should().NotBeNull();
+        error!.Code.Should().Be("MEDIA_UNAVAILABLE",
+            "beta gate must reject any attempt to enable voice & video");
+    }
+
+    [Fact]
     public async Task ChangePlan_UnknownInstance_ReturnsNotFound()
     {
         await using var dbContext = CreateDbContext();
