@@ -2,11 +2,11 @@ using BCrypt.Net;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Testcontainers.PostgreSql;
 using XcordHub.Entities;
 using XcordHub.Features.Auth;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Tests.Infrastructure.Fixtures;
 using Xunit;
 
 namespace XcordHub.Tests.Infrastructure;
@@ -16,56 +16,37 @@ namespace XcordHub.Tests.Infrastructure;
 /// Verifies soft deletion, login invalidation, and instance suspension.
 /// Uses a real PostgreSQL database via Testcontainers.
 /// </summary>
+[Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class AccountDeletionTests : IAsyncLifetime
+public sealed class AccountDeletionTests
 {
-    private PostgreSqlContainer? _postgres;
-    private HubDbContext? _dbContext;
-    private IEncryptionService? _encryptionService;
-    private SnowflakeIdGenerator? _snowflake;
+    private readonly HubDbContext _dbContext;
+    private readonly IEncryptionService _encryptionService;
+    private readonly SnowflakeIdGenerator _snowflake;
 
     private const string EncryptionKey = "test-encryption-key-with-256-bits-minimum-length-required";
     private const string TestPassword = "TestPass123!";
 
-    public async Task InitializeAsync()
+    public AccountDeletionTests(SharedPostgresFixture fixture)
     {
-        _postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:17-alpine")
-            .WithDatabase("xcordhub_test")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-
-        await _postgres.StartAsync();
-
+        var connectionString = fixture.CreateDatabaseAsync("xcordhub_acctdeletion_test", EncryptionKey).GetAwaiter().GetResult();
         var options = new DbContextOptionsBuilder<HubDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(connectionString)
             .Options;
-
         _encryptionService = new AesEncryptionService(EncryptionKey);
         _dbContext = new HubDbContext(options, _encryptionService);
-        await _dbContext.Database.EnsureCreatedAsync();
         _snowflake = new SnowflakeIdGenerator(2);
-    }
-
-    public async Task DisposeAsync()
-    {
-        if (_dbContext != null)
-            await _dbContext.DisposeAsync();
-
-        if (_postgres != null)
-            await _postgres.DisposeAsync();
     }
 
     private HubUser CreateUser(string username, string email, bool isAdmin = false)
     {
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(TestPassword, 4); // Low cost for tests
-        var emailHash = _encryptionService!.ComputeHmac(email.ToLowerInvariant());
+        var emailHash = _encryptionService.ComputeHmac(email.ToLowerInvariant());
         var encryptedEmail = _encryptionService.Encrypt(email.ToLowerInvariant());
 
         return new HubUser
         {
-            Id = _snowflake!.NextId(),
+            Id = _snowflake.NextId(),
             Username = username,
             DisplayName = username,
             Email = encryptedEmail,
@@ -81,7 +62,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         var docker = dockerService ?? new NoopDockerService(NullLogger<NoopDockerService>.Instance);
         return new DeleteAccountHandler(
-            _dbContext!,
+            _dbContext,
             docker,
             NullLogger<DeleteAccountHandler>.Instance);
     }
@@ -93,7 +74,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         // Arrange
         var user = CreateUser("delete_test_user", "delete_test@example.com");
-        _dbContext!.HubUsers.Add(user);
+        _dbContext.HubUsers.Add(user);
         await _dbContext.SaveChangesAsync();
 
         var handler = CreateHandler();
@@ -122,7 +103,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         // Arrange
         var user = CreateUser("deleted_login_user", "deleted_login@example.com");
-        _dbContext!.HubUsers.Add(user);
+        _dbContext.HubUsers.Add(user);
         await _dbContext.SaveChangesAsync();
 
         var deleteHandler = CreateHandler();
@@ -131,7 +112,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
         // Act - LoginHandler looks up the user by EmailHash without IgnoreQueryFilters.
         // HubUserConfiguration sets HasQueryFilter(x => x.DeletedAt == null), so a
         // deleted user will not appear, causing login to fail with INVALID_CREDENTIALS.
-        var emailHash = _encryptionService!.ComputeHmac("deleted_login@example.com");
+        var emailHash = _encryptionService.ComputeHmac("deleted_login@example.com");
         var found = await _dbContext.HubUsers
             .FirstOrDefaultAsync(u => u.EmailHash == emailHash);
 
@@ -146,7 +127,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         // Arrange
         var user = CreateUser("filter_test_user", "filter_test@example.com");
-        _dbContext!.HubUsers.Add(user);
+        _dbContext.HubUsers.Add(user);
         await _dbContext.SaveChangesAsync();
 
         var handler = CreateHandler();
@@ -167,12 +148,12 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         // Arrange
         var user = CreateUser("instance_owner", "instance_owner@example.com");
-        _dbContext!.HubUsers.Add(user);
+        _dbContext.HubUsers.Add(user);
         await _dbContext.SaveChangesAsync();
 
         var instance = new ManagedInstance
         {
-            Id = _snowflake!.NextId(),
+            Id = _snowflake.NextId(),
             OwnerId = user.Id,
             Domain = "myserver.xcord-dev.net",
             DisplayName = "My Server",
@@ -209,13 +190,13 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         // Arrange
         var user = CreateUser("destroyed_inst_owner", "destroyed_inst@example.com");
-        _dbContext!.HubUsers.Add(user);
+        _dbContext.HubUsers.Add(user);
         await _dbContext.SaveChangesAsync();
 
         var now = DateTimeOffset.UtcNow;
         var instance = new ManagedInstance
         {
-            Id = _snowflake!.NextId(),
+            Id = _snowflake.NextId(),
             OwnerId = user.Id,
             Domain = "old.xcord-dev.net",
             DisplayName = "Old Server",
@@ -244,7 +225,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         // Arrange
         var user = CreateUser("wrong_pw_user", "wrong_pw@example.com");
-        _dbContext!.HubUsers.Add(user);
+        _dbContext.HubUsers.Add(user);
         await _dbContext.SaveChangesAsync();
 
         var handler = CreateHandler();
@@ -268,7 +249,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         // Arrange
         var admin = CreateUser("admin_user", "admin@example.com", isAdmin: true);
-        _dbContext!.HubUsers.Add(admin);
+        _dbContext.HubUsers.Add(admin);
         await _dbContext.SaveChangesAsync();
 
         var handler = CreateHandler();
@@ -292,13 +273,13 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     {
         // Arrange
         var user = CreateUser("token_revoke_user", "token_revoke@example.com");
-        _dbContext!.HubUsers.Add(user);
+        _dbContext.HubUsers.Add(user);
         await _dbContext.SaveChangesAsync();
 
         // Add some refresh tokens
         var token1 = new RefreshToken
         {
-            Id = _snowflake!.NextId(),
+            Id = _snowflake.NextId(),
             TokenHash = "hash1",
             HubUserId = user.Id,
             ExpiresAt = DateTimeOffset.UtcNow.AddDays(30),

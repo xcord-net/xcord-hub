@@ -3,13 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System.Text;
-using Testcontainers.PostgreSql;
 using XcordHub.Entities;
 using XcordHub.Features.Auth;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Tests.Infrastructure.Fixtures;
 
 namespace XcordHub.Tests.Infrastructure;
 
@@ -19,11 +19,11 @@ namespace XcordHub.Tests.Infrastructure;
 /// are correctly propagated to the InstanceBilling record.
 /// Uses a real PostgreSQL instance via Testcontainers (no Docker-in-Docker required).
 /// </summary>
+[Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class BillingTierInstanceTests : IAsyncLifetime
+public sealed class BillingTierInstanceTests
 {
-    private PostgreSqlContainer? _postgres;
-    private string _connectionString = string.Empty;
+    private readonly string _connectionString;
 
     // ID ranges reserved for this test class to avoid conflicts with other test classes.
     // User IDs: 1_254_000_000 – 1_254_000_099
@@ -31,37 +31,18 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
     private const long UserIdBase     = 1_254_000_000L;
     private const long InstanceIdBase = 2_254_000_000L;
 
-    // ---------------------------------------------------------------------------
-    // IAsyncLifetime
-    // ---------------------------------------------------------------------------
+    private const string TestEncryptionKey = "billing-tier-test-encryption-key-with-256-bits-minimum-ok!!";
+    private static int _dbCounter;
 
-    public async Task InitializeAsync()
+    public BillingTierInstanceTests(SharedPostgresFixture fixture)
     {
-        _postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:17-alpine")
-            .WithDatabase("xcordhub_billing_tier_test")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-
-        await _postgres.StartAsync();
-        _connectionString = _postgres.GetConnectionString();
-
-        await using var ctx = CreateDbContext();
-        await ctx.Database.EnsureCreatedAsync();
-    }
-
-    public async Task DisposeAsync()
-    {
-        if (_postgres is not null)
-            await _postgres.DisposeAsync();
+        var dbName = $"xcordhub_billing_tier_{Interlocked.Increment(ref _dbCounter)}";
+        _connectionString = fixture.CreateDatabaseAsync(dbName, TestEncryptionKey).GetAwaiter().GetResult();
     }
 
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
-
-    private const string TestEncryptionKey = "billing-tier-test-encryption-key-with-256-bits-minimum-ok!!";
 
     private HubDbContext CreateDbContext()
     {

@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Testcontainers.PostgreSql;
 using XcordHub;
 using XcordHub.Entities;
 using XcordHub.Features.Auth;
@@ -15,6 +14,7 @@ using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Tests.Infrastructure.Fixtures;
 
 namespace XcordHub.Tests.Infrastructure;
 
@@ -30,39 +30,18 @@ namespace XcordHub.Tests.Infrastructure;
 ///   User IDs:     1_255_000_000 – 1_255_000_099
 ///   Instance IDs: 2_255_000_000 – 2_255_000_099  (assigned by Snowflake; verified by DB query)
 /// </summary>
+[Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class BillingTests : IAsyncLifetime
+public sealed class BillingTests
 {
-    private PostgreSqlContainer? _postgres;
-    private string _connectionString = string.Empty;
+    private readonly string _connectionString;
 
     private const string TestEncryptionKey = "billing-tests-encryption-key-with-256-bits-minimum-okk!";
     private const long UserIdBase = 1_255_000_000L;
 
-    // ---------------------------------------------------------------------------
-    // IAsyncLifetime
-    // ---------------------------------------------------------------------------
-
-    public async Task InitializeAsync()
+    public BillingTests(SharedPostgresFixture fixture)
     {
-        _postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:17-alpine")
-            .WithDatabase("xcordhub_billing_test")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-
-        await _postgres.StartAsync();
-        _connectionString = _postgres.GetConnectionString();
-
-        await using var ctx = CreateDbContext();
-        await ctx.Database.EnsureCreatedAsync();
-    }
-
-    public async Task DisposeAsync()
-    {
-        if (_postgres is not null)
-            await _postgres.DisposeAsync();
+        _connectionString = fixture.CreateDatabaseAsync("xcordhub_billing_test", TestEncryptionKey).GetAwaiter().GetResult();
     }
 
     // ---------------------------------------------------------------------------

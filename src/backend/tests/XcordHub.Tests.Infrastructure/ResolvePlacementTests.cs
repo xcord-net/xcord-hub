@@ -2,12 +2,12 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Testcontainers.PostgreSql;
 using XcordHub.Entities;
 using XcordHub.Features.Provisioning;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Tests.Infrastructure.Fixtures;
 
 namespace XcordHub.Tests.Infrastructure;
 
@@ -16,36 +16,23 @@ namespace XcordHub.Tests.Infrastructure;
 /// correctly places instances into compute pools and resolves data pools.
 /// Uses real PostgreSQL via Testcontainers.
 /// </summary>
+[Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class ResolvePlacementTests : IAsyncLifetime
+public sealed class ResolvePlacementTests
 {
-    private PostgreSqlContainer? _postgres;
-    private HubDbContext? _dbContext;
-    private long _nextId = 9_300_000_000L;
+    private readonly HubDbContext _dbContext;
+    private static long _nextId = 9_300_000_000L;
+    private static int _dbCounter;
 
-    public async Task InitializeAsync()
+    public ResolvePlacementTests(SharedPostgresFixture fixture)
     {
-        _postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:17-alpine")
-            .WithDatabase("xcordhub_placement_test")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-
-        await _postgres.StartAsync();
-
+        var encryptionKey = "placement-test-encryption-key-with-256-bits-minimum-ok!";
+        var dbName = $"xcordhub_placement_{Interlocked.Increment(ref _dbCounter)}";
+        var connectionString = fixture.CreateDatabaseAsync(dbName, encryptionKey).GetAwaiter().GetResult();
         var options = new DbContextOptionsBuilder<HubDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(connectionString)
             .Options;
-
-        _dbContext = new HubDbContext(options, new AesEncryptionService("placement-test-encryption-key-with-256-bits-minimum-ok!"));
-        await _dbContext.Database.EnsureCreatedAsync();
-    }
-
-    public async Task DisposeAsync()
-    {
-        if (_dbContext != null) await _dbContext.DisposeAsync();
-        if (_postgres != null) await _postgres.DisposeAsync();
+        _dbContext = new HubDbContext(options, new AesEncryptionService(encryptionKey));
     }
 
     // -------------------------------------------------------------------------
@@ -69,7 +56,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var result = await step.ExecuteAsync(instanceId);
 
         result.IsSuccess.Should().BeTrue();
-        var infra = await _dbContext!.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
+        var infra = await _dbContext.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
         infra.PlacedInDataPool.Should().Be("data-1");
     }
 
@@ -93,7 +80,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var result = await step.ExecuteAsync(instanceId);
 
         result.IsSuccess.Should().BeTrue();
-        var infra = await _dbContext!.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
+        var infra = await _dbContext.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
         infra.PlacedInDataPool.Should().Be("free-pool");
     }
 
@@ -114,7 +101,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var result = await step.ExecuteAsync(instanceId);
 
         result.IsSuccess.Should().BeTrue();
-        var infra = await _dbContext!.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
+        var infra = await _dbContext.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
         infra.PlacedInDataPool.Should().BeEmpty();
     }
 
@@ -141,7 +128,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var result = await step.ExecuteAsync(instanceId);
 
         result.IsSuccess.Should().BeTrue();
-        var infra = await _dbContext!.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
+        var infra = await _dbContext.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
         infra.PlacedInPool.Should().Be("free-pool");
     }
 
@@ -164,7 +151,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var result = await step.ExecuteAsync(instanceId);
 
         result.IsSuccess.Should().BeTrue();
-        var infra = await _dbContext!.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
+        var infra = await _dbContext.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
         infra.PlacedInPool.Should().Be("pro-pool");
     }
 
@@ -217,7 +204,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var result = await step.ExecuteAsync(instanceId);
 
         result.IsSuccess.Should().BeTrue();
-        var infra = await _dbContext!.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
+        var infra = await _dbContext.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
         infra.PlacedInPool.Should().Be("pro-pool");
     }
 
@@ -264,7 +251,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var result = await step.ExecuteAsync(instanceId);
 
         result.IsSuccess.Should().BeTrue();
-        var infra = await _dbContext!.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
+        var infra = await _dbContext.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
         infra.PlacedInPool.Should().Be("dedicated:ded-1");
     }
 
@@ -281,7 +268,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
         var result = await step.ExecuteAsync(instanceId);
 
         result.IsSuccess.Should().BeTrue();
-        var infra = await _dbContext!.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
+        var infra = await _dbContext.InstanceInfrastructures.FirstAsync(i => i.ManagedInstanceId == instanceId);
         infra.PlacedInPool.Should().Be("default");
     }
 
@@ -292,7 +279,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
     private ResolvePlacementStep CreateStep(TopologyOptions topoOptions)
     {
         var resolver = new TopologyResolver(Options.Create(topoOptions));
-        return new ResolvePlacementStep(_dbContext!, resolver);
+        return new ResolvePlacementStep(_dbContext, resolver);
     }
 
     private static TopologyOptions CreateTopologyOptions(
@@ -311,7 +298,7 @@ public sealed class ResolvePlacementTests : IAsyncLifetime
     private async Task<long> SeedPendingInstance(InstanceTier tier, bool mediaEnabled = false)
     {
         var id = Interlocked.Add(ref _nextId, 10);
-        var db = _dbContext!;
+        var db = _dbContext;
 
         var owner = new HubUser
         {

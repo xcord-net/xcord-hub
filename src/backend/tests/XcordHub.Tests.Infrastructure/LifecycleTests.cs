@@ -2,12 +2,12 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Testcontainers.PostgreSql;
 using XcordHub.Entities;
 using XcordHub.Features.Destruction;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Tests.Infrastructure.Fixtures;
 using Xunit;
 
 namespace XcordHub.Tests.Infrastructure;
@@ -20,42 +20,20 @@ namespace XcordHub.Tests.Infrastructure;
 /// infrastructure services (IDockerService, ICaddyProxyManager, IDnsProvider)
 /// so that no Docker-in-Docker environment is required.
 /// </summary>
+[Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class LifecycleTests : IAsyncLifetime
+public sealed class LifecycleTests
 {
-    private PostgreSqlContainer? _postgres;
-    private HubDbContext? _dbContext;
+    private readonly HubDbContext _dbContext;
 
-    // ---------------------------------------------------------------------------
-    // IAsyncLifetime - spin up a dedicated PostgreSQL container for this class.
-    // ---------------------------------------------------------------------------
-
-    public async Task InitializeAsync()
+    public LifecycleTests(SharedPostgresFixture fixture)
     {
-        _postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:17-alpine")
-            .WithDatabase("xcordhub_lifecycle_test")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-
-        await _postgres.StartAsync();
-
+        var encryptionKey = "lifecycle-test-encryption-key-with-256-bits-minimum-ok!";
+        var connectionString = fixture.CreateDatabaseAsync("xcordhub_lifecycle_test", encryptionKey).GetAwaiter().GetResult();
         var options = new DbContextOptionsBuilder<HubDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(connectionString)
             .Options;
-
-        _dbContext = new HubDbContext(options, new AesEncryptionService("lifecycle-test-encryption-key-with-256-bits-minimum-ok!"));
-        await _dbContext.Database.EnsureCreatedAsync();
-    }
-
-    public async Task DisposeAsync()
-    {
-        if (_dbContext != null)
-            await _dbContext.DisposeAsync();
-
-        if (_postgres != null)
-            await _postgres.DisposeAsync();
+        _dbContext = new HubDbContext(options, new AesEncryptionService(encryptionKey));
     }
 
     // ---------------------------------------------------------------------------
@@ -182,7 +160,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         InstanceStatus status,
         int? workerId = null)
     {
-        var db = _dbContext!;
+        var db = _dbContext;
 
         var owner = new HubUser
         {
@@ -260,14 +238,14 @@ public sealed class LifecycleTests : IAsyncLifetime
         var notifierSpy = new SpyInstanceNotifier(callLog);
         var dockerSpy = new SpyDockerService(callLog);
 
-        var handler = new SuspendInstanceHandler(_dbContext!, dockerSpy, notifierSpy, NullLogger<SuspendInstanceHandler>.Instance);
+        var handler = new SuspendInstanceHandler(_dbContext, dockerSpy, notifierSpy, NullLogger<SuspendInstanceHandler>.Instance);
         var command = new SuspendInstanceCommand(instance.Id, owner.Id);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue("suspension should succeed for a Running instance");
 
-        var reloaded = await _dbContext!.ManagedInstances.FindAsync(instance.Id);
+        var reloaded = await _dbContext.ManagedInstances.FindAsync(instance.Id);
         reloaded.Should().NotBeNull();
         reloaded!.Status.Should().Be(InstanceStatus.Suspended);
 
@@ -290,14 +268,14 @@ public sealed class LifecycleTests : IAsyncLifetime
         var callLog = new List<string>();
         var dockerSpy = new SpyDockerService(callLog);
 
-        var handler = new ResumeInstanceHandler(_dbContext!, dockerSpy, NullLogger<ResumeInstanceHandler>.Instance);
+        var handler = new ResumeInstanceHandler(_dbContext, dockerSpy, NullLogger<ResumeInstanceHandler>.Instance);
         var command = new ResumeInstanceCommand(instance.Id, owner.Id);
 
         var result = await handler.Handle(command, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue("resume should succeed for a Suspended instance");
 
-        var reloaded = await _dbContext!.ManagedInstances.FindAsync(instance.Id);
+        var reloaded = await _dbContext.ManagedInstances.FindAsync(instance.Id);
         reloaded.Should().NotBeNull();
         reloaded!.Status.Should().Be(InstanceStatus.Running);
     }
@@ -310,7 +288,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         var callLog = new List<string>();
         var dockerSpy = new SpyDockerService(callLog);
 
-        var handler = new ResumeInstanceHandler(_dbContext!, dockerSpy, NullLogger<ResumeInstanceHandler>.Instance);
+        var handler = new ResumeInstanceHandler(_dbContext, dockerSpy, NullLogger<ResumeInstanceHandler>.Instance);
         var command = new ResumeInstanceCommand(instance.Id, owner.Id);
 
         var result = await handler.Handle(command, CancellationToken.None);
@@ -336,7 +314,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         var pipeline = CreateDestructionPipeline(dockerSpy, caddySpy, dnsSpy, minioSpy);
 
         var handler = new DestroyInstanceHandler(
-            _dbContext!, pipeline,
+            _dbContext, pipeline,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -345,7 +323,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         result.IsSuccess.Should().BeTrue("destruction should succeed for a Running instance");
 
         // Verify soft delete
-        var reloaded = await _dbContext!.ManagedInstances
+        var reloaded = await _dbContext.ManagedInstances
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(i => i.Id == instance.Id);
         reloaded.Should().NotBeNull();
@@ -379,7 +357,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         var pipeline = CreateDestructionPipeline(dockerSpy, caddySpy, dnsSpy, minioSpy);
 
         var handler = new DestroyInstanceHandler(
-            _dbContext!, pipeline,
+            _dbContext, pipeline,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 
@@ -388,7 +366,7 @@ public sealed class LifecycleTests : IAsyncLifetime
         result.IsSuccess.Should().BeTrue();
 
         // Verify worker ID is tombstoned
-        var workerRecord = await _dbContext!.WorkerIdRegistry
+        var workerRecord = await _dbContext.WorkerIdRegistry
             .FirstOrDefaultAsync(w => w.WorkerId == 581);
         workerRecord.Should().NotBeNull("worker ID record should exist");
         workerRecord!.IsTombstoned.Should().BeTrue("worker ID should be tombstoned after destruction");
@@ -405,7 +383,7 @@ public sealed class LifecycleTests : IAsyncLifetime
             new SpyDockerService(callLog), new SpyCaddyProxyManager(callLog),
             new SpyDnsProvider(callLog), new SpyMinioProvisioningService(callLog));
         var handler = new DestroyInstanceHandler(
-            _dbContext!, pipeline,
+            _dbContext, pipeline,
             NullLogger<DestroyInstanceHandler>.Instance);
         var command = new DestroyInstanceCommand(instance.Id, owner.Id);
 

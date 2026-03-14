@@ -2,11 +2,11 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using Testcontainers.PostgreSql;
 using XcordHub.Entities;
 using XcordHub.Features.Provisioning;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Tests.Infrastructure.Fixtures;
 using Xunit;
 
 namespace XcordHub.Tests.Infrastructure;
@@ -19,11 +19,12 @@ namespace XcordHub.Tests.Infrastructure;
 /// and a real PostgreSQL Testcontainer, matching the pattern used by LifecycleTests.
 /// No actual MinIO server is required.
 /// </summary>
+[Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class MinioProvisioningStepTests : IAsyncLifetime
+public sealed class MinioProvisioningStepTests
 {
-    private PostgreSqlContainer? _postgres;
-    private HubDbContext? _dbContext;
+    private readonly HubDbContext _dbContext;
+    private readonly string _connectionString;
 
     // ID ranges reserved for this test class - must not overlap with other test classes.
     // User IDs: 9_278_000_000 – 9_278_000_099
@@ -34,34 +35,13 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
     private const string TestEncryptionKey =
         "minio-step-test-encryption-key-with-256-bits-minimum-ok!!";
 
-    // ──────────── IAsyncLifetime ────────────
-
-    public async Task InitializeAsync()
+    public MinioProvisioningStepTests(SharedPostgresFixture fixture)
     {
-        _postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:17-alpine")
-            .WithDatabase("xcordhub_minio_step_test")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-
-        await _postgres.StartAsync();
-
+        _connectionString = fixture.CreateDatabaseAsync("xcordhub_minio_step_test", TestEncryptionKey).GetAwaiter().GetResult();
         var options = new DbContextOptionsBuilder<HubDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
-
         _dbContext = new HubDbContext(options, new AesEncryptionService(TestEncryptionKey));
-        await _dbContext.Database.EnsureCreatedAsync();
-    }
-
-    public async Task DisposeAsync()
-    {
-        if (_dbContext != null)
-            await _dbContext.DisposeAsync();
-
-        if (_postgres != null)
-            await _postgres.DisposeAsync();
     }
 
     // ──────────── Spy implementations ────────────
@@ -132,7 +112,7 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
         string minioAccessKey = "instance-access-key",
         string minioSecretKey = "instance-secret-key")
     {
-        var db = _dbContext!;
+        var db = _dbContext;
 
         var owner = new HubUser
         {
@@ -184,7 +164,7 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
     private ProvisionMinioStep BuildStep(IMinioProvisioningService minioService)
     {
         return new ProvisionMinioStep(
-            _dbContext!,
+            _dbContext,
             minioService,
             NullLogger<ProvisionMinioStep>.Instance);
     }
@@ -383,7 +363,7 @@ public sealed class MinioProvisioningStepTests : IAsyncLifetime
     private HubDbContext CreateVerifyDbContext()
     {
         var options = new DbContextOptionsBuilder<HubDbContext>()
-            .UseNpgsql(_postgres!.GetConnectionString())
+            .UseNpgsql(_connectionString)
             .Options;
         return new HubDbContext(options, new AesEncryptionService(TestEncryptionKey));
     }
