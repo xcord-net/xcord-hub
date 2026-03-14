@@ -1,4 +1,4 @@
-import { createSignal, Show, For } from 'solid-js';
+import { createSignal, Show, onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { instanceStore } from '../../stores/instance.store';
 import Captcha from '../../components/Captcha';
@@ -14,40 +14,33 @@ export default function CreateInstance() {
   const [error, setError] = createSignal('');
   const [subdomainStatus, setSubdomainStatus] = createSignal<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [subdomainReason, setSubdomainReason] = createSignal('');
-  const [tier, setTier] = createSignal('Free');
-  const [mediaEnabled, setMediaEnabled] = createSignal(false);
   const [captchaId, setCaptchaId] = createSignal('');
   const [captchaAnswer, setCaptchaAnswer] = createSignal('');
+  const [notifyTier, setNotifyTier] = createSignal<string | null>(null);
+  const [notifyEmail, setNotifyEmail] = createSignal('');
+  const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [notifyMessage, setNotifyMessage] = createSignal('');
+  const [hasExistingInstance, setHasExistingInstance] = createSignal(false);
+  const [checkingInstances, setCheckingInstances] = createSignal(true);
 
-  // Prices in cents - must match backend TierDefaults
-  const TIER_CONFIG: Record<string, { baseCents: number; mediaPerUserCents: number; maxUsers: number }> = {
-    Free:       { baseCents: 0,     mediaPerUserCents: 400, maxUsers: 10 },
-    Basic:      { baseCents: 6000,  mediaPerUserCents: 300, maxUsers: 50 },
-    Pro:        { baseCents: 15000, mediaPerUserCents: 200, maxUsers: 200 },
-    Enterprise: { baseCents: 30000, mediaPerUserCents: 100, maxUsers: 500 },
-  };
-  const formatPrice = (cents: number) => {
-    if (cents === 0) return 'Free';
-    const dollars = cents / 100;
-    return dollars % 1 === 0 ? `$${dollars}/mo` : `$${dollars.toFixed(2)}/mo`;
-  };
-  const selectedPrice = () => {
-    const config = TIER_CONFIG[tier()];
-    if (!config) return 'Free';
-    return formatPrice(config.baseCents);
-  };
-  const mediaPrice = () => {
-    const config = TIER_CONFIG[tier()];
-    if (!config) return '';
-    const dollars = config.mediaPerUserCents / 100;
-    return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`;
-  };
-  const totalPriceCents = () => {
-    const config = TIER_CONFIG[tier()];
-    if (!config) return 0;
-    return config.baseCents + (mediaEnabled() ? config.mediaPerUserCents * config.maxUsers : 0);
-  };
-  const totalPrice = () => formatPrice(totalPriceCents());
+  onMount(async () => {
+    try {
+      const token = localStorage.getItem('xcord_hub_token');
+      const res = await fetch('/api/v1/hub/billing', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.instances && data.instances.length > 0) {
+          setHasExistingInstance(true);
+        }
+      }
+    } catch {
+      // If we can't check, allow form to show - backend will enforce
+    } finally {
+      setCheckingInstances(false);
+    }
+  });
 
   // Must match backend ValidationHelpers.ReservedSubdomains
   const RESERVED = new Set([
@@ -126,8 +119,8 @@ export default function CreateInstance() {
         subdomain(),
         displayName(),
         adminPassword(),
-        tier(),
-        mediaEnabled(),
+        'Free',
+        false,
         captchaId(),
         captchaAnswer()
       );
@@ -139,180 +132,228 @@ export default function CreateInstance() {
     }
   };
 
+  const handleNotify = async (e: Event) => {
+    e.preventDefault();
+    const tier = notifyTier();
+    if (!tier) return;
+    setNotifyStatus('loading');
+    try {
+      const res = await fetch('/api/v1/mailing-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: notifyEmail(), tier }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNotifyStatus('error');
+        setNotifyMessage(data.message ?? 'Something went wrong.');
+      } else {
+        setNotifyStatus('success');
+        setNotifyMessage(data.message);
+        setTimeout(() => {
+          setNotifyTier(null);
+          setNotifyEmail('');
+          setNotifyStatus('idle');
+          setNotifyMessage('');
+        }, 3000);
+      }
+    } catch {
+      setNotifyStatus('error');
+      setNotifyMessage('Network error. Please try again.');
+    }
+  };
+
   return (
     <div class="p-8 max-w-xl">
       <h1 class="text-2xl font-bold text-xcord-text-primary mb-2">Create Instance</h1>
-      <p class="text-sm text-xcord-text-muted mb-8">
-        Launch a new Xcord instance. Choose a subdomain and set up your admin account.
-      </p>
 
-      <form onSubmit={handleSubmit} class="space-y-5">
-        {/* Subdomain */}
-        <div>
-          <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
-            Subdomain
-          </label>
-          <div class="flex items-center">
+      <Show when={checkingInstances()}>
+        <p class="text-sm text-xcord-text-muted">Loading...</p>
+      </Show>
+
+      <Show when={!checkingInstances() && hasExistingInstance()}>
+        <div class="bg-xcord-bg-secondary rounded-lg p-6 text-center">
+          <p class="text-sm text-xcord-text-muted mb-2">You already have an instance.</p>
+          <a href="/dashboard" class="text-sm text-xcord-text-link hover:underline">Go to dashboard</a>
+        </div>
+      </Show>
+
+      <Show when={!checkingInstances() && !hasExistingInstance()}>
+        <p class="text-sm text-xcord-text-muted mb-8">
+          Launch a new Xcord instance. Choose a subdomain and set up your admin account.
+        </p>
+        <form onSubmit={handleSubmit} class="space-y-5">
+          {/* Subdomain */}
+          <div>
+            <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
+              Subdomain
+            </label>
+            <div class="flex items-center">
+              <input
+                type="text"
+                value={subdomain()}
+                onInput={(e) => handleSubdomainInput(e.currentTarget.value)}
+                class={`flex-1 px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-l border-none outline-none focus:ring-2 ${
+                  subdomainError() ? 'ring-2 ring-xcord-red focus:ring-xcord-red' : 'focus:ring-xcord-brand'
+                }`}
+                placeholder="my-server"
+                autocomplete="off"
+                required
+                pattern="[a-z0-9\-]+"
+                minLength={6}
+                disabled={loading()}
+              />
+              <span class="px-3 py-2 bg-xcord-bg-accent text-xcord-text-muted text-sm rounded-r">
+                .xcord-dev.net
+              </span>
+            </div>
+            <Show when={subdomainStatus() === 'checking' && !subdomainError()}>
+              <span class="text-xs text-xcord-text-muted mt-1 block">Checking availability...</span>
+            </Show>
+            <Show when={subdomain().length > 0 && subdomainError()}>
+              <span class="text-xs text-xcord-red mt-1 block">{subdomainError()}</span>
+            </Show>
+            <Show when={subdomainValid() && subdomainStatus() === 'available'}>
+              <span class="text-xs text-xcord-green mt-1 block">Available!</span>
+            </Show>
+          </div>
+
+          {/* Display Name */}
+          <div>
+            <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
+              Display Name
+            </label>
             <input
               type="text"
-              value={subdomain()}
-              onInput={(e) => handleSubdomainInput(e.currentTarget.value)}
-              class={`flex-1 px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-l border-none outline-none focus:ring-2 ${
-                subdomainError() ? 'ring-2 ring-xcord-red focus:ring-xcord-red' : 'focus:ring-xcord-brand'
-              }`}
-              placeholder="my-server"
+              value={displayName()}
+              onInput={(e) => setDisplayName(e.currentTarget.value)}
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+              placeholder="My Awesome Server"
               autocomplete="off"
               required
-              pattern="[a-z0-9\-]+"
-              minLength={6}
               disabled={loading()}
             />
-            <span class="px-3 py-2 bg-xcord-bg-accent text-xcord-text-muted text-sm rounded-r">
-              .xcord-dev.net
-            </span>
-          </div>
-          <Show when={subdomainStatus() === 'checking' && !subdomainError()}>
-            <span class="text-xs text-xcord-text-muted mt-1 block">Checking availability...</span>
-          </Show>
-          <Show when={subdomain().length > 0 && subdomainError()}>
-            <span class="text-xs text-xcord-red mt-1 block">{subdomainError()}</span>
-          </Show>
-          <Show when={subdomainValid() && subdomainStatus() === 'available'}>
-            <span class="text-xs text-xcord-green mt-1 block">Available!</span>
-          </Show>
-        </div>
-
-        {/* Display Name */}
-        <div>
-          <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
-            Display Name
-          </label>
-          <input
-            type="text"
-            value={displayName()}
-            onInput={(e) => setDisplayName(e.currentTarget.value)}
-            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-            placeholder="My Awesome Server"
-            autocomplete="off"
-            required
-            disabled={loading()}
-          />
-        </div>
-
-        {/* Plan */}
-        <div>
-          <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
-            Plan
-          </label>
-
-          {/* Tier selector */}
-          <p class="text-xs text-xcord-text-muted mb-2">Tier</p>
-          <div class="grid grid-cols-4 gap-2 mb-4">
-            <For each={[
-              { key: 'Free',       label: 'Free',       desc: 'Up to 10 users' },
-              { key: 'Basic',      label: 'Basic',      desc: 'Up to 50 users' },
-              { key: 'Pro',        label: 'Pro',        desc: 'Up to 200 users' },
-              { key: 'Enterprise', label: 'Enterprise', desc: 'Up to 500 users' },
-            ]}>
-              {(t) => (
-                <button
-                  type="button"
-                  onClick={() => setTier(t.key)}
-                  disabled={loading()}
-                  class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${tier() === t.key ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'}`}
-                >
-                  <div class="font-semibold">{t.label}</div>
-                  <div class="text-xs text-xcord-text-muted mt-1">{t.desc}</div>
-                </button>
-              )}
-            </For>
           </div>
 
-          {/* Media toggle */}
-          <div class="flex items-center gap-3 mb-4">
-            <input
-              id="mediaEnabled"
-              type="checkbox"
-              checked={mediaEnabled()}
-              onChange={(e) => setMediaEnabled(e.currentTarget.checked)}
-              disabled={loading()}
-              class="h-4 w-4 rounded border-xcord-bg-accent text-xcord-brand focus:ring-xcord-brand"
-            />
-            <label for="mediaEnabled" class="text-sm text-xcord-text-primary cursor-pointer">
-              Enable voice & video ({mediaPrice()} per user)
-            </label>
-          </div>
-
-          {/* Price summary */}
-          <div class="px-3 py-2 bg-xcord-bg-accent rounded space-y-1">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-xcord-text-muted">Base ({tier()})</span>
-              <span class="text-xs text-xcord-text-secondary">{selectedPrice()}</span>
+          {/* Plan */}
+          <div>
+            <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Plan</label>
+            <p class="text-xs text-xcord-text-muted mb-2">Tier</p>
+            <div class="grid grid-cols-4 gap-2 mb-4">
+              {/* Free - always selected */}
+              <button type="button" disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ring-2 ring-xcord-brand">
+                <div class="font-semibold">Free</div>
+                <div class="text-xs text-xcord-text-muted mt-1">Up to 10 users</div>
+              </button>
+              {/* Basic - notify me */}
+              <button type="button" onClick={() => { setNotifyTier('Basic'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
+                <div class="font-semibold">Basic</div>
+                <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
+                <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
+              </button>
+              {/* Pro - notify me */}
+              <button type="button" onClick={() => { setNotifyTier('Pro'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
+                <div class="font-semibold">Pro</div>
+                <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
+                <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
+              </button>
+              {/* Enterprise - contact us */}
+              <a href="mailto:sales@xcord.net" class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition block">
+                <div class="font-semibold">Enterprise</div>
+                <div class="text-xs text-xcord-text-muted mt-1">500+ users</div>
+                <div class="text-xs text-xcord-brand mt-1">Contact us</div>
+              </a>
             </div>
-            <Show when={mediaEnabled()}>
+
+            {/* Media - notify me */}
+            <div class="flex items-center gap-3 mb-4">
+              <span class="text-sm text-xcord-text-primary">Voice & video</span>
+              <button type="button" onClick={() => { setNotifyTier('Voice & Video'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} class="text-xs text-xcord-brand hover:underline">Notify me</button>
+            </div>
+
+            {/* Price summary - always free */}
+            <div class="px-3 py-2 bg-xcord-bg-accent rounded">
               <div class="flex items-center justify-between">
-                <span class="text-xs text-xcord-text-muted">Voice & video ({mediaPrice()} x {TIER_CONFIG[tier()].maxUsers} users)</span>
-                <span class="text-xs text-xcord-text-secondary">{formatPrice(TIER_CONFIG[tier()].mediaPerUserCents * TIER_CONFIG[tier()].maxUsers)}</span>
+                <span class="text-xs font-medium text-xcord-text-primary">Total</span>
+                <span class="text-sm font-bold text-xcord-text-primary">Free</span>
               </div>
-            </Show>
-            <div class="flex items-center justify-between border-t border-xcord-bg-tertiary pt-1">
-              <span class="text-xs font-medium text-xcord-text-primary">Total</span>
-              <span class="text-sm font-bold text-xcord-text-primary">{totalPrice()}</span>
             </div>
           </div>
-        </div>
 
-        {/* Admin Password */}
-        <div>
-          <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
-            Admin Password
-          </label>
-          <input
-            type="password"
-            value={adminPassword()}
-            onInput={(e) => setAdminPassword(e.currentTarget.value)}
-            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-            placeholder="At least 8 characters"
-            autocomplete="new-password"
-            required
-            minLength={8}
-            disabled={loading()}
-          />
-          <PasswordStrength password={adminPassword()} />
-        </div>
+          {/* Admin Password */}
+          <div>
+            <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
+              Admin Password
+            </label>
+            <input
+              type="password"
+              value={adminPassword()}
+              onInput={(e) => setAdminPassword(e.currentTarget.value)}
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+              placeholder="At least 8 characters"
+              autocomplete="new-password"
+              required
+              minLength={8}
+              disabled={loading()}
+            />
+            <PasswordStrength password={adminPassword()} />
+          </div>
 
-        {/* Confirm Password */}
-        <div>
-          <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
-            Confirm Admin Password
-          </label>
-          <input
-            type="password"
-            value={confirmPassword()}
-            onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-            autocomplete="new-password"
-            required
-            disabled={loading()}
-          />
-        </div>
+          {/* Confirm Password */}
+          <div>
+            <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">
+              Confirm Admin Password
+            </label>
+            <input
+              type="password"
+              value={confirmPassword()}
+              onInput={(e) => setConfirmPassword(e.currentTarget.value)}
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+              autocomplete="new-password"
+              required
+              disabled={loading()}
+            />
+          </div>
 
-        <Show when={tier() === 'Free' && !mediaEnabled()}>
           <Captcha onSolved={(id, ans) => { setCaptchaId(id); setCaptchaAnswer(ans); }} />
-        </Show>
 
-        <Show when={error()}>
-          <div class="text-sm text-xcord-red">{error()}</div>
-        </Show>
+          <Show when={error()}>
+            <div class="text-sm text-xcord-red">{error()}</div>
+          </Show>
 
-        <button
-          type="submit"
-          disabled={loading() || !!subdomainError() || !subdomain()}
-          class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
-        >
-          {loading() ? 'Creating...' : 'Create Instance'}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading() || !!subdomainError() || !subdomain()}
+            class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+          >
+            {loading() ? 'Creating...' : 'Create Instance'}
+          </button>
+        </form>
+      </Show>
+
+      {/* Notify-me modal - always rendered outside the form Show */}
+      <Show when={notifyTier()}>
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setNotifyTier(null); }}>
+          <div class="bg-xcord-bg-primary rounded-xl w-full max-w-sm p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold text-xcord-text-primary">{notifyTier()}</h3>
+              <button onClick={() => setNotifyTier(null)} class="text-xcord-text-muted hover:text-xcord-text-primary text-xl leading-none">&times;</button>
+            </div>
+            <Show when={notifyStatus() !== 'success'} fallback={<p class="text-sm text-xcord-green py-4 text-center">{notifyMessage()}</p>}>
+              <p class="text-sm text-xcord-text-muted mb-4">We'll let you know when {notifyTier()} is available.</p>
+              <form onSubmit={handleNotify} class="space-y-3">
+                <input type="email" required placeholder="you@example.com" value={notifyEmail()} onInput={(e) => setNotifyEmail(e.currentTarget.value)} class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand text-sm" />
+                <button type="submit" disabled={notifyStatus() === 'loading'} class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition text-sm">
+                  {notifyStatus() === 'loading' ? 'Submitting...' : 'Notify Me'}
+                </button>
+              </form>
+              <Show when={notifyStatus() === 'error'}>
+                <p class="text-xs text-xcord-red mt-2">{notifyMessage()}</p>
+              </Show>
+            </Show>
+          </div>
+        </div>
+      </Show>
     </div>
   );
 }
