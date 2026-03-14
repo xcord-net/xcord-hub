@@ -1,6 +1,7 @@
 import { A } from '@solidjs/router';
 import { createSignal, For, Show } from 'solid-js';
 import PageMeta from '../components/PageMeta';
+import ContactModal from '../components/ContactModal';
 
 interface TierFeature {
   label: string;
@@ -103,6 +104,7 @@ const faqs = [
 
 export default function Pricing() {
   const [openFaq, setOpenFaq] = createSignal<number | null>(null);
+  const [showContact, setShowContact] = createSignal(false);
   const [notifyCardKey, setNotifyCardKey] = createSignal<string | null>(null);
   const [notifyEmail, setNotifyEmail] = createSignal('');
   const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -212,12 +214,12 @@ export default function Pricing() {
                 </Show>
 
                 <Show when={tier.cta === 'contact'}>
-                  <a
-                    href="mailto:sales@xcord.net"
-                    class="block text-center py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
+                  <button
+                    onClick={() => setShowContact(true)}
+                    class="w-full block text-center py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
                   >
                     Contact Us
-                  </a>
+                  </button>
                 </Show>
 
                 <Show when={tier.cta === 'notify'}>
@@ -318,6 +320,8 @@ export default function Pricing() {
           </For>
         </div>
       </section>
+
+      <ContactModal open={showContact()} onClose={() => setShowContact(false)} />
     </>
   );
 }

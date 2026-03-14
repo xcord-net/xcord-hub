@@ -459,6 +459,14 @@ public static class ServiceCollectionExtensions
                 limiterOptions.Window = TimeSpan.FromMinutes(1);
                 limiterOptions.QueueLimit = 0;
             });
+
+            // Contact form: configurable per-IP limit (default 3/min)
+            options.AddFixedWindowLimiter("contact-form", limiterOptions =>
+            {
+                limiterOptions.PermitLimit = rateLimitOptions.ContactFormPermitLimit;
+                limiterOptions.Window = TimeSpan.FromMinutes(1);
+                limiterOptions.QueueLimit = 0;
+            });
         });
     }
 

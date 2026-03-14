@@ -3,6 +3,7 @@ import { useNavigate } from '@solidjs/router';
 import { instanceStore } from '../../stores/instance.store';
 import Captcha from '../../components/Captcha';
 import PasswordStrength from '../../components/PasswordStrength';
+import ContactModal from '../../components/ContactModal';
 
 export default function CreateInstance() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function CreateInstance() {
   const [subdomainReason, setSubdomainReason] = createSignal('');
   const [captchaId, setCaptchaId] = createSignal('');
   const [captchaAnswer, setCaptchaAnswer] = createSignal('');
+  const [showContact, setShowContact] = createSignal(false);
   const [notifyTier, setNotifyTier] = createSignal<string | null>(null);
   const [notifyEmail, setNotifyEmail] = createSignal('');
   const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -258,11 +260,11 @@ export default function CreateInstance() {
                 <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
               </button>
               {/* Enterprise - contact us */}
-              <a href="mailto:sales@xcord.net" class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition block">
+              <button type="button" onClick={() => setShowContact(true)} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
                 <div class="font-semibold">Enterprise</div>
                 <div class="text-xs text-xcord-text-muted mt-1">500+ users</div>
                 <div class="text-xs text-xcord-brand mt-1">Contact us</div>
-              </a>
+              </button>
             </div>
 
             {/* Media - notify me */}
@@ -354,6 +356,8 @@ export default function CreateInstance() {
           </div>
         </div>
       </Show>
+
+      <ContactModal open={showContact()} onClose={() => setShowContact(false)} />
     </div>
   );
 }

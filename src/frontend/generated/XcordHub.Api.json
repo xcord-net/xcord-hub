@@ -808,6 +808,36 @@
         }
       }
     },
+    "/api/v1/hub/contact": {
+      "post": {
+        "tags": [
+          "Contact"
+        ],
+        "operationId": "SubmitContactForm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitContactFormRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitContactFormResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hub/instances/{instanceId}/billing/cancel": {
       "post": {
         "tags": [
@@ -3396,6 +3426,46 @@
           }
         }
       },
+      "SubmitContactFormRequest": {
+        "required": [
+          "name",
+          "email",
+          "company",
+          "expectedMemberCount",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "expectedMemberCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "SubmitContactFormResponse": {
+        "required": [
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "SuccessResponse": {
         "required": [
           "success"
@@ -3856,6 +3926,9 @@
     },
     {
       "name": "Discovery"
+    },
+    {
+      "name": "Contact"
     },
     {
       "name": "Billing"

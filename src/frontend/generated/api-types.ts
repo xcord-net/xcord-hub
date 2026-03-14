@@ -341,6 +341,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hub/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SubmitContactForm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hub/instances/{instanceId}/billing/cancel": {
         parameters: {
             query?: never;
@@ -1335,6 +1351,17 @@ export interface components {
             /** Format: date-time */
             startedAt: string;
         };
+        SubmitContactFormRequest: {
+            name: string;
+            email: string;
+            company: string;
+            /** Format: int32 */
+            expectedMemberCount: number | null;
+            message: string;
+        };
+        SubmitContactFormResponse: {
+            message: string;
+        };
         SuccessResponse: {
             success: boolean;
         };
@@ -2008,6 +2035,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListInstancesResponse2"];
+                };
+            };
+        };
+    };
+    SubmitContactForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitContactFormRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmitContactFormResponse"];
                 };
             };
         };

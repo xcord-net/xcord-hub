@@ -1,5 +1,6 @@
 import { A } from '@solidjs/router';
 import { createResource, createSignal, For, Show } from 'solid-js';
+import ContactModal from '../../components/ContactModal';
 
 interface InstanceBillingItem {
   instanceId: string;
@@ -95,6 +96,8 @@ function PlanEditor(props: {
   instance: InstanceBillingItem;
   onClose: () => void;
 }) {
+  const [showContact, setShowContact] = createSignal(false);
+
   return (
     <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-xcord-bg-primary rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -136,13 +139,14 @@ function PlanEditor(props: {
                 <div class="font-semibold">Pro</div>
                 <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
               </button>
-              <a
-                href="mailto:sales@xcord.net"
-                class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center opacity-60 hover:opacity-80 transition block"
+              <button
+                type="button"
+                onClick={() => setShowContact(true)}
+                class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center opacity-60 hover:opacity-80 transition"
               >
                 <div class="font-semibold">Enterprise</div>
                 <div class="text-xs text-xcord-brand mt-1">Contact us</div>
-              </a>
+              </button>
             </div>
           </div>
 
@@ -178,6 +182,8 @@ function PlanEditor(props: {
           </div>
         </div>
       </div>
+
+      <ContactModal open={showContact()} onClose={() => setShowContact(false)} />
     </div>
   );
 }

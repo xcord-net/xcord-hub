@@ -13,6 +13,25 @@ namespace XcordHub.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "contact_submissions",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Company = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ExpectedMemberCount = table.Column<int>(type: "integer", nullable: true),
+                    Message = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_contact_submissions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "hub_users",
                 columns: table => new
                 {
@@ -620,6 +639,9 @@ namespace XcordHub.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "contact_submissions");
+
             migrationBuilder.DropTable(
                 name: "backup_policies");
 
