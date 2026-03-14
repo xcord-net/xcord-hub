@@ -125,6 +125,7 @@ public sealed class TierDefaultsTests
         flags.CanUseHdVideo.Should().BeFalse();
         flags.CanUseSimulcast.Should().BeFalse();
         flags.CanUseRecording.Should().BeFalse();
+        flags.CanUseMemberTiers.Should().Be(tier >= InstanceTier.Pro);
     }
 
     [Theory]
@@ -147,6 +148,7 @@ public sealed class TierDefaultsTests
         flags.CanUseVideoChannels.Should().BeTrue();
         flags.CanUseHdVideo.Should().BeTrue();
         flags.CanUseSimulcast.Should().BeTrue();
+        flags.CanUseMemberTiers.Should().Be(tier >= InstanceTier.Pro);
     }
 
     [Theory]
@@ -159,6 +161,18 @@ public sealed class TierDefaultsTests
         var flags = TierDefaults.GetFeatureFlags(tier, mediaEnabled: true);
         flags.CanUseRecording.Should().Be(expectedRecording,
             $"{tier} with media should {(expectedRecording ? "" : "not ")}allow recording");
+    }
+
+    [Theory]
+    [InlineData(InstanceTier.Free, false)]
+    [InlineData(InstanceTier.Basic, false)]
+    [InlineData(InstanceTier.Pro, true)]
+    [InlineData(InstanceTier.Enterprise, true)]
+    public void GetFeatureFlags_CanUseMemberTiers_OnlyProAndEnterprise(InstanceTier tier, bool expectedMemberTiers)
+    {
+        var flags = TierDefaults.GetFeatureFlags(tier, mediaEnabled: true);
+        flags.CanUseMemberTiers.Should().Be(expectedMemberTiers,
+            $"{tier} should {(expectedMemberTiers ? "" : "not ")}allow member tiers");
     }
 
     [Fact]

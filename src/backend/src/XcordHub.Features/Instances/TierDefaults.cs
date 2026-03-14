@@ -85,7 +85,8 @@ public static class TierDefaults
             CanUseVideoChannels = mediaEnabled,
             CanUseHdVideo = mediaEnabled,
             CanUseSimulcast = mediaEnabled,
-            CanUseRecording = mediaEnabled && tier >= InstanceTier.Pro
+            CanUseRecording = mediaEnabled && tier >= InstanceTier.Pro,
+            CanUseMemberTiers = tier >= InstanceTier.Pro
         };
     }
 

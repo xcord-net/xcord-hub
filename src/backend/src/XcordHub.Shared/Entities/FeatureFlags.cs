@@ -13,4 +13,5 @@ public sealed record FeatureFlags
     public bool CanUseHdVideo { get; init; }
     public bool CanUseSimulcast { get; init; }
     public bool CanUseRecording { get; init; }
+    public bool CanUseMemberTiers { get; init; }
 }
