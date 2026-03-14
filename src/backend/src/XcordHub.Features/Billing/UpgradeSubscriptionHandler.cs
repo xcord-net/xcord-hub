@@ -44,6 +44,13 @@ public sealed class ChangePlanHandler(
         if (!Enum.IsDefined(request.TargetTier))
             return Error.Validation("VALIDATION_FAILED", "Invalid tier");
 
+        // Beta gate - remove when payment processing launches
+        if (request.TargetTier != InstanceTier.Free)
+            return Error.Validation("PAID_TIER_UNAVAILABLE", "Paid tiers are not yet available.");
+
+        if (request.MediaEnabled)
+            return Error.Validation("MEDIA_UNAVAILABLE", "Voice & video is not yet available.");
+
         return null;
     }
 
