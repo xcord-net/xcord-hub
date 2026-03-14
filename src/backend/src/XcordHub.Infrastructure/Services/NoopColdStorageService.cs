@@ -11,6 +11,8 @@ public sealed class NoopColdStorageService : IColdStorageService
         _logger = logger;
     }
 
+    public bool IsConfigured => false;
+
     public Task UploadAsync(string key, Stream content, CancellationToken ct = default)
     {
         _logger.LogWarning("Cold storage not configured - skipping upload of {Key}", key);

@@ -304,6 +304,36 @@
         }
       }
     },
+    "/api/v1/hub/check-subdomain": {
+      "get": {
+        "tags": [
+          "Instances"
+        ],
+        "operationId": "CheckSubdomain",
+        "parameters": [
+          {
+            "name": "subdomain",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckSubdomainResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hub/instances": {
       "post": {
         "tags": [
@@ -2181,6 +2211,22 @@
           },
           "requiresCheckout": {
             "type": "boolean"
+          }
+        }
+      },
+      "CheckSubdomainResponse": {
+        "required": [
+          "available",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
           }
         }
       },

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Backups;
 
@@ -23,6 +24,18 @@ public sealed class BackupBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Skip entirely if cold storage is not configured — no point running
+        // backup cycles that can't upload anywhere
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var coldStorage = scope.ServiceProvider.GetRequiredService<IColdStorageService>();
+            if (!coldStorage.IsConfigured)
+            {
+                _logger.LogInformation("BackupBackgroundService disabled — cold storage not configured");
+                return;
+            }
+        }
+
         _logger.LogInformation("BackupBackgroundService started");
 
         // Wait before first check to allow system to stabilize

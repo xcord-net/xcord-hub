@@ -163,7 +163,7 @@ export default function InstanceDetail() {
                       type="text"
                       value={editName()}
                       onInput={(e) => setEditName(e.currentTarget.value)}
-                      class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+                      class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
                     />
                   </div>
                   <button

@@ -18,6 +18,9 @@ export default function LandingLayout(props: ParentProps) {
             <A data-testid="nav-download" href="/download" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">
               Download
             </A>
+            <a data-testid="nav-github" href="https://github.com/xcord-net" target="_blank" rel="noopener noreferrer" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">
+              GitHub
+            </a>
             <A data-testid="nav-login" href="/login" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">
               Log in
             </A>

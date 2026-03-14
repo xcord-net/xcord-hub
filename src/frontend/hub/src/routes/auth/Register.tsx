@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, onMount } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { useAuth } from '../../stores/auth.store';
 import PasswordStrength from '../../components/PasswordStrength';
@@ -9,6 +9,7 @@ import PageMeta from '../../components/PageMeta';
 export default function Register() {
   const auth = useAuth();
   const navigate = useNavigate();
+  onMount(() => auth.clearError());
   const [email, setEmail] = createSignal('');
   const [username, setUsername] = createSignal('');
   const [displayName, setDisplayName] = createSignal('');
@@ -72,7 +73,7 @@ export default function Register() {
               type="email"
               value={email()}
               onInput={(e) => setEmail(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
               required
             />
           </div>
@@ -84,7 +85,7 @@ export default function Register() {
               type="text"
               value={username()}
               onInput={(e) => setUsername(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
               required
             />
           </div>
@@ -95,8 +96,9 @@ export default function Register() {
               type="text"
               value={displayName()}
               onInput={(e) => setDisplayName(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
               placeholder={username() || 'Optional'}
+              autocomplete="nickname"
             />
           </div>
 
@@ -107,7 +109,7 @@ export default function Register() {
               type="password"
               value={password()}
               onInput={(e) => setPassword(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
               required
               minLength={8}
             />
@@ -121,7 +123,7 @@ export default function Register() {
               type="password"
               value={confirmPassword()}
               onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
               required
             />
           </div>
@@ -160,7 +162,7 @@ export default function Register() {
                 class="mt-1 accent-xcord-brand"
               />
               <span class="text-xs text-xcord-text-muted">
-                I confirm that the use of encryption is permitted in my jurisdiction
+                I confirm that the use of this platform is allowed in my jurisdiction
               </span>
             </label>
           </div>

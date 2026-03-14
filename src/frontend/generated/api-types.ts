@@ -133,6 +133,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hub/check-subdomain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CheckSubdomain"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hub/instances": {
         parameters: {
             query?: never;
@@ -977,6 +993,10 @@ export interface components {
             checkoutUrl: string | null;
             requiresCheckout: boolean;
         };
+        CheckSubdomainResponse: {
+            available: boolean;
+            reason: string | null;
+        };
         CreateInstanceCommand: {
             subdomain: string;
             displayName: string;
@@ -1656,6 +1676,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AddMailingListEntryResponse"];
+                };
+            };
+        };
+    };
+    CheckSubdomain: {
+        parameters: {
+            query: {
+                subdomain: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckSubdomainResponse"];
                 };
             };
         };

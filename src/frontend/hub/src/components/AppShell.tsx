@@ -4,7 +4,7 @@ import { instanceStore } from '../stores/instance.store';
 import { unreadStore } from '../stores/unread.store';
 import { useAuth } from '../stores/auth.store';
 import InstanceIframe from './InstanceIframe';
-import DashboardSidebar from './DashboardSidebar';
+import DashboardSidebar, { setSidebarOpen } from './DashboardSidebar';
 import Logo from './Logo';
 import type { JSX } from 'solid-js';
 
@@ -44,6 +44,17 @@ export default function AppShell(props: { children: JSX.Element }) {
     <div class="flex flex-col h-screen bg-xcord-bg-primary">
       {/* Header bar */}
       <header class="flex items-center h-12 bg-xcord-bg-floating border-b border-xcord-bg-tertiary px-2 gap-1 shrink-0">
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          class="p-1.5 rounded text-xcord-text-muted hover:text-xcord-text-primary hover:bg-xcord-bg-accent/50 transition md:hidden"
+          title="Menu"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
         {/* Hub tab */}
         <button
           onClick={handleSelectHub}

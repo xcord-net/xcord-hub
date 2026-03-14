@@ -63,7 +63,7 @@ export default function Captcha(props: CaptchaProps) {
             type="text"
             value={answer()}
             onInput={(e) => handleInput(e.currentTarget.value)}
-            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand mt-1"
+            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand mt-1"
             placeholder="Your answer"
             autocomplete="off"
           />

@@ -73,3 +73,15 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--color-xcord-bg-tertiary) transparent;
 }
+
+/* Override browser autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-xcord-bg-tertiary) inset;
+  -webkit-text-fill-color: var(--color-xcord-text-primary);
+  caret-color: var(--color-xcord-text-primary);
+  transition: background-color 5000s ease-in-out 0s;
+}

@@ -18,6 +18,9 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:5100',
     },
+    watch: {
+      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
+    },
   },
   build: {
     target: 'esnext',

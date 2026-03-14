@@ -3,14 +3,13 @@ import { A } from '@solidjs/router';
 import { instanceStore, type ConnectedInstance } from '../../stores/instance.store';
 
 interface InstanceInfo {
-  id: string;
-  subdomain: string;
+  instanceId: string;
   displayName: string;
   domain: string;
   status: string;
   tier: string;
-  memberCount?: number;
-  storageUsedMb?: number;
+  mediaEnabled: boolean;
+  createdAt: string;
 }
 
 export default function Overview() {
@@ -24,7 +23,8 @@ export default function Overview() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (response.ok) {
-        setInstances(await response.json());
+        const data = await response.json();
+        setInstances(data.instances ?? []);
       }
     } catch {
       // API may not be available yet
@@ -69,12 +69,6 @@ export default function Overview() {
           <div class="text-sm text-xcord-text-muted mb-1">Connected Servers</div>
           <div class="text-2xl font-bold text-xcord-text-primary">{connectedCount()}</div>
         </div>
-        <div class="bg-xcord-bg-secondary rounded-lg p-5">
-          <div class="text-sm text-xcord-text-muted mb-1">Total Members</div>
-          <div class="text-2xl font-bold text-xcord-text-primary">
-            {instances().reduce((sum, i) => sum + (i.memberCount || 0), 0)}
-          </div>
-        </div>
       </div>
 
       {/* Instance list */}
@@ -105,7 +99,7 @@ export default function Overview() {
             <For each={instances()}>
               {(instance) => (
                 <A
-                  href={`/dashboard/instances/${instance.id}`}
+                  href={`/dashboard/instances/${instance.instanceId}`}
                   class="flex items-center gap-4 bg-xcord-bg-secondary hover:bg-xcord-bg-accent rounded-lg p-4 transition group"
                 >
                   <div class="w-10 h-10 rounded-lg bg-xcord-brand/20 flex items-center justify-center text-xcord-brand font-bold shrink-0">

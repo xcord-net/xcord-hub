@@ -115,7 +115,7 @@ export default function Account() {
               type="text"
               value={auth.user?.username ?? ''}
               disabled
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-muted rounded border-0 cursor-not-allowed"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-muted rounded border-none cursor-not-allowed"
             />
           </div>
           <div>
@@ -124,7 +124,7 @@ export default function Account() {
               type="text"
               value={displayName()}
               onInput={(e) => setDisplayName(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
             />
           </div>
           <div>
@@ -133,7 +133,7 @@ export default function Account() {
               type="email"
               value={email()}
               onInput={(e) => setEmail(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
             />
           </div>
           <Show when={profileMessage()}>
@@ -159,7 +159,7 @@ export default function Account() {
               type="password"
               value={currentPassword()}
               onInput={(e) => setCurrentPassword(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
               required
             />
           </div>
@@ -169,7 +169,7 @@ export default function Account() {
               type="password"
               value={newPassword()}
               onInput={(e) => setNewPassword(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
               required
               minLength={8}
             />
@@ -180,7 +180,7 @@ export default function Account() {
               type="password"
               value={confirmNewPassword()}
               onInput={(e) => setConfirmNewPassword(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
               required
             />
           </div>
@@ -229,7 +229,7 @@ export default function Account() {
                 onInput={(e) => setDeleteConfirmText(e.currentTarget.value)}
                 placeholder={auth.user?.username ?? ''}
                 autocomplete="off"
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-red"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-red"
               />
             </div>
             <div>
@@ -239,7 +239,7 @@ export default function Account() {
                 value={deletePassword()}
                 onInput={(e) => setDeletePassword(e.currentTarget.value)}
                 placeholder="Enter your password"
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-red"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-red"
               />
             </div>
             <Show when={deleteError()}>

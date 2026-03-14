@@ -2,6 +2,7 @@ namespace XcordHub.Infrastructure.Services;
 
 public interface IColdStorageService
 {
+    bool IsConfigured { get; }
     Task UploadAsync(string key, Stream content, CancellationToken ct = default);
     Task<Stream> DownloadAsync(string key, CancellationToken ct = default);
     Task DeleteAsync(string key, CancellationToken ct = default);

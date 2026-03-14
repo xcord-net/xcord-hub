@@ -2,6 +2,7 @@ import { createSignal, Show, For } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { instanceStore } from '../../stores/instance.store';
 import Captcha from '../../components/Captcha';
+import PasswordStrength from '../../components/PasswordStrength';
 
 export default function CreateInstance() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function CreateInstance() {
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal('');
   const [subdomainStatus, setSubdomainStatus] = createSignal<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [subdomainReason, setSubdomainReason] = createSignal('');
   const [tier, setTier] = createSignal('Free');
   const [mediaEnabled, setMediaEnabled] = createSignal(false);
   const [captchaId, setCaptchaId] = createSignal('');
@@ -40,6 +42,38 @@ export default function CreateInstance() {
     const dollars = config.mediaPerUserCents / 100;
     return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`;
   };
+  const totalPriceCents = () => {
+    const config = TIER_CONFIG[tier()];
+    if (!config) return 0;
+    return config.baseCents + (mediaEnabled() ? config.mediaPerUserCents * config.maxUsers : 0);
+  };
+  const totalPrice = () => formatPrice(totalPriceCents());
+
+  // Must match backend ValidationHelpers.ReservedSubdomains
+  const RESERVED = new Set([
+    'www', 'mail', 'smtp', 'imap', 'pop', 'ftp',
+    'docker', 'registry',
+    'api', 'admin', 'hub', 'auth',
+    'ns1', 'ns2', 'ns3', 'ns4',
+    'caddy', 'proxy', 'lb',
+    'pg', 'postgres', 'redis', 'minio', 's3',
+    'livekit', 'rtc', 'turn', 'stun',
+    'status', 'monitor', 'grafana', 'prometheus',
+    '_dmarc', 'autoconfig', 'autodiscover',
+  ]);
+
+  const subdomainError = () => {
+    const s = subdomain();
+    if (!s) return '';
+    if (s.length < 6) return 'Must be at least 6 characters';
+    if (s.startsWith('-') || s.endsWith('-')) return 'Cannot start or end with a hyphen';
+    if (s.includes('--')) return 'Cannot contain consecutive hyphens';
+    if (RESERVED.has(s)) return `'${s}' is reserved for infrastructure use`;
+    if (subdomainStatus() === 'taken') return subdomainReason() || 'Already taken';
+    return '';
+  };
+
+  const subdomainValid = () => subdomain().length >= 6 && !subdomainError();
 
   let checkTimer: ReturnType<typeof setTimeout>;
 
@@ -47,16 +81,22 @@ export default function CreateInstance() {
     const clean = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
     setSubdomain(clean);
     setSubdomainStatus('idle');
+    setSubdomainReason('');
 
     clearTimeout(checkTimer);
-    if (clean.length >= 3) {
+    // Only call API if client-side checks pass
+    if (clean.length >= 6 && !RESERVED.has(clean) && !clean.startsWith('-') && !clean.endsWith('-') && !clean.includes('--')) {
       setSubdomainStatus('checking');
       checkTimer = setTimeout(async () => {
         try {
-          const response = await fetch(`/api/v1/hub/check-subdomain?subdomain=${encodeURIComponent(clean)}`);
+          const token = localStorage.getItem('xcord_hub_token');
+          const response = await fetch(`/api/v1/hub/check-subdomain?subdomain=${encodeURIComponent(clean)}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
           if (response.ok) {
             const data = await response.json();
             setSubdomainStatus(data.available ? 'available' : 'taken');
+            setSubdomainReason(data.reason ?? '');
           } else {
             setSubdomainStatus('idle');
           }
@@ -117,25 +157,28 @@ export default function CreateInstance() {
               type="text"
               value={subdomain()}
               onInput={(e) => handleSubdomainInput(e.currentTarget.value)}
-              class="flex-1 px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-l border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+              class={`flex-1 px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-l border-none outline-none focus:ring-2 ${
+                subdomainError() ? 'ring-2 ring-xcord-red focus:ring-xcord-red' : 'focus:ring-xcord-brand'
+              }`}
               placeholder="my-server"
+              autocomplete="off"
               required
-              pattern="[a-z0-9-]+"
-              minLength={3}
+              pattern="[a-z0-9\-]+"
+              minLength={6}
               disabled={loading()}
             />
             <span class="px-3 py-2 bg-xcord-bg-accent text-xcord-text-muted text-sm rounded-r">
               .xcord-dev.net
             </span>
           </div>
-          <Show when={subdomainStatus() === 'checking'}>
+          <Show when={subdomainStatus() === 'checking' && !subdomainError()}>
             <span class="text-xs text-xcord-text-muted mt-1 block">Checking availability...</span>
           </Show>
-          <Show when={subdomainStatus() === 'available'}>
-            <span class="text-xs text-xcord-green mt-1 block">Available!</span>
+          <Show when={subdomain().length > 0 && subdomainError()}>
+            <span class="text-xs text-xcord-red mt-1 block">{subdomainError()}</span>
           </Show>
-          <Show when={subdomainStatus() === 'taken'}>
-            <span class="text-xs text-xcord-red mt-1 block">Already taken</span>
+          <Show when={subdomainValid() && subdomainStatus() === 'available'}>
+            <span class="text-xs text-xcord-green mt-1 block">Available!</span>
           </Show>
         </div>
 
@@ -148,8 +191,9 @@ export default function CreateInstance() {
             type="text"
             value={displayName()}
             onInput={(e) => setDisplayName(e.currentTarget.value)}
-            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
             placeholder="My Awesome Server"
+            autocomplete="off"
             required
             disabled={loading()}
           />
@@ -195,14 +239,26 @@ export default function CreateInstance() {
               class="h-4 w-4 rounded border-xcord-bg-accent text-xcord-brand focus:ring-xcord-brand"
             />
             <label for="mediaEnabled" class="text-sm text-xcord-text-primary cursor-pointer">
-              Enable voice & video ({mediaPrice()}/user/mo)
+              Enable voice & video ({mediaPrice()} per user)
             </label>
           </div>
 
-          {/* Price display */}
-          <div class="flex items-center justify-between px-3 py-2 bg-xcord-bg-accent rounded">
-            <span class="text-xs text-xcord-text-muted">Selected plan</span>
-            <span class="text-sm font-bold text-xcord-text-primary">{selectedPrice()}</span>
+          {/* Price summary */}
+          <div class="px-3 py-2 bg-xcord-bg-accent rounded space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-xcord-text-muted">Base ({tier()})</span>
+              <span class="text-xs text-xcord-text-secondary">{selectedPrice()}</span>
+            </div>
+            <Show when={mediaEnabled()}>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-xcord-text-muted">Voice & video ({mediaPrice()} x {TIER_CONFIG[tier()].maxUsers} users)</span>
+                <span class="text-xs text-xcord-text-secondary">{formatPrice(TIER_CONFIG[tier()].mediaPerUserCents * TIER_CONFIG[tier()].maxUsers)}</span>
+              </div>
+            </Show>
+            <div class="flex items-center justify-between border-t border-xcord-bg-tertiary pt-1">
+              <span class="text-xs font-medium text-xcord-text-primary">Total</span>
+              <span class="text-sm font-bold text-xcord-text-primary">{totalPrice()}</span>
+            </div>
           </div>
         </div>
 
@@ -215,12 +271,14 @@ export default function CreateInstance() {
             type="password"
             value={adminPassword()}
             onInput={(e) => setAdminPassword(e.currentTarget.value)}
-            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
             placeholder="At least 8 characters"
+            autocomplete="new-password"
             required
             minLength={8}
             disabled={loading()}
           />
+          <PasswordStrength password={adminPassword()} />
         </div>
 
         {/* Confirm Password */}
@@ -232,7 +290,8 @@ export default function CreateInstance() {
             type="password"
             value={confirmPassword()}
             onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+            class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+            autocomplete="new-password"
             required
             disabled={loading()}
           />
@@ -248,7 +307,7 @@ export default function CreateInstance() {
 
         <button
           type="submit"
-          disabled={loading()}
+          disabled={loading() || !!subdomainError() || !subdomain()}
           class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
         >
           {loading() ? 'Creating...' : 'Create Instance'}

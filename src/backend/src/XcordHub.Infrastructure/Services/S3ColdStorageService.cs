@@ -30,6 +30,8 @@ public sealed class S3ColdStorageService : IColdStorageService
         _client = new AmazonS3Client(opts.AccessKey, opts.SecretKey, config);
     }
 
+    public bool IsConfigured => true;
+
     public async Task UploadAsync(string key, Stream content, CancellationToken ct = default)
     {
         var request = new PutObjectRequest

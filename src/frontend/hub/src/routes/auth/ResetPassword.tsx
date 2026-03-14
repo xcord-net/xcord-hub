@@ -87,7 +87,7 @@ export default function ResetPassword() {
                 type="password"
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
                 required
                 minLength={8}
               />
@@ -103,7 +103,7 @@ export default function ResetPassword() {
                 type="password"
                 value={confirmPassword()}
                 onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
                 required
               />
             </div>

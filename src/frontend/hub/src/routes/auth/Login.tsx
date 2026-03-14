@@ -1,4 +1,4 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, onMount } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { useAuth } from '../../stores/auth.store';
 import Logo from '../../components/Logo';
@@ -7,6 +7,7 @@ import PageMeta from '../../components/PageMeta';
 export default function Login() {
   const auth = useAuth();
   const navigate = useNavigate();
+  onMount(() => auth.clearError());
   const [email, setEmail] = createSignal('');
   const [password, setPassword] = createSignal('');
   const [totpCode, setTotpCode] = createSignal('');
@@ -63,7 +64,7 @@ export default function Login() {
                 type="email"
                 value={email()}
                 onInput={(e) => setEmail(e.currentTarget.value)}
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
                 required
               />
             </div>
@@ -77,7 +78,7 @@ export default function Login() {
                 type="password"
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
                 required
               />
               <A href="/forgot-password" class="text-xs text-xcord-text-link hover:underline mt-1 inline-block">
@@ -99,7 +100,7 @@ export default function Login() {
                 maxLength={6}
                 value={totpCode()}
                 onInput={(e) => setTotpCode(e.currentTarget.value.replace(/\D/g, '').slice(0, 6))}
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-0 outline-none focus:ring-2 focus:ring-xcord-brand text-center text-lg tracking-widest"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand text-center text-lg tracking-widest"
                 placeholder="000000"
                 required
               />
