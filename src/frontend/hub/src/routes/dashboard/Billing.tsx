@@ -29,26 +29,14 @@ interface InvoicesData {
   invoices: InvoiceSummary[];
 }
 
-interface ChangePlanResponse {
-  tier: string;
-  priceCents: number;
-  checkoutUrl: string | null;
-  requiresCheckout: boolean;
-}
-
 type Tier = 'Free' | 'Basic' | 'Pro' | 'Enterprise';
 
-const TIER_CONFIG: Record<Tier, { baseCents: number; mediaPerUserCents: number; maxUsers: number; label: string }> = {
-  Free:       { baseCents: 0,     mediaPerUserCents: 400, maxUsers: 10,  label: 'Free' },
-  Basic:      { baseCents: 6000,  mediaPerUserCents: 300, maxUsers: 50,  label: 'Basic' },
-  Pro:        { baseCents: 15000, mediaPerUserCents: 200, maxUsers: 200, label: 'Pro' },
-  Enterprise: { baseCents: 30000, mediaPerUserCents: 100, maxUsers: 500, label: 'Enterprise' },
+const TIER_CONFIG: Record<Tier, { maxUsers: number; label: string }> = {
+  Free:       { maxUsers: 10,  label: 'Free' },
+  Basic:      { maxUsers: 50,  label: 'Basic' },
+  Pro:        { maxUsers: 200, label: 'Pro' },
+  Enterprise: { maxUsers: 500, label: 'Enterprise' },
 };
-
-function getPriceCents(tier: Tier, mediaEnabled: boolean): number {
-  const cfg = TIER_CONFIG[tier];
-  return cfg.baseCents + (mediaEnabled ? cfg.mediaPerUserCents * cfg.maxUsers : 0);
-}
 
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem('xcord_hub_token');
@@ -103,120 +91,10 @@ function formatTier(tier: string, media: boolean): string {
   return media ? `${tier} + Media` : tier;
 }
 
-const TIERS: { id: Tier; label: string; desc: string }[] = [
-  { id: 'Free',       label: 'Free',       desc: 'Up to 10 members' },
-  { id: 'Basic',      label: 'Basic',      desc: 'Up to 50 members' },
-  { id: 'Pro',        label: 'Pro',        desc: 'Up to 200 members' },
-  { id: 'Enterprise', label: 'Enterprise', desc: 'Up to 500 members' },
-];
-
 function PlanEditor(props: {
   instance: InstanceBillingItem;
   onClose: () => void;
-  onSuccess: () => void;
 }) {
-  const [tier, setTier] = createSignal<Tier>(props.instance.tier as Tier);
-  const [media, setMedia] = createSignal(props.instance.mediaEnabled);
-  const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal('');
-  const [confirmingDowngrade, setConfirmingDowngrade] = createSignal(false);
-  const [confirmingCancel, setConfirmingCancel] = createSignal(false);
-
-  const newPrice = () => getPriceCents(tier(), media());
-  const currentPrice = () => props.instance.priceCents;
-  const isChanged = () =>
-    tier() !== props.instance.tier ||
-    media() !== props.instance.mediaEnabled;
-  const isUpgrade = () => newPrice() > currentPrice();
-  const isDowngrade = () => newPrice() < currentPrice();
-  const isFree = () => newPrice() === 0;
-
-  const lostFeatures = (): string[] => {
-    const lost: string[] = [];
-    const tierOrder: Tier[] = ['Free', 'Basic', 'Pro', 'Enterprise'];
-    const curIdx = tierOrder.indexOf(props.instance.tier as Tier);
-    const nextIdx = tierOrder.indexOf(tier());
-    if (nextIdx < curIdx) {
-      const curCfg = TIER_CONFIG[props.instance.tier as Tier];
-      const nextCfg = TIER_CONFIG[tier()];
-      lost.push(`User capacity reduced from ${curCfg.maxUsers} to ${nextCfg.maxUsers}`);
-    }
-    if (props.instance.mediaEnabled && !media()) {
-      lost.push('Voice & Video channels');
-    }
-    return lost;
-  };
-
-  const submitChange = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(
-        `/api/v1/hub/instances/${props.instance.instanceId}/billing/change`,
-        {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({
-            instanceId: parseInt(props.instance.instanceId),
-            targetTier: tier(),
-            mediaEnabled: media(),
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.detail || err?.message || 'Failed to change plan');
-      }
-
-      const data: ChangePlanResponse = await res.json();
-
-      if (data.requiresCheckout && data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-
-      props.onSuccess();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to change plan');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitCancel = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(
-        `/api/v1/hub/instances/${props.instance.instanceId}/billing/cancel`,
-        {
-          method: 'POST',
-          headers: authHeaders(),
-        }
-      );
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.detail || err?.message || 'Failed to cancel subscription');
-      }
-
-      props.onSuccess();
-    } catch (err: any) {
-      setError(err?.message || 'Failed to cancel subscription');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApply = () => {
-    if (isDowngrade() && lostFeatures().length > 0 && !confirmingDowngrade()) {
-      setConfirmingDowngrade(true);
-      return;
-    }
-    submitChange();
-  };
-
   return (
     <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-xcord-bg-primary rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -237,170 +115,66 @@ function PlanEditor(props: {
           <div class="mb-5">
             <p class="text-xs font-bold uppercase text-xcord-text-muted mb-2">Plan</p>
             <div class="grid grid-cols-4 gap-2">
-              <For each={TIERS}>
-                {(t) => (
-                  <button
-                    type="button"
-                    onClick={() => setTier(t.id)}
-                    disabled={loading()}
-                    class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center transition ${
-                      tier() === t.id
-                        ? 'ring-2 ring-xcord-brand'
-                        : 'hover:bg-xcord-bg-accent'
-                    }`}
-                  >
-                    <div class="font-semibold">{t.label}</div>
-                    <div class="text-xs text-xcord-text-muted mt-1">{t.desc}</div>
-                  </button>
-                )}
-              </For>
+              <button
+                type="button"
+                class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ring-2 ring-xcord-brand"
+              >
+                <div class="font-semibold">Free</div>
+                <div class="text-xs text-xcord-text-muted mt-1">Up to 10 members</div>
+              </button>
+              <button
+                type="button"
+                class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center opacity-60 cursor-default"
+              >
+                <div class="font-semibold">Basic</div>
+                <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
+              </button>
+              <button
+                type="button"
+                class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center opacity-60 cursor-default"
+              >
+                <div class="font-semibold">Pro</div>
+                <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
+              </button>
+              <a
+                href="mailto:sales@xcord.net"
+                class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center opacity-60 hover:opacity-80 transition block"
+              >
+                <div class="font-semibold">Enterprise</div>
+                <div class="text-xs text-xcord-brand mt-1">Contact us</div>
+              </a>
             </div>
           </div>
 
           {/* Media toggle */}
           <div class="mb-5">
-            <label class="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={media()}
-                onChange={(e) => setMedia(e.currentTarget.checked)}
-                disabled={loading()}
-                class="w-4 h-4 rounded border-xcord-bg-tertiary text-xcord-brand focus:ring-xcord-brand"
-              />
+            <div class="flex items-center gap-3">
               <div>
                 <span class="text-sm font-medium text-xcord-text-primary">Voice &amp; Video</span>
-                <span class="text-xs text-xcord-text-muted ml-2">
-                  +{formatPrice(TIER_CONFIG[tier()].mediaPerUserCents * TIER_CONFIG[tier()].maxUsers)}
-                </span>
+                <span class="text-xs text-xcord-brand ml-2">Coming soon</span>
                 <div class="text-xs text-xcord-text-muted mt-0.5">
                   Voice channels, video calls, screen share
                 </div>
               </div>
-            </label>
+            </div>
           </div>
 
           {/* Price summary */}
           <div class="bg-xcord-bg-secondary rounded-lg p-4 mb-5">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-xcord-text-muted">Current plan</span>
-              <span class="text-sm text-xcord-text-muted">{formatPrice(currentPrice())}</span>
-            </div>
             <div class="flex items-center justify-between">
-              <span class="text-xs text-xcord-text-muted">New plan</span>
-              <span class="text-sm font-bold text-xcord-text-primary">{formatPrice(newPrice())}</span>
+              <span class="text-xs font-medium text-xcord-text-primary">Total</span>
+              <span class="text-sm font-bold text-xcord-text-primary">Free</span>
             </div>
-            <Show when={isChanged() && newPrice() !== currentPrice()}>
-              <div class="border-t border-xcord-bg-tertiary mt-2 pt-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-xcord-text-muted">Difference</span>
-                  <span
-                    class={`text-sm font-medium ${
-                      isUpgrade() ? 'text-xcord-green' : 'text-yellow-400'
-                    }`}
-                  >
-                    {isUpgrade() ? '+' : ''}{formatPrice(newPrice() - currentPrice()).replace('/mo', '')}/mo
-                  </span>
-                </div>
-              </div>
-            </Show>
           </div>
 
-          {/* Downgrade warning */}
-          <Show when={confirmingDowngrade()}>
-            <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-5">
-              <p class="text-sm font-medium text-yellow-400 mb-2">
-                Downgrading will remove:
-              </p>
-              <ul class="text-xs text-yellow-300 space-y-1">
-                <For each={lostFeatures()}>
-                  {(item) => <li>- {item}</li>}
-                </For>
-              </ul>
-              <p class="text-xs text-yellow-400 mt-2">
-                This takes effect immediately. Are you sure?
-              </p>
-            </div>
-          </Show>
-
-          {/* Cancel subscription confirmation */}
-          <Show when={confirmingCancel()}>
-            <div class="bg-xcord-red/10 border border-xcord-red/20 rounded-lg p-4 mb-5">
-              <p class="text-sm font-medium text-xcord-red mb-1">
-                Cancel subscription?
-              </p>
-              <p class="text-xs text-xcord-red/80">
-                This will downgrade your instance to the Free plan (10 users, no media).
-                All paid features will be removed immediately.
-              </p>
-            </div>
-          </Show>
-
-          <Show when={error()}>
-            <div class="text-sm text-xcord-red mb-4">{error()}</div>
-          </Show>
-
           {/* Actions */}
-          <div class="flex gap-3">
+          <div class="flex gap-3 justify-end">
             <button
               onClick={props.onClose}
-              disabled={loading()}
               class="px-4 py-2 text-sm text-xcord-text-muted hover:text-xcord-text-primary transition"
             >
-              Cancel
+              Close
             </button>
-
-            <div class="flex-1" />
-
-            {/* Cancel subscription button */}
-            <Show when={currentPrice() > 0 && !confirmingCancel()}>
-              <button
-                onClick={() => setConfirmingCancel(true)}
-                disabled={loading()}
-                class="px-4 py-2 text-sm font-medium text-xcord-red bg-xcord-red/10 rounded hover:bg-xcord-red/20 transition"
-              >
-                Cancel Subscription
-              </button>
-            </Show>
-
-            <Show when={confirmingCancel()}>
-              <button
-                onClick={() => setConfirmingCancel(false)}
-                disabled={loading()}
-                class="px-4 py-2 text-sm text-xcord-text-muted hover:text-xcord-text-primary transition"
-              >
-                Keep Plan
-              </button>
-              <button
-                onClick={submitCancel}
-                disabled={loading()}
-                class="px-4 py-2 text-sm font-medium text-white bg-xcord-red rounded hover:bg-xcord-red/80 transition disabled:opacity-50"
-              >
-                {loading() ? 'Cancelling...' : 'Confirm Cancel'}
-              </button>
-            </Show>
-
-            {/* Apply change button */}
-            <Show when={isChanged() && !confirmingCancel()}>
-              <button
-                onClick={handleApply}
-                disabled={loading()}
-                class={`px-4 py-2 text-sm font-medium text-white rounded transition disabled:opacity-50 ${
-                  confirmingDowngrade()
-                    ? 'bg-yellow-600 hover:bg-yellow-700'
-                    : 'bg-xcord-brand hover:bg-xcord-brand-hover'
-                }`}
-              >
-                {loading()
-                  ? 'Applying...'
-                  : confirmingDowngrade()
-                    ? 'Confirm Downgrade'
-                    : isUpgrade()
-                      ? isFree()
-                        ? 'Apply Change'
-                        : 'Upgrade'
-                      : 'Change Plan'}
-              </button>
-            </Show>
           </div>
         </div>
       </div>
@@ -409,15 +183,9 @@ function PlanEditor(props: {
 }
 
 export default function Billing() {
-  const [billing, { refetch }] = createResource(fetchBilling);
-  const [invoices, { refetch: refetchInvoices }] = createResource(fetchInvoices);
+  const [billing] = createResource(fetchBilling);
+  const [invoices] = createResource(fetchInvoices);
   const [editingInstance, setEditingInstance] = createSignal<InstanceBillingItem | null>(null);
-
-  const handlePlanSuccess = () => {
-    setEditingInstance(null);
-    refetch();
-    refetchInvoices();
-  };
 
   return (
     <div class="p-8 max-w-3xl">
@@ -515,7 +283,6 @@ export default function Billing() {
           <PlanEditor
             instance={instance()}
             onClose={() => setEditingInstance(null)}
-            onSuccess={handlePlanSuccess}
           />
         )}
       </Show>
