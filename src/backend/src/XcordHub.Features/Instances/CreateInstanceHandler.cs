@@ -61,12 +61,19 @@ public sealed class CreateInstanceHandler(
         if (!Enum.IsDefined(request.Tier))
             return Error.Validation("VALIDATION_FAILED", "Invalid tier");
 
+        // Beta gate - remove when payment processing launches
+        if (request.Tier != InstanceTier.Free)
+            return Error.Validation("PAID_TIER_UNAVAILABLE", "Paid tiers are not yet available.");
+
+        if (request.MediaEnabled)
+            return Error.Validation("MEDIA_UNAVAILABLE", "Voice & video is not yet available.");
+
         return null;
     }
 
     public async Task<Result<CreateInstanceResponse>> Handle(CreateInstanceCommand request, CancellationToken cancellationToken)
     {
-        // Validate captcha for free tier - paid tiers skip captcha
+        // Validate captcha for free tier without media
         var isFreeTier = request.Tier == InstanceTier.Free && !request.MediaEnabled;
         if (isFreeTier && !await captchaService.ValidateAsync(request.CaptchaId ?? "", request.CaptchaAnswer ?? ""))
         {
@@ -76,6 +83,16 @@ public sealed class CreateInstanceHandler(
         var userIdResult = currentUserService.GetCurrentUserId();
         if (userIdResult.IsFailure) return userIdResult.Error!;
         var userId = userIdResult.Value;
+
+        // One free instance per user (permanent limit)
+        if (request.Tier == InstanceTier.Free)
+        {
+            var hasFreeInstance = await dbContext.ManagedInstances
+                .AnyAsync(i => i.OwnerId == userId && i.Billing != null && i.Billing.Tier == InstanceTier.Free, cancellationToken);
+
+            if (hasFreeInstance)
+                return Error.BadRequest("FREE_INSTANCE_LIMIT", "You already have a free instance.");
+        }
 
         var baseDomain = configuration.GetValue<string>("Hub:BaseDomain") ?? "xcord-dev.net";
         var domain = $"{request.Subdomain}.{baseDomain}";
