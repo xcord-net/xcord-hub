@@ -35,7 +35,7 @@ public sealed record CreateInstanceResponse(
 
 public sealed class CreateInstanceHandler(
     HubDbContext dbContext,
-    SnowflakeId snowflakeGenerator,
+    SnowflakeIdGenerator snowflakeGenerator,
     ICurrentUserService currentUserService,
     IProvisioningQueue provisioningQueue,
     IConfiguration configuration,

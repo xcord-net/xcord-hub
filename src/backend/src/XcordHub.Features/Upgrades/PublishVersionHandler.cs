@@ -23,7 +23,7 @@ public sealed record PublishVersionResponse(
     DateTimeOffset PublishedAt
 );
 
-public sealed class PublishVersionHandler(HubDbContext dbContext, SnowflakeId snowflakeGenerator)
+public sealed class PublishVersionHandler(HubDbContext dbContext, SnowflakeIdGenerator snowflakeGenerator)
     : IRequestHandler<PublishVersionRequest, Result<PublishVersionResponse>>,
       IValidatable<PublishVersionRequest>
 {

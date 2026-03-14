@@ -25,7 +25,7 @@ public sealed class LoginWith2FAHandler(
     HubDbContext dbContext,
     IEncryptionService encryptionService,
     IJwtService jwtService,
-    SnowflakeId snowflakeGenerator,
+    SnowflakeIdGenerator snowflakeGenerator,
     IHttpContextAccessor httpContextAccessor)
     : IRequestHandler<LoginWith2FARequest, Result<LoginWith2FAResponse>>, IValidatable<LoginWith2FARequest>
 {

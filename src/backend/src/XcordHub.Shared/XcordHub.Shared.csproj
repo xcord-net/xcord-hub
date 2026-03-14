@@ -15,4 +15,12 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../../../../xcord-common/src/Xcord.Common/Xcord.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xcord" />
+  </ItemGroup>
+
 </Project>

@@ -6,7 +6,7 @@ namespace XcordHub;
 public static class LoginAttemptRecorder
 {
     public static LoginAttempt Create(
-        SnowflakeId snowflakeGenerator,
+        SnowflakeIdGenerator snowflakeGenerator,
         IHttpContextAccessor httpContextAccessor,
         string email,
         string? failureReason = null,

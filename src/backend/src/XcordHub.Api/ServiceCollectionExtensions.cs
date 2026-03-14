@@ -55,7 +55,7 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<HubDbContext>(options => options.UseNpgsql(connectionString));
 
         // Snowflake ID generator
-        services.AddSingleton(sp => new SnowflakeId(1)); // workerId 1 for hub
+        services.AddSingleton(sp => new SnowflakeIdGenerator(1)); // workerId 1 for hub
 
         // Encryption
         AddEncryption(services, config);
@@ -162,6 +162,7 @@ public static class ServiceCollectionExtensions
         services.Configure<Route53Options>(config.GetSection("Route53"));
         services.Configure<DockerOptions>(config.GetSection("Docker"));
         services.Configure<CaddyOptions>(config.GetSection("Caddy"));
+        services.Configure<HubEmailOptions>(config.GetSection("Email"));
         services.Configure<EmailOptions>(config.GetSection("Email"));
         services.Configure<MinioOptions>(config.GetSection(MinioOptions.SectionName));
         services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
@@ -534,7 +535,7 @@ public static class ServiceCollectionExtensions
         using var scope = app.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
         var encryptionService = scope.ServiceProvider.GetRequiredService<IEncryptionService>();
-        var snowflakeGenerator = scope.ServiceProvider.GetRequiredService<SnowflakeId>();
+        var snowflakeGenerator = scope.ServiceProvider.GetRequiredService<SnowflakeIdGenerator>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         var authOptions = scope.ServiceProvider.GetRequiredService<IOptions<AuthOptions>>().Value;
 

@@ -12,7 +12,7 @@ public sealed record RegisterCommand(string BootstrapToken);
 
 public sealed record RegisterResponse(string InstanceOAuthToken, string InstanceId, string Domain);
 
-public sealed class RegisterHandler(HubDbContext dbContext, SnowflakeId snowflakeGenerator)
+public sealed class RegisterHandler(HubDbContext dbContext, SnowflakeIdGenerator snowflakeGenerator)
     : IRequestHandler<RegisterCommand, Result<RegisterResponse>>, IValidatable<RegisterCommand>
 {
     public Error? Validate(RegisterCommand request)

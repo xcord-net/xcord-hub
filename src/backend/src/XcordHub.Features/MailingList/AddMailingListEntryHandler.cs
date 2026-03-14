@@ -12,7 +12,7 @@ public sealed record AddMailingListEntryRequest(string Email, string Tier);
 
 public sealed record AddMailingListEntryResponse(string Message);
 
-public sealed class AddMailingListEntryHandler(HubDbContext dbContext, SnowflakeId snowflakeGenerator)
+public sealed class AddMailingListEntryHandler(HubDbContext dbContext, SnowflakeIdGenerator snowflakeGenerator)
     : IRequestHandler<AddMailingListEntryRequest, Result<AddMailingListEntryResponse>>, IValidatable<AddMailingListEntryRequest>
 {
     private static readonly string[] FeatureNames = ["Chat", "Chat + Audio", "Chat + Audio + Video"];

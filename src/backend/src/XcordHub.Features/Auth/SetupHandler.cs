@@ -21,7 +21,7 @@ public sealed class SetupHandler(
     HubDbContext dbContext,
     IEncryptionService encryptionService,
     IJwtService jwtService,
-    SnowflakeId snowflakeGenerator,
+    SnowflakeIdGenerator snowflakeGenerator,
     IHttpContextAccessor httpContextAccessor,
     IOptions<AuthOptions> authOptions)
     : IEndpoint

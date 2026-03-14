@@ -14,7 +14,7 @@ public sealed record RefreshTokenApiResponse(string AccessToken);
 public sealed class RefreshTokenHandler(
     HubDbContext dbContext,
     IJwtService jwtService,
-    SnowflakeId snowflakeGenerator)
+    SnowflakeIdGenerator snowflakeGenerator)
     : IEndpoint
 {
     public async Task<Result<RefreshTokenResponse>> HandleWithToken(string refreshTokenValue, CancellationToken cancellationToken)

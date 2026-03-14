@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XcordHub.Tests.Security", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XcordHub.Tests.Infrastructure", "tests\XcordHub.Tests.Infrastructure\XcordHub.Tests.Infrastructure.csproj", "{5690E385-E41E-403B-903E-46E082D5BAAF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xcord.Common", "..\..\xcord-common\src\Xcord.Common\Xcord.Common.csproj", "{1A006455-021F-42F5-8A7D-60715A074165}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +131,18 @@ Global
 		{5690E385-E41E-403B-903E-46E082D5BAAF}.Release|x64.Build.0 = Release|Any CPU
 		{5690E385-E41E-403B-903E-46E082D5BAAF}.Release|x86.ActiveCfg = Release|Any CPU
 		{5690E385-E41E-403B-903E-46E082D5BAAF}.Release|x86.Build.0 = Release|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Debug|x64.Build.0 = Debug|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Debug|x86.Build.0 = Debug|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Release|x64.ActiveCfg = Release|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Release|x64.Build.0 = Release|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Release|x86.ActiveCfg = Release|Any CPU
+		{1A006455-021F-42F5-8A7D-60715A074165}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -142,5 +156,6 @@ Global
 		{9B557166-E116-4EC1-83BC-6FC7ECFDB1A1} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{A40C9AEE-B820-47EF-82FC-436C62FAA403} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{5690E385-E41E-403B-903E-46E082D5BAAF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{1A006455-021F-42F5-8A7D-60715A074165} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

@@ -21,4 +21,12 @@
     <ProjectReference Include="..\XcordHub.Infrastructure\XcordHub.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../../../../xcord-common/src/Xcord.Common/Xcord.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xcord" />
+  </ItemGroup>
+
 </Project>

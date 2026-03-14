@@ -22,7 +22,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
     private PostgreSqlContainer? _postgres;
     private HubDbContext? _dbContext;
     private IEncryptionService? _encryptionService;
-    private SnowflakeId? _snowflake;
+    private SnowflakeIdGenerator? _snowflake;
 
     private const string EncryptionKey = "test-encryption-key-with-256-bits-minimum-length-required";
     private const string TestPassword = "TestPass123!";
@@ -45,7 +45,7 @@ public sealed class AccountDeletionTests : IAsyncLifetime
         _encryptionService = new AesEncryptionService(EncryptionKey);
         _dbContext = new HubDbContext(options, _encryptionService);
         await _dbContext.Database.EnsureCreatedAsync();
-        _snowflake = new SnowflakeId(2);
+        _snowflake = new SnowflakeIdGenerator(2);
     }
 
     public async Task DisposeAsync()

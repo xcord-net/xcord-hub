@@ -26,7 +26,7 @@ public sealed record StartUpgradeResponse(
 
 public sealed class StartUpgradeHandler(
     HubDbContext dbContext,
-    SnowflakeId snowflakeGenerator,
+    SnowflakeIdGenerator snowflakeGenerator,
     IUpgradeQueue upgradeQueue)
     : IRequestHandler<StartUpgradeCommand, Result<StartUpgradeResponse>>,
       IValidatable<StartUpgradeCommand>

@@ -1,5 +1,5 @@
 using FluentAssertions;
-using XcordHub;
+using Xcord;
 
 namespace XcordHub.Tests.Unit;
 
@@ -15,7 +15,6 @@ public sealed class ResultTests
         result.IsSuccess.Should().BeTrue();
         result.IsFailure.Should().BeFalse();
         result.Value.Should().Be(42);
-        result.Error.Should().BeNull();
     }
 
     [Fact]
@@ -64,8 +63,8 @@ public sealed class ResultTests
 
         // Act
         var output = result.Match(
-            success: value => $"Success: {value}",
-            failure: error => $"Error: {error.Message}");
+            onSuccess: value => $"Success: {value}",
+            onFailure: error => $"Error: {error.Message}");
 
         // Assert
         output.Should().Be("Success: 42");
@@ -80,8 +79,8 @@ public sealed class ResultTests
 
         // Act
         var output = result.Match(
-            success: value => $"Success: {value}",
-            failure: error => $"Error: {error.Message}");
+            onSuccess: value => $"Success: {value}",
+            onFailure: error => $"Error: {error.Message}");
 
         // Assert
         output.Should().Be("Error: Not found");
@@ -145,7 +144,7 @@ public sealed class ResultTests
     public void Failure_WithComplexError_ShouldPreserveErrorDetails()
     {
         // Arrange
-        var error = new Error("CUSTOM_ERROR", "Custom error message", 418);
+        var error = Error.Failure("CUSTOM_ERROR", "Custom error message");
 
         // Act
         var result = Result<string>.Failure(error);
@@ -155,6 +154,6 @@ public sealed class ResultTests
         result.Error.Should().Be(error);
         result.Error!.Code.Should().Be("CUSTOM_ERROR");
         result.Error.Message.Should().Be("Custom error message");
-        result.Error.StatusCode.Should().Be(418);
+        result.Error.StatusCode.Should().Be(500);
     }
 }

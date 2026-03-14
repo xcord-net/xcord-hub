@@ -1,0 +1,3 @@
+[submodule "xcord-common"]
+	path = xcord-common
+	url = https://github.com/xcord-net/xcord-common.git

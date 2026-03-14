@@ -72,7 +72,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
         var email = $"reset{suffix}_{Guid.NewGuid():N}@test.local";
         var emailHash = enc.ComputeHmac(email.ToLowerInvariant());
         var encryptedEmail = enc.Encrypt(email.ToLowerInvariant());
-        var snowflake = new SnowflakeId(5);
+        var snowflake = new SnowflakeIdGenerator(5);
 
         var user = new HubUser
         {
@@ -98,7 +98,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
         IEmailService emailService,
         string hubBaseUrl = "https://xcord-dev.net")
     {
-        var emailOptions = Options.Create(new EmailOptions
+        var emailOptions = Options.Create(new HubEmailOptions
         {
             SmtpHost = "localhost",
             SmtpPort = 1025,
@@ -114,7 +114,7 @@ public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
             enc,
             emailService,
             emailOptions,
-            new SnowflakeId(6),
+            new SnowflakeIdGenerator(6),
             NullLogger<ForgotPasswordHandler>.Instance);
     }
 

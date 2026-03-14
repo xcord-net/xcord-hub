@@ -12,7 +12,7 @@ public sealed record TriggerBackupCommand(long InstanceId, string Kind);
 
 public sealed record TriggerBackupRequest(string Kind);
 
-public sealed class TriggerBackupHandler(HubDbContext dbContext, SnowflakeId snowflakeId)
+public sealed class TriggerBackupHandler(HubDbContext dbContext, SnowflakeIdGenerator snowflakeId)
     : IRequestHandler<TriggerBackupCommand, Result<BackupRecordItem>>
 {
     public async Task<Result<BackupRecordItem>> Handle(TriggerBackupCommand request, CancellationToken cancellationToken)

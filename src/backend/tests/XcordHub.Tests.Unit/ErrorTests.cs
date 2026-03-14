@@ -1,5 +1,5 @@
 using FluentAssertions;
-using XcordHub;
+using Xcord;
 
 namespace XcordHub.Tests.Unit;
 
@@ -127,30 +127,15 @@ public sealed class ErrorTests
     }
 
     [Fact]
-    public void CustomError_ShouldSupportCustomStatusCode()
-    {
-        // Act
-        var error = new Error("CUSTOM", "Custom error", 418);
-
-        // Assert
-        error.Code.Should().Be("CUSTOM");
-        error.Message.Should().Be("Custom error");
-        error.StatusCode.Should().Be(418);
-    }
-
-    [Fact]
-    public void ErrorRecord_ShouldSupportDeconstruction()
+    public void ErrorRecord_ShouldSupportPropertyAccess()
     {
         // Arrange
         var error = Error.NotFound("NOT_FOUND", "Not found");
 
-        // Act
-        var (code, message, statusCode) = error;
-
         // Assert
-        code.Should().Be("NOT_FOUND");
-        message.Should().Be("Not found");
-        statusCode.Should().Be(404);
+        error.Code.Should().Be("NOT_FOUND");
+        error.Message.Should().Be("Not found");
+        error.StatusCode.Should().Be(404);
     }
 
     [Fact]

@@ -10,12 +10,12 @@ namespace XcordHub.Features.Provisioning;
 public sealed class GenerateSecretsStep : IProvisioningStep
 {
     private readonly HubDbContext _dbContext;
-    private readonly SnowflakeId _snowflakeGenerator;
+    private readonly SnowflakeIdGenerator _snowflakeGenerator;
     private readonly IDockerService _dockerService;
 
     public string StepName => "GenerateSecrets";
 
-    public GenerateSecretsStep(HubDbContext dbContext, SnowflakeId snowflakeGenerator, IDockerService dockerService)
+    public GenerateSecretsStep(HubDbContext dbContext, SnowflakeIdGenerator snowflakeGenerator, IDockerService dockerService)
     {
         _dbContext = dbContext;
         _snowflakeGenerator = snowflakeGenerator;

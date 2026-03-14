@@ -33,7 +33,7 @@ public sealed record ProvisionInstanceResponse(
 public sealed class ProvisionInstanceHandler(
     HubDbContext dbContext,
     IProvisioningQueue provisioningQueue,
-    SnowflakeId snowflakeGenerator,
+    SnowflakeIdGenerator snowflakeGenerator,
     ICurrentUserService currentUserService,
     IOptions<AuthOptions> authOptions)
     : IRequestHandler<ProvisionInstanceCommand, Result<ProvisionInstanceResponse>>, IValidatable<ProvisionInstanceCommand>

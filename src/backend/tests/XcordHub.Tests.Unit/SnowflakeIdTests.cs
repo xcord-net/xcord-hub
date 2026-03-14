@@ -1,5 +1,5 @@
 using FluentAssertions;
-using XcordHub;
+using Xcord;
 
 namespace XcordHub.Tests.Unit;
 
@@ -9,7 +9,7 @@ public sealed class SnowflakeIdTests
     public void NextId_ShouldGenerateUniqueIds()
     {
         // Arrange
-        var generator = new SnowflakeId(workerId: 1);
+        var generator = new SnowflakeIdGenerator(1);
 
         // Act
         var id1 = generator.NextId();
@@ -24,7 +24,7 @@ public sealed class SnowflakeIdTests
     public void NextId_ShouldGenerateMultipleUniqueIdsInSequence()
     {
         // Arrange
-        var generator = new SnowflakeId(workerId: 5);
+        var generator = new SnowflakeIdGenerator(5);
         var ids = new HashSet<long>();
 
         // Act
@@ -41,8 +41,8 @@ public sealed class SnowflakeIdTests
     public void Constructor_ShouldThrowForInvalidWorkerId()
     {
         // Act & Assert
-        Action actNegative = () => new SnowflakeId(workerId: -1);
-        Action actTooLarge = () => new SnowflakeId(workerId: 1024);
+        Action actNegative = () => new SnowflakeIdGenerator(-1);
+        Action actTooLarge = () => new SnowflakeIdGenerator(1024);
 
         actNegative.Should().Throw<ArgumentOutOfRangeException>();
         actTooLarge.Should().Throw<ArgumentOutOfRangeException>();
@@ -52,7 +52,7 @@ public sealed class SnowflakeIdTests
     public void NextId_ShouldGenerateMonotonicallyIncreasingIds()
     {
         // Arrange
-        var generator = new SnowflakeId(workerId: 10);
+        var generator = new SnowflakeIdGenerator(10);
         var previousId = 0L;
 
         // Act & Assert
@@ -68,12 +68,12 @@ public sealed class SnowflakeIdTests
     public void GetWorkerIdFromId_ShouldExtractWorkerIdCorrectly()
     {
         // Arrange
-        const long workerId = 42;
-        var generator = new SnowflakeId(workerId: workerId);
+        const int workerId = 42;
+        var generator = new SnowflakeIdGenerator(workerId);
 
         // Act
         var id = generator.NextId();
-        var extractedWorkerId = SnowflakeId.GetWorkerIdFromId(id);
+        var extractedWorkerId = SnowflakeIdGenerator.GetWorkerIdFromId(id);
 
         // Assert
         extractedWorkerId.Should().Be(workerId);
@@ -83,13 +83,13 @@ public sealed class SnowflakeIdTests
     public void GetTimestampFromId_ShouldExtractTimestampCorrectly()
     {
         // Arrange
-        var generator = new SnowflakeId(workerId: 1);
-        var beforeGeneration = DateTime.UtcNow;
+        var generator = new SnowflakeIdGenerator(1);
+        var beforeGeneration = DateTimeOffset.UtcNow;
 
         // Act
         var id = generator.NextId();
-        var afterGeneration = DateTime.UtcNow;
-        var extractedTimestamp = SnowflakeId.GetTimestampFromId(id);
+        var afterGeneration = DateTimeOffset.UtcNow;
+        var extractedTimestamp = generator.GetTimestampFromId(id);
 
         // Assert
         extractedTimestamp.Should().BeOnOrAfter(beforeGeneration.AddMilliseconds(-1));
@@ -100,7 +100,7 @@ public sealed class SnowflakeIdTests
     public void GetSequenceFromId_ShouldExtractSequenceCorrectly()
     {
         // Arrange
-        var generator = new SnowflakeId(workerId: 1);
+        var generator = new SnowflakeIdGenerator(1);
 
         // Generate two IDs in the same millisecond - call them back-to-back so the
         // timestamp doesn't advance between calls. The first ID in a new millisecond
@@ -118,8 +118,8 @@ public sealed class SnowflakeIdTests
         long? secondId = null;
         for (int i = 0; i < ids.Length - 1; i++)
         {
-            var ts1 = SnowflakeId.GetTimestampFromId(ids[i]);
-            var ts2 = SnowflakeId.GetTimestampFromId(ids[i + 1]);
+            var ts1 = generator.GetTimestampFromId(ids[i]);
+            var ts2 = generator.GetTimestampFromId(ids[i + 1]);
             if (ts1 == ts2)
             {
                 firstId = ids[i];
@@ -130,8 +130,8 @@ public sealed class SnowflakeIdTests
 
         // Assert - if we found a same-millisecond pair, verify the sequences are consecutive
         firstId.Should().NotBeNull("expected to find at least two IDs generated in the same millisecond out of 100");
-        var seq1 = SnowflakeId.GetSequenceFromId(firstId!.Value);
-        var seq2 = SnowflakeId.GetSequenceFromId(secondId!.Value);
+        var seq1 = SnowflakeIdGenerator.GetSequenceFromId(firstId!.Value);
+        var seq2 = SnowflakeIdGenerator.GetSequenceFromId(secondId!.Value);
         seq2.Should().Be(seq1 + 1, "consecutive IDs within the same millisecond should have consecutive sequence numbers");
     }
 
@@ -139,8 +139,8 @@ public sealed class SnowflakeIdTests
     public void DifferentGenerators_ShouldProduceDifferentIds()
     {
         // Arrange
-        var generator1 = new SnowflakeId(workerId: 1);
-        var generator2 = new SnowflakeId(workerId: 2);
+        var generator1 = new SnowflakeIdGenerator(1);
+        var generator2 = new SnowflakeIdGenerator(2);
 
         // Act
         var id1 = generator1.NextId();
@@ -148,8 +148,8 @@ public sealed class SnowflakeIdTests
 
         // Assert
         id1.Should().NotBe(id2);
-        SnowflakeId.GetWorkerIdFromId(id1).Should().Be(1);
-        SnowflakeId.GetWorkerIdFromId(id2).Should().Be(2);
+        SnowflakeIdGenerator.GetWorkerIdFromId(id1).Should().Be(1);
+        SnowflakeIdGenerator.GetWorkerIdFromId(id2).Should().Be(2);
     }
 
     [Theory]
@@ -157,14 +157,14 @@ public sealed class SnowflakeIdTests
     [InlineData(100)]
     [InlineData(500)]
     [InlineData(1023)]
-    public void GetWorkerIdFromId_ShouldWorkForAllValidWorkerIds(long workerId)
+    public void GetWorkerIdFromId_ShouldWorkForAllValidWorkerIds(int workerId)
     {
         // Arrange
-        var generator = new SnowflakeId(workerId: workerId);
+        var generator = new SnowflakeIdGenerator(workerId);
 
         // Act
         var id = generator.NextId();
-        var extractedWorkerId = SnowflakeId.GetWorkerIdFromId(id);
+        var extractedWorkerId = SnowflakeIdGenerator.GetWorkerIdFromId(id);
 
         // Assert
         extractedWorkerId.Should().Be(workerId);
@@ -174,7 +174,7 @@ public sealed class SnowflakeIdTests
     public void RapidGeneration_ShouldMaintainUniqueness()
     {
         // Arrange
-        var generator = new SnowflakeId(workerId: 7);
+        var generator = new SnowflakeIdGenerator(7);
         var ids = new HashSet<long>();
 
         // Act

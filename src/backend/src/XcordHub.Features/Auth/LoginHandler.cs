@@ -25,7 +25,7 @@ public sealed class LoginHandler(
     HubDbContext dbContext,
     IEncryptionService encryptionService,
     IJwtService jwtService,
-    SnowflakeId snowflakeGenerator,
+    SnowflakeIdGenerator snowflakeGenerator,
     IHttpContextAccessor httpContextAccessor,
     IConnectionMultiplexer redis,
     IOptions<RedisOptions> redisOptions)

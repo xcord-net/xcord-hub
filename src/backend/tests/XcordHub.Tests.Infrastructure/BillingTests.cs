@@ -139,7 +139,7 @@ public sealed class BillingTests : IAsyncLifetime
 
         var handler = new CreateInstanceHandler(
             dbContext,
-            new SnowflakeId(workerId: 255),
+            new SnowflakeIdGenerator(255),
             StubUser(userId),
             new NoOpProvisioningQueue(),
             BuildConfiguration(),

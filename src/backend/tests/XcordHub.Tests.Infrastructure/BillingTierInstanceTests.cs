@@ -118,7 +118,7 @@ public sealed class BillingTierInstanceTests : IAsyncLifetime
     {
         return new CreateInstanceHandler(
             dbContext,
-            new SnowflakeId(workerId: 254),
+            new SnowflakeIdGenerator(254),
             currentUserService,
             NoOpProvisioningQueue(),
             BuildConfiguration(),

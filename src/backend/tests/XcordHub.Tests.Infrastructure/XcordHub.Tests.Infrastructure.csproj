@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Xcord" />
   </ItemGroup>
 
   <ItemGroup>

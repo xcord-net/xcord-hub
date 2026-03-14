@@ -29,7 +29,7 @@ public sealed class RegisterHandler(
     HubDbContext dbContext,
     IEncryptionService encryptionService,
     IJwtService jwtService,
-    SnowflakeId snowflakeGenerator,
+    SnowflakeIdGenerator snowflakeGenerator,
     ICaptchaService captchaService,
     IHttpContextAccessor httpContextAccessor,
     IOptions<AuthOptions> authOptions)

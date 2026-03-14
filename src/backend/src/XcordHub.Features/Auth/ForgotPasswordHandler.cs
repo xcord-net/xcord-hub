@@ -21,8 +21,8 @@ public sealed class ForgotPasswordHandler(
     HubDbContext dbContext,
     IEncryptionService encryptionService,
     IEmailService emailService,
-    IOptions<EmailOptions> emailOptions,
-    SnowflakeId snowflakeGenerator,
+    IOptions<HubEmailOptions> emailOptions,
+    SnowflakeIdGenerator snowflakeGenerator,
     ILogger<ForgotPasswordHandler> logger)
     : IRequestHandler<ForgotPasswordCommand, Result<bool>>, IValidatable<ForgotPasswordCommand>
 {
