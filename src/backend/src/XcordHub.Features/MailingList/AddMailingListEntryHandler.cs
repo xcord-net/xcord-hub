@@ -15,15 +15,15 @@ public sealed record AddMailingListEntryResponse(string Message);
 public sealed class AddMailingListEntryHandler(HubDbContext dbContext, SnowflakeIdGenerator snowflakeGenerator)
     : IRequestHandler<AddMailingListEntryRequest, Result<AddMailingListEntryResponse>>, IValidatable<AddMailingListEntryRequest>
 {
-    private static readonly string[] FeatureNames = ["Chat", "Chat + Audio", "Chat + Audio + Video"];
-    private static readonly int[] UserCounts = [10, 50, 100, 500];
-
-    private static readonly HashSet<string> ValidTiers = new(
-        from f in FeatureNames
-        from u in UserCounts
-        select $"{f} ({u} users)",
-        StringComparer.OrdinalIgnoreCase
-    );
+    private static readonly HashSet<string> ValidTiers = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Instance tiers
+        "Basic", "Pro", "Enterprise",
+        // Feature interests
+        "Voice & Video",
+        // Platform app interests
+        "android app", "ios app", "windows app", "macos app", "linux app",
+    };
 
     public Error? Validate(AddMailingListEntryRequest request)
     {

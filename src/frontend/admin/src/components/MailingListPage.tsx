@@ -1,7 +1,7 @@
 import { For, Show, createEffect, onMount } from 'solid-js';
 import { useMailingList } from '../stores/mailing-list.store';
 
-const TIERS = ['Basic', 'Pro'];
+const TIERS = ['Basic', 'Pro', 'Enterprise', 'Voice & Video', 'android app', 'ios app', 'windows app', 'macos app', 'linux app'];
 
 export function MailingListPage() {
   const mailingList = useMailingList();
