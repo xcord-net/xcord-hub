@@ -86,6 +86,16 @@ public sealed class ProvisionInstanceHandler(
             return Error.NotFound("OWNER_NOT_FOUND", $"Owner {ownerId} not found");
         }
 
+        // One free instance per user (permanent limit) - applies to target owner, not admin
+        if (request.Tier == InstanceTier.Free)
+        {
+            var hasFreeInstance = await dbContext.ManagedInstances
+                .AnyAsync(i => i.OwnerId == ownerId && i.Billing != null && i.Billing.Tier == InstanceTier.Free, cancellationToken);
+
+            if (hasFreeInstance)
+                return Error.BadRequest("FREE_INSTANCE_LIMIT", "This user already has a free instance.");
+        }
+
         // Check if domain already exists (excluding soft-deleted instances)
         var domainExists = await dbContext.ManagedInstances
             .IgnoreQueryFilters()
