@@ -265,6 +265,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 canUseHdVideo = featureFlags?.CanUseHdVideo ?? false,
                 canUseSimulcast = featureFlags?.CanUseSimulcast ?? false,
                 canUseRecording = featureFlags?.CanUseRecording ?? false,
+                canUseMemberTiers = featureFlags?.CanUseMemberTiers ?? false,
                 maxUsers = resourceLimits?.MaxUsers ?? 0,
                 maxServers = resourceLimits?.MaxServers ?? 0,
                 maxStorageMb = resourceLimits?.MaxStorageMb ?? 0,
