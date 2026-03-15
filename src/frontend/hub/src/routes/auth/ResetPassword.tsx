@@ -58,7 +58,7 @@ export default function ResetPassword() {
   return (
     <div class="min-h-screen bg-xcord-bg-primary flex items-center justify-center px-4">
       <PageMeta
-        title="Reset Password - Xcord Hub"
+        title="Reset Password - Xcord"
         description="Set a new password for your Xcord Hub account."
         path="/reset-password"
         noindex
@@ -71,7 +71,7 @@ export default function ResetPassword() {
         </div>
 
         <Show when={success()}>
-          <div class="text-sm text-green-400 bg-green-900/20 border border-green-800 rounded p-3 mb-4">
+          <div data-testid="reset-password-success" class="text-sm text-green-400 bg-green-900/20 border border-green-800 rounded p-3 mb-4">
             Password reset successfully! Redirecting to login...
           </div>
         </Show>
@@ -114,6 +114,7 @@ export default function ResetPassword() {
 
             <button
               type="submit"
+              data-testid="reset-password-submit-button"
               disabled={loading()}
               class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
             >

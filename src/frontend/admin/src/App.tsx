@@ -1,4 +1,4 @@
-import { createSignal, Show, onMount } from 'solid-js';
+import { createSignal, createEffect, Show, onMount } from 'solid-js';
 import { useAuth } from './stores/auth.store';
 import { useInstances } from './stores/instance.store';
 import { Login } from './components/Login';
@@ -16,6 +16,18 @@ export function App() {
   const instanceStore = useInstances();
   const [currentPage, setCurrentPage] = createSignal<Page>('login');
   const [selectedInstanceId, setSelectedInstanceId] = createSignal<string | null>(null);
+
+  createEffect(() => {
+    const titles: Record<Page, string> = {
+      'login': 'Login - Xcord Admin',
+      'instances': 'Instances - Xcord Admin',
+      'instance-detail': 'Instance Details - Xcord Admin',
+      'provision': 'New Instance - Xcord Admin',
+      'mailing-list': 'Mailing List - Xcord Admin',
+      'setup': 'Setup - Xcord Admin',
+    };
+    document.title = titles[currentPage()] ?? 'Xcord Admin';
+  });
 
   onMount(async () => {
     // Check if first-boot setup is needed before attempting auth validation

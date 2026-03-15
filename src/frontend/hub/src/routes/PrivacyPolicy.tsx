@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
   return (
     <article class="max-w-3xl mx-auto px-6 py-20 text-xcord-landing-text">
       <PageMeta
-        title="Privacy Policy - Xcord Hub"
+        title="Privacy Policy - Xcord"
         description="How Xcord handles your data. No ads, no tracking, no data sales. AES-256 encryption at rest."
         path="/privacy"
       />

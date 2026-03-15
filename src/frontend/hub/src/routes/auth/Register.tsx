@@ -54,7 +54,7 @@ export default function Register() {
   return (
     <div class="min-h-screen bg-xcord-bg-primary flex items-center justify-center px-4">
       <PageMeta
-        title="Create Account - Xcord Hub"
+        title="Create Account - Xcord"
         description="Create a new Xcord Hub account."
         path="/register"
         noindex

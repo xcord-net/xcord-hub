@@ -1,6 +1,7 @@
 import { createSignal, onMount, Show, For } from 'solid-js';
 import { A } from '@solidjs/router';
 import { instanceStore, type ConnectedInstance } from '../../stores/instance.store';
+import PageMeta from '../../components/PageMeta';
 
 interface InstanceInfo {
   instanceId: string;
@@ -48,7 +49,14 @@ export default function Overview() {
   const connectedCount = () => instanceStore.connectedInstances().length;
 
   return (
-    <div class="p-8">
+    <>
+      <PageMeta
+        title="Servers - Xcord"
+        description="Manage your Xcord servers."
+        path="/dashboard"
+        noindex
+      />
+      <div class="p-8">
       <div class="flex items-center justify-between mb-8">
         <h1 class="text-2xl font-bold text-xcord-text-primary">Overview</h1>
         <A
@@ -123,5 +131,6 @@ export default function Overview() {
         </Show>
       </Show>
     </div>
+    </>
   );
 }

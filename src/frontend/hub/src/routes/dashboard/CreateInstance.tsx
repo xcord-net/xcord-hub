@@ -4,6 +4,7 @@ import { instanceStore } from '../../stores/instance.store';
 import Captcha from '../../components/Captcha';
 import PasswordStrength from '../../components/PasswordStrength';
 import ContactModal from '../../components/ContactModal';
+import PageMeta from '../../components/PageMeta';
 
 export default function CreateInstance() {
   const navigate = useNavigate();
@@ -166,7 +167,14 @@ export default function CreateInstance() {
   };
 
   return (
-    <div class="p-8 max-w-xl">
+    <>
+      <PageMeta
+        title="Create Server - Xcord"
+        description="Create a new Xcord server."
+        path="/dashboard/create"
+        noindex
+      />
+      <div class="p-8 max-w-xl">
       <h1 class="text-2xl font-bold text-xcord-text-primary mb-2">Create Instance</h1>
 
       <Show when={checkingInstances()}>
@@ -359,5 +367,6 @@ export default function CreateInstance() {
 
       <ContactModal open={showContact()} onClose={() => setShowContact(false)} />
     </div>
+    </>
   );
 }

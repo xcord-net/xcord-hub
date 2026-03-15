@@ -92,6 +92,11 @@ if [ -f "$CONFIG_PATH" ]; then
         },
         Auth: {
             BcryptWorkFactor: (.auth.bcryptWorkFactor // 12)
+        },
+        Stripe: {
+            SecretKey: (.stripe.secretKey // ""),
+            PublishableKey: (.stripe.publishableKey // ""),
+            WebhookSecret: (.stripe.webhookSecret // "")
         }
     }' "$CONFIG_PATH" > "$APPSETTINGS_PATH"
 

@@ -31,7 +31,7 @@ export default function ForgotPassword() {
   return (
     <div class="min-h-screen bg-xcord-bg-primary flex items-center justify-center px-4">
       <PageMeta
-        title="Forgot Password - Xcord Hub"
+        title="Forgot Password - Xcord"
         description="Reset your Xcord Hub account password."
         path="/forgot-password"
         noindex
@@ -46,7 +46,7 @@ export default function ForgotPassword() {
         </div>
 
         <Show when={submitted()}>
-          <div class="text-sm text-xcord-text-primary bg-xcord-bg-tertiary border border-xcord-brand/30 rounded p-3 mb-4">
+          <div data-testid="forgot-password-success" class="text-sm text-xcord-text-primary bg-xcord-bg-tertiary border border-xcord-brand/30 rounded p-3 mb-4">
             If an account with that email exists, you'll receive a reset link shortly.
           </div>
           <p class="text-sm text-xcord-text-muted mt-4">
@@ -76,6 +76,7 @@ export default function ForgotPassword() {
 
             <button
               type="submit"
+              data-testid="forgot-password-submit-button"
               disabled={loading()}
               class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
             >

@@ -17,6 +17,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
 
     public string StepName => "StartApiContainer";
 
+    private readonly string _stripeSecretKey;
+    private readonly string _stripeWebhookSecret;
+
     public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IConfiguration configuration, TopologyResolver resolver)
     {
         _dbContext = dbContext;
@@ -24,6 +27,8 @@ public sealed class StartApiContainerStep : IProvisioningStep
         _hubConnectionString = configuration.GetSection("Database:ConnectionString").Value
             ?? throw new InvalidOperationException("Database:ConnectionString not configured");
         _resolver = resolver;
+        _stripeSecretKey = configuration.GetSection("Stripe:SecretKey").Value ?? "";
+        _stripeWebhookSecret = configuration.GetSection("Stripe:WebhookSecret").Value ?? "";
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -80,7 +85,8 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId,
                 dbConnStr, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
                 redisConnStr, storageEndpoint, livekitHost,
-                featureFlags, limits);
+                featureFlags, limits,
+                _stripeSecretKey, _stripeWebhookSecret);
 
             // Create a Docker secret containing the config. The secret is mounted at
             // /run/secrets/xcord-config inside the container and read by entrypoint.sh.
@@ -153,7 +159,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
         string storageEndpoint,
         string livekitHost,
         FeatureFlags? featureFlags = null,
-        ResourceLimits? resourceLimits = null)
+        ResourceLimits? resourceLimits = null,
+        string stripeSecretKey = "",
+        string stripeWebhookSecret = "")
     {
         // Domain format for the instance: subdomain is used as-is (no suffix appended here -
         // the full domain (e.g. "test.localhost") is stored in ManagedInstance.Domain).
@@ -251,6 +259,11 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 batchSize = 100,
                 cleanupIntervalMinutes = 60,
                 retentionHours = 24
+            },
+            memberBilling = new
+            {
+                stripeSecretKey = stripeSecretKey,
+                stripeWebhookSecret = stripeWebhookSecret
             },
             tier = new
             {

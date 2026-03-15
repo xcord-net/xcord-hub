@@ -1,5 +1,6 @@
 import { createSignal, onMount, Show } from 'solid-js';
 import { A, useParams } from '@solidjs/router';
+import PageMeta from '../../components/PageMeta';
 
 interface InstanceInfo {
   id: string;
@@ -99,7 +100,14 @@ export default function InstanceDetail() {
   };
 
   return (
-    <div class="p-8 max-w-3xl">
+    <>
+      <PageMeta
+        title="Server Details - Xcord"
+        description="View server details."
+        path="/dashboard/instances"
+        noindex
+      />
+      <div class="p-8 max-w-3xl">
       <A href="/dashboard" class="text-sm text-xcord-text-link hover:underline mb-4 inline-block">
         &larr; Back to Overview
       </A>
@@ -232,5 +240,6 @@ export default function InstanceDetail() {
         </Show>
       </Show>
     </div>
+    </>
   );
 }

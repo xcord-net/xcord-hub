@@ -39,7 +39,7 @@ export default function Login() {
   return (
     <div class="min-h-screen bg-xcord-bg-primary flex items-center justify-center px-4">
       <PageMeta
-        title="Log In - Xcord Hub"
+        title="Log In - Xcord"
         description="Log in to your Xcord Hub account."
         path="/login"
         noindex
@@ -113,6 +113,7 @@ export default function Login() {
 
           <button
             type="submit"
+            data-testid="login-submit-button"
             disabled={loading()}
             class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
           >

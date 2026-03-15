@@ -144,7 +144,7 @@ export default function Pricing() {
   return (
     <>
       <PageMeta
-        title="Pricing - Xcord Hub"
+        title="Pricing - Xcord"
         description="Choose a plan based on your community size. Free tier for up to 10 members. Voice, video, and text included."
         path="/pricing"
       />

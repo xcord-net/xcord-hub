@@ -98,6 +98,7 @@ export default function DashboardSidebar() {
             </div>
           </Show>
           <button
+            data-testid="hub-logout-button"
             onClick={() => { auth.logout(); window.location.href = '/'; }}
             class="w-full mt-1 px-3 py-2 text-sm text-xcord-text-secondary hover:text-xcord-red hover:bg-xcord-bg-accent/50 rounded transition text-left"
           >

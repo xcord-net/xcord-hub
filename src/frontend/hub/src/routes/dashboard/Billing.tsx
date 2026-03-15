@@ -1,6 +1,7 @@
 import { A } from '@solidjs/router';
 import { createResource, createSignal, For, Show } from 'solid-js';
 import ContactModal from '../../components/ContactModal';
+import PageMeta from '../../components/PageMeta';
 
 interface InstanceBillingItem {
   instanceId: string;
@@ -194,7 +195,14 @@ export default function Billing() {
   const [editingInstance, setEditingInstance] = createSignal<InstanceBillingItem | null>(null);
 
   return (
-    <div class="p-8 max-w-3xl">
+    <>
+      <PageMeta
+        title="Billing - Xcord"
+        description="Manage your billing and subscriptions."
+        path="/dashboard/billing"
+        noindex
+      />
+      <div class="p-8 max-w-3xl">
       <h1 class="text-2xl font-bold text-xcord-text-primary mb-8">Billing</h1>
 
       {/* Instance list loading / error */}
@@ -348,5 +356,6 @@ export default function Billing() {
         </Show>
       </div>
     </div>
+    </>
   );
 }

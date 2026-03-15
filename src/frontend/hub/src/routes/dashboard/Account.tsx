@@ -1,6 +1,7 @@
 import { createSignal, Show } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { useAuth } from '../../stores/auth.store';
+import PageMeta from '../../components/PageMeta';
 
 export default function Account() {
   const auth = useAuth();
@@ -102,7 +103,14 @@ export default function Account() {
   };
 
   return (
-    <div class="p-8 max-w-xl">
+    <>
+      <PageMeta
+        title="Account - Xcord"
+        description="Manage your account settings."
+        path="/dashboard/account"
+        noindex
+      />
+      <div class="p-8 max-w-xl">
       <h1 class="text-2xl font-bold text-xcord-text-primary mb-8">Account</h1>
 
       {/* Profile */}
@@ -265,5 +273,6 @@ export default function Account() {
         </Show>
       </div>
     </div>
+    </>
   );
 }

@@ -5,7 +5,7 @@ export default function TermsOfService() {
   return (
     <article class="max-w-3xl mx-auto px-6 py-20 text-xcord-landing-text">
       <PageMeta
-        title="Terms of Service - Xcord Hub"
+        title="Terms of Service - Xcord"
         description="Terms of Service for Xcord's hosted platform. Read about account responsibilities, acceptable use, and data handling."
         path="/terms"
       />
