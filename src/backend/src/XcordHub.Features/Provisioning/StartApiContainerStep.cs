@@ -251,7 +251,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 fromAddress = $"noreply@{domain}",
                 fromName = "Xcord",
                 useSsl = false,
-                devMode = isDevelopment
+                devMode = false
             },
             rateLimiting = new
             {
