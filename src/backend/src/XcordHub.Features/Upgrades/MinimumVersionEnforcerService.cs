@@ -1,65 +1,22 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Upgrades;
 
-public sealed class MinimumVersionEnforcerService : BackgroundService
+public sealed class MinimumVersionEnforcerService(
+    IServiceScopeFactory serviceScopeFactory,
+    IUpgradeQueue upgradeQueue,
+    ILogger<MinimumVersionEnforcerService> logger) : PollingBackgroundService(serviceScopeFactory, logger)
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IUpgradeQueue _upgradeQueue;
-    private readonly ILogger<MinimumVersionEnforcerService> _logger;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromHours(1);
+    protected override TimeSpan Interval => TimeSpan.FromHours(1);
 
-    public MinimumVersionEnforcerService(
-        IServiceProvider serviceProvider,
-        IUpgradeQueue upgradeQueue,
-        ILogger<MinimumVersionEnforcerService> logger)
+    protected override async Task ProcessAsync(CancellationToken ct)
     {
-        _serviceProvider = serviceProvider;
-        _upgradeQueue = upgradeQueue;
-        _logger = logger;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        _logger.LogInformation("MinimumVersionEnforcerService started");
-
-        // Wait 30 seconds on startup before first check
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
-
-        using var timer = new PeriodicTimer(_checkInterval);
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await EnforceMinimumVersionsAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error enforcing minimum versions");
-            }
-
-            try
-            {
-                await timer.WaitForNextTickAsync(stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-        }
-
-        _logger.LogInformation("MinimumVersionEnforcerService stopped");
-    }
-
-    private async Task EnforceMinimumVersionsAsync(CancellationToken cancellationToken)
-    {
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = ServiceScopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
 
         var now = DateTimeOffset.UtcNow;
@@ -70,14 +27,14 @@ public sealed class MinimumVersionEnforcerService : BackgroundService
                 && v.MinimumEnforcementDate != null
                 && v.MinimumEnforcementDate <= now
                 && v.DeletedAt == null)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(ct);
 
         if (enforcedVersions.Count == 0)
         {
             return;
         }
 
-        _logger.LogInformation(
+        Logger.LogInformation(
             "Checking {Count} enforced minimum version(s)",
             enforcedVersions.Count);
 
@@ -94,20 +51,20 @@ public sealed class MinimumVersionEnforcerService : BackgroundService
                     && i.Config != null
                     && (i.Config.UpgradePolicy == UpgradePolicy.Manual
                         || i.Config.UpgradePolicy == UpgradePolicy.Pinned))
-                .ToListAsync(cancellationToken);
+                .ToListAsync(ct);
 
             if (nonCompliantInstances.Count == 0)
             {
                 continue;
             }
 
-            _logger.LogWarning(
+            Logger.LogWarning(
                 "Enforcing minimum version {Version} ({Image}) on {Count} non-compliant instance(s)",
                 enforcedVersion.Version, enforcedVersion.Image, nonCompliantInstances.Count);
 
             foreach (var instance in nonCompliantInstances)
             {
-                _logger.LogWarning(
+                Logger.LogWarning(
                     "Force upgrading instance {InstanceId} ({Domain}) from {CurrentImage} to minimum version {Version} ({TargetImage})",
                     instance.Id,
                     instance.Domain,
@@ -115,10 +72,10 @@ public sealed class MinimumVersionEnforcerService : BackgroundService
                     enforcedVersion.Version,
                     enforcedVersion.Image);
 
-                await _upgradeQueue.EnqueueInstanceUpgradeAsync(
+                await upgradeQueue.EnqueueInstanceUpgradeAsync(
                     instance.Id,
                     enforcedVersion.Image,
-                    cancellationToken: cancellationToken);
+                    cancellationToken: ct);
             }
         }
     }

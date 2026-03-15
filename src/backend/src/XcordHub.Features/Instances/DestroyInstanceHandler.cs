@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using XcordHub.Entities;
 using XcordHub.Features.Destruction;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Shared.Extensions;
 
 namespace XcordHub.Features.Instances;
 
@@ -64,7 +65,7 @@ public sealed class DestroyInstanceHandler(
             // Mark instance as destroyed (soft delete) - optimistic concurrency via xmin ensures
             // only one concurrent destroy wins; the other gets DbUpdateConcurrencyException → 409.
             instance.Status = InstanceStatus.Destroyed;
-            instance.DeletedAt = DateTimeOffset.UtcNow;
+            instance.SoftDelete();
             await dbContext.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation(

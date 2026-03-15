@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
@@ -8,57 +7,17 @@ using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Monitoring;
 
-public sealed class InstanceReconciler : BackgroundService
+public sealed class InstanceReconciler(
+    IServiceScopeFactory serviceScopeFactory,
+    ILogger<InstanceReconciler> logger) : PollingBackgroundService(serviceScopeFactory, logger)
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<InstanceReconciler> _logger;
-    private readonly TimeSpan _reconcileInterval = TimeSpan.FromSeconds(60);
     private readonly TimeSpan _provisioningTimeout = TimeSpan.FromMinutes(5);
 
-    public InstanceReconciler(
-        IServiceProvider serviceProvider,
-        ILogger<InstanceReconciler> logger)
+    protected override TimeSpan Interval => TimeSpan.FromSeconds(60);
+
+    protected override async Task ProcessAsync(CancellationToken ct)
     {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        _logger.LogInformation("InstanceReconciler started");
-
-        // Wait 5 seconds on startup before first reconcile
-        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-
-        using var timer = new PeriodicTimer(_reconcileInterval);
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await ReconcileInstancesAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error reconciling instances");
-            }
-
-            try
-            {
-                await timer.WaitForNextTickAsync(stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-        }
-
-        _logger.LogInformation("InstanceReconciler stopped");
-    }
-
-    private async Task ReconcileInstancesAsync(CancellationToken cancellationToken)
-    {
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = ServiceScopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
         var dockerService = scope.ServiceProvider.GetRequiredService<IDockerService>();
         var proxyManager = scope.ServiceProvider.GetRequiredService<ICaddyProxyManager>();
@@ -71,15 +30,15 @@ public sealed class InstanceReconciler : BackgroundService
             dockerService,
             proxyManager,
             healthVerifier,
-            cancellationToken);
+            ct);
 
         // 2. Detect stuck Provisioning instances
         await DetectStuckProvisioningAsync(
             dbContext,
             provisioningQueue,
-            cancellationToken);
+            ct);
 
-        _logger.LogInformation("Instance reconciliation completed");
+        Logger.LogInformation("Instance reconciliation completed");
     }
 
     private async Task ReconcileRunningInstancesAsync(
@@ -94,13 +53,13 @@ public sealed class InstanceReconciler : BackgroundService
             .Where(i => i.Status == InstanceStatus.Running && i.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
-        _logger.LogInformation("Reconciling {Count} running instances", runningInstances.Count);
+        Logger.LogInformation("Reconciling {Count} running instances", runningInstances.Count);
 
         foreach (var instance in runningInstances)
         {
             if (instance.Infrastructure == null)
             {
-                _logger.LogWarning(
+                Logger.LogWarning(
                     "Running instance {InstanceId} has no infrastructure, marking as Failed",
                     instance.Id);
 
@@ -140,7 +99,7 @@ public sealed class InstanceReconciler : BackgroundService
 
             if (!networkExists)
             {
-                _logger.LogWarning(
+                Logger.LogWarning(
                     "Instance {InstanceId} ({Domain}) network missing",
                     instance.Id, instance.Domain);
                 hasIssues = true;
@@ -154,7 +113,7 @@ public sealed class InstanceReconciler : BackgroundService
 
             if (!containerRunning)
             {
-                _logger.LogWarning(
+                Logger.LogWarning(
                     "Instance {InstanceId} ({Domain}) container not running",
                     instance.Id, instance.Domain);
                 hasIssues = true;
@@ -168,7 +127,7 @@ public sealed class InstanceReconciler : BackgroundService
 
             if (!routeExists)
             {
-                _logger.LogWarning(
+                Logger.LogWarning(
                     "Instance {InstanceId} ({Domain}) proxy route missing",
                     instance.Id, instance.Domain);
                 hasIssues = true;
@@ -184,7 +143,7 @@ public sealed class InstanceReconciler : BackgroundService
 
                 if (!isHealthy)
                 {
-                    _logger.LogWarning(
+                    Logger.LogWarning(
                         "Instance {InstanceId} ({Domain}) health check failed: {Error}",
                         instance.Id, instance.Domain, errorMessage);
                     hasIssues = true;
@@ -195,7 +154,7 @@ public sealed class InstanceReconciler : BackgroundService
             // If critical issues detected, mark as Failed
             if (hasIssues && issueDetails.Any(d => d.Contains("Network") || d.Contains("Container")))
             {
-                _logger.LogError(
+                Logger.LogError(
                     "Instance {InstanceId} ({Domain}) has critical infrastructure issues: {Issues}",
                     instance.Id, instance.Domain, string.Join(", ", issueDetails));
 
@@ -205,7 +164,7 @@ public sealed class InstanceReconciler : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
+            Logger.LogError(ex,
                 "Error reconciling instance {InstanceId} ({Domain})",
                 instance.Id, instance.Domain);
         }
@@ -230,13 +189,13 @@ public sealed class InstanceReconciler : BackgroundService
             return;
         }
 
-        _logger.LogWarning(
+        Logger.LogWarning(
             "Detected {Count} stuck provisioning instances (timeout: {Timeout} minutes)",
             stuckInstances.Count, _provisioningTimeout.TotalMinutes);
 
         foreach (var instance in stuckInstances)
         {
-            _logger.LogError(
+            Logger.LogError(
                 "Instance {InstanceId} ({Domain}) stuck in Provisioning for {Duration} minutes, re-enqueueing",
                 instance.Id, instance.Domain, (now - instance.CreatedAt).TotalMinutes);
 

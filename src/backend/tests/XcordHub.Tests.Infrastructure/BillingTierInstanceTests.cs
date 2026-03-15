@@ -9,6 +9,7 @@ using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Shared.Extensions;
 using XcordHub.Tests.Infrastructure.Fixtures;
 
 namespace XcordHub.Tests.Infrastructure;
@@ -241,7 +242,7 @@ public sealed class BillingTierInstanceTests
 
         var instanceId = long.Parse(firstResult.Value.InstanceId);
         var instance = await dbContext.ManagedInstances.FindAsync(instanceId);
-        instance!.DeletedAt = DateTimeOffset.UtcNow;
+        instance!.SoftDelete();
         await dbContext.SaveChangesAsync();
 
         // Create second instance - should succeed because first is soft-deleted

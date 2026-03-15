@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using XcordHub;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Shared.Extensions;
 
 namespace XcordHub.Features.Backups;
 
@@ -32,7 +33,7 @@ public sealed class DeleteBackupHandler(
             return Error.NotFound("BACKUP_NOT_FOUND", "Backup record not found");
 
         // Soft-delete the record
-        backup.DeletedAt = DateTimeOffset.UtcNow;
+        backup.SoftDelete();
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // Delete storage objects - best effort; log but don't fail if storage deletion fails

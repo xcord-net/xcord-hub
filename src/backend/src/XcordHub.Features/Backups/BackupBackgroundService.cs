@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
@@ -8,68 +7,38 @@ using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Backups;
 
-public sealed class BackupBackgroundService : BackgroundService
+public sealed class BackupBackgroundService(
+    IServiceScopeFactory serviceScopeFactory,
+    ILogger<BackupBackgroundService> logger) : PollingBackgroundService(serviceScopeFactory, logger)
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<BackupBackgroundService> _logger;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(60);
+    private bool? _coldStorageConfigured;
 
-    public BackupBackgroundService(
-        IServiceProvider serviceProvider,
-        ILogger<BackupBackgroundService> logger)
-    {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
+    protected override TimeSpan Interval => TimeSpan.FromSeconds(60);
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ProcessAsync(CancellationToken ct)
     {
-        // Skip entirely if cold storage is not configured — no point running
-        // backup cycles that can't upload anywhere
-        using (var scope = _serviceProvider.CreateScope())
+        // Check once whether cold storage is configured — skip entirely if not
+        if (_coldStorageConfigured == null)
         {
-            var coldStorage = scope.ServiceProvider.GetRequiredService<IColdStorageService>();
-            if (!coldStorage.IsConfigured)
+            using var checkScope = ServiceScopeFactory.CreateScope();
+            var coldStorage = checkScope.ServiceProvider.GetRequiredService<IColdStorageService>();
+            _coldStorageConfigured = coldStorage.IsConfigured;
+
+            if (!_coldStorageConfigured.Value)
             {
-                _logger.LogInformation("BackupBackgroundService disabled — cold storage not configured");
-                return;
+                Logger.LogInformation("BackupBackgroundService disabled — cold storage not configured");
             }
         }
 
-        _logger.LogInformation("BackupBackgroundService started");
+        if (!_coldStorageConfigured.Value)
+            return;
 
-        // Wait before first check to allow system to stabilize
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
-
-        using var timer = new PeriodicTimer(_checkInterval);
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await CheckAndRunBackupsAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking backup schedules");
-            }
-
-            try
-            {
-                await timer.WaitForNextTickAsync(stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-        }
-
-        _logger.LogInformation("BackupBackgroundService stopped");
+        await CheckAndRunBackupsAsync(ct);
     }
 
     private async Task CheckAndRunBackupsAsync(CancellationToken ct)
     {
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = ServiceScopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
         var executor = scope.ServiceProvider.GetRequiredService<BackupExecutor>();
 
@@ -90,7 +59,7 @@ public sealed class BackupBackgroundService : BackgroundService
             if (!IsBackupDue(policy, lastBackup))
                 continue;
 
-            _logger.LogInformation("Backup due for {Domain} (frequency: {Frequency})",
+            Logger.LogInformation("Backup due for {Domain} (frequency: {Frequency})",
                 policy.ManagedInstance.Domain, policy.Frequency);
 
             try
@@ -99,7 +68,7 @@ public sealed class BackupBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to execute backup for {Domain}",
+                Logger.LogError(ex, "Failed to execute backup for {Domain}",
                     policy.ManagedInstance.Domain);
             }
         }
