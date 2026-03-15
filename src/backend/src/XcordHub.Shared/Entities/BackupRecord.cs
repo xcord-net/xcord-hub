@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace XcordHub.Entities;
 
-public sealed class BackupRecord
+public sealed class BackupRecord : ISoftDeletable
 {
     public long Id { get; set; }
     public long ManagedInstanceId { get; set; }

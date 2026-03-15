@@ -2,7 +2,7 @@ using XcordHub.Entities;
 
 namespace XcordHub.Entities;
 
-public sealed class ManagedInstance
+public sealed class ManagedInstance : ISoftDeletable
 {
     public long Id { get; set; }
     public long OwnerId { get; set; }
