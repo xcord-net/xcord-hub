@@ -270,13 +270,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 provider = "none",
                 apiKey = ""
             },
-            outbox = new
-            {
-                pollingIntervalMs = 500,
-                batchSize = 100,
-                cleanupIntervalMinutes = 60,
-                retentionHours = 24
-            },
             memberBilling = new
             {
                 stripeSecretKey = stripeSecretKey,
