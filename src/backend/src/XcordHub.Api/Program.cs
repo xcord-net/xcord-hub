@@ -90,6 +90,12 @@ app.MapHandlerEndpoints(typeof(FeaturesAssemblyMarker).Assembly);
 // Stripe webhook endpoint (non-standard handler - registered manually)
 XcordHub.Features.Billing.StripeWebhookHandler.Map(app);
 
+// Dev-only test seed endpoint for E2E tests
+if (app.Environment.IsDevelopment())
+{
+    TestSeedEndpoint.Map(app);
+}
+
 // OpenAPI endpoint (serves /openapi/v1.json)
 app.MapOpenApi();
 

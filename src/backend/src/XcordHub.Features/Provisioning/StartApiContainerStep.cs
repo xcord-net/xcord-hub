@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
@@ -14,13 +15,15 @@ public sealed class StartApiContainerStep : IProvisioningStep
     private readonly IDockerService _dockerService;
     private readonly string _hubConnectionString;
     private readonly TopologyResolver _resolver;
+    private readonly bool _isDevelopment;
 
     public string StepName => "StartApiContainer";
 
     private readonly string _stripeSecretKey;
     private readonly string _stripeWebhookSecret;
+    private readonly string _testSeedKey;
 
-    public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IConfiguration configuration, TopologyResolver resolver)
+    public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IConfiguration configuration, TopologyResolver resolver, IHostEnvironment hostEnvironment)
     {
         _dbContext = dbContext;
         _dockerService = dockerService;
@@ -29,6 +32,8 @@ public sealed class StartApiContainerStep : IProvisioningStep
         _resolver = resolver;
         _stripeSecretKey = configuration.GetSection("Stripe:SecretKey").Value ?? "";
         _stripeWebhookSecret = configuration.GetSection("Stripe:WebhookSecret").Value ?? "";
+        _testSeedKey = configuration.GetSection("TestSeed:Key").Value ?? "";
+        _isDevelopment = hostEnvironment.IsDevelopment();
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -67,6 +72,13 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 }
             }
 
+            // In development, remove resource limits so instances have unlimited capacity
+            if (_isDevelopment)
+            {
+                limits = null;
+                containerResourceLimits = null;
+            }
+
             // Resolve pool-specific service endpoints, falling back to defaults.
             // Data pool overrides compute pool for DB, Redis, and storage when configured.
             var pool = instance.Infrastructure.PlacedInPool;
@@ -85,8 +97,10 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId,
                 dbConnStr, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
                 redisConnStr, storageEndpoint, livekitHost,
+                _isDevelopment,
                 featureFlags, limits,
-                _stripeSecretKey, _stripeWebhookSecret);
+                _stripeSecretKey, _stripeWebhookSecret,
+                _testSeedKey);
 
             // Create a Docker secret containing the config. The secret is mounted at
             // /run/secrets/xcord-config inside the container and read by entrypoint.sh.
@@ -158,10 +172,12 @@ public sealed class StartApiContainerStep : IProvisioningStep
         string redisConnectionString,
         string storageEndpoint,
         string livekitHost,
+        bool isDevelopment = false,
         FeatureFlags? featureFlags = null,
         ResourceLimits? resourceLimits = null,
         string stripeSecretKey = "",
-        string stripeWebhookSecret = "")
+        string stripeWebhookSecret = "",
+        string testSeedKey = "")
     {
         // Domain format for the instance: subdomain is used as-is (no suffix appended here -
         // the full domain (e.g. "test.localhost") is stored in ManagedInstance.Domain).
@@ -235,14 +251,15 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 fromAddress = $"noreply@{domain}",
                 fromName = "Xcord",
                 useSsl = false,
-                devMode = false
+                devMode = isDevelopment
             },
             rateLimiting = new
             {
                 maxRequests = 10000,
                 windowSeconds = 60,
                 authRegisterPermitLimit = 100,
-                authForgotPasswordPermitLimit = 3
+                authForgotPasswordPermitLimit = 3,
+                authPermitLimit = isDevelopment ? 1000 : 10
             },
             auth = new
             {
@@ -264,6 +281,10 @@ public sealed class StartApiContainerStep : IProvisioningStep
             {
                 stripeSecretKey = stripeSecretKey,
                 stripeWebhookSecret = stripeWebhookSecret
+            },
+            testSeed = new
+            {
+                key = testSeedKey
             },
             tier = new
             {

@@ -97,6 +97,9 @@ if [ -f "$CONFIG_PATH" ]; then
             SecretKey: (.stripe.secretKey // ""),
             PublishableKey: (.stripe.publishableKey // ""),
             WebhookSecret: (.stripe.webhookSecret // "")
+        },
+        TestSeed: {
+            Key: (.testSeed.key // "")
         }
     }' "$CONFIG_PATH" > "$APPSETTINGS_PATH"
 

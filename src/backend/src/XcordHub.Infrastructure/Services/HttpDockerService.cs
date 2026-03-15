@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,6 +12,7 @@ public sealed class HttpDockerService : IDockerService
     private readonly HttpClient _httpClient;
     private readonly ILogger<HttpDockerService> _logger;
     private readonly string _instanceImage;
+    private readonly string _instanceEnvironment;
 
     // xcord-shared-net: services (postgres, redis, minio, livekit, mailpit, caddy)
     // Instance services join xcord-shared-net so they can reach those services,
@@ -19,7 +21,7 @@ public sealed class HttpDockerService : IDockerService
     // the Docker API.
     private const string SharedNetworkName = "xcord-shared-net";
 
-    public HttpDockerService(IHttpClientFactory httpClientFactory, ILogger<HttpDockerService> logger, IOptions<DockerOptions> options)
+    public HttpDockerService(IHttpClientFactory httpClientFactory, ILogger<HttpDockerService> logger, IOptions<DockerOptions> options, IHostEnvironment hostEnvironment)
     {
         _httpClient = httpClientFactory.CreateClient("DockerSocketProxy");
         _logger = logger;
@@ -27,6 +29,7 @@ public sealed class HttpDockerService : IDockerService
         _instanceImage = string.IsNullOrWhiteSpace(opts.InstanceImage)
             ? "xcord-fed:latest"
             : opts.InstanceImage;
+        _instanceEnvironment = hostEnvironment.EnvironmentName;
     }
 
     public async Task<string> CreateNetworkAsync(string instanceDomain, CancellationToken cancellationToken = default)
@@ -233,7 +236,7 @@ public sealed class HttpDockerService : IDockerService
                 {
                     ["Image"] = _instanceImage,
                     ["Hostname"] = serviceName,
-                    ["Env"] = new[] { "ASPNETCORE_ENVIRONMENT=Production" },
+                    ["Env"] = new[] { $"ASPNETCORE_ENVIRONMENT={_instanceEnvironment}" },
                     ["Secrets"] = secrets
                 },
                 ["Networks"] = new[]
@@ -375,7 +378,7 @@ public sealed class HttpDockerService : IDockerService
                     {
                         ["Image"] = _instanceImage,
                         ["Hostname"] = serviceName,
-                        ["Env"] = new[] { "ASPNETCORE_ENVIRONMENT=Production" },
+                        ["Env"] = new[] { $"ASPNETCORE_ENVIRONMENT={_instanceEnvironment}" },
                         ["Command"] = new[] { "dotnet", "Xcord.Api.dll", "--migrate" },
                         ["Secrets"] = secrets
                     },
