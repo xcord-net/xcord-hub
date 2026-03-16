@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
@@ -12,6 +13,7 @@ public sealed class UpgradeOrchestrator
     private readonly IDockerService _dockerService;
     private readonly IInstanceNotifier _instanceNotifier;
     private readonly IHealthCheckVerifier _healthCheckVerifier;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<UpgradeOrchestrator> _logger;
 
     private static readonly TimeSpan ContainerPollInterval = TimeSpan.FromSeconds(3);
@@ -24,12 +26,14 @@ public sealed class UpgradeOrchestrator
         IDockerService dockerService,
         IInstanceNotifier instanceNotifier,
         IHealthCheckVerifier healthCheckVerifier,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<UpgradeOrchestrator> logger)
     {
         _dbContext = dbContext;
         _dockerService = dockerService;
         _instanceNotifier = instanceNotifier;
         _healthCheckVerifier = healthCheckVerifier;
+        _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
     }
 
@@ -170,7 +174,7 @@ public sealed class UpgradeOrchestrator
         if (rollout == null)
             return Error.NotFound("ROLLOUT_NOT_FOUND", $"Rollout {rolloutId} not found");
 
-        if (rollout.Status != RolloutStatus.Pending)
+        if (rollout.Status != RolloutStatus.Pending && rollout.Status != RolloutStatus.InProgress)
             return Error.Failure("ROLLOUT_ALREADY_PROCESSED", $"Rollout {rolloutId} has status {rollout.Status}");
 
         // Find target instances: Running instances where DeployedImage != rollout.ToImage
@@ -193,44 +197,83 @@ public sealed class UpgradeOrchestrator
 
         var targetInstances = await query.ToListAsync(cancellationToken);
 
-        rollout.TotalInstances = targetInstances.Count;
-        rollout.Status = RolloutStatus.InProgress;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        if (rollout.Status == RolloutStatus.Pending)
+        {
+            rollout.TotalInstances = targetInstances.Count;
+            rollout.Status = RolloutStatus.InProgress;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
 
         _logger.LogInformation("Starting rollout {RolloutId}: {Count} instances to upgrade to {Image}",
             rolloutId, targetInstances.Count, rollout.ToImage);
 
-        // Process instances one at a time (sequential)
-        foreach (var instance in targetInstances)
+        // Partition into batches
+        var batches = targetInstances
+            .Select((inst, idx) => new { inst, idx })
+            .GroupBy(x => x.idx / rollout.BatchSize)
+            .Select(g => g.Select(x => x.inst).ToList())
+            .ToList();
+
+        foreach (var batch in batches)
         {
-            var result = await UpgradeInstanceAsync(instance.Id, rollout.ToImage, rolloutId, cancellationToken);
+            if (cancellationToken.IsCancellationRequested) break;
 
-            if (result.IsSuccess)
+            // Reload rollout status (might have been cancelled/paused externally)
+            await _dbContext.Entry(rollout).ReloadAsync(cancellationToken);
+            if (rollout.Status is RolloutStatus.Cancelled or RolloutStatus.Paused)
+                break;
+
+            var tasks = batch.Select(async instance =>
             {
-                rollout.CompletedInstances++;
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                using var scope = _serviceScopeFactory.CreateScope();
+                var scopedOrchestrator = scope.ServiceProvider.GetRequiredService<UpgradeOrchestrator>();
+                return (instance.Id, await scopedOrchestrator.UpgradeInstanceAsync(
+                    instance.Id, rollout.ToImage, rollout.Id, cancellationToken));
+            });
+
+            var results = await Task.WhenAll(tasks);
+
+            foreach (var (instanceId, result) in results)
+            {
+                if (result.IsSuccess)
+                {
+                    rollout.CompletedInstances++;
+                }
+                else if (result.Error?.Code == "INSTANCE_NOT_UPGRADEABLE")
+                {
+                    // Instance was in Upgrading status - skip without counting as failure
+                    _logger.LogInformation("Skipped instance {InstanceId} (already upgrading)", instanceId);
+                }
+                else
+                {
+                    rollout.FailedInstances++;
+                }
             }
-            else
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Check failure threshold
+            if (rollout.FailedInstances >= rollout.MaxFailures)
             {
-                rollout.FailedInstances++;
-                rollout.Status = RolloutStatus.Failed;
-                rollout.CompletedAt = DateTimeOffset.UtcNow;
+                rollout.Status = RolloutStatus.Paused;
                 await _dbContext.SaveChangesAsync(cancellationToken);
-
-                _logger.LogError("Rollout {RolloutId} failed at instance {InstanceId}: {Error}",
-                    rolloutId, instance.Id, result.Error?.Message);
-
-                return Error.Failure("ROLLOUT_FAILED", $"Rollout failed at instance {instance.Id}: {result.Error?.Message}");
+                _logger.LogWarning("Rollout {RolloutId} paused: {Failed} failures >= max {Max}",
+                    rolloutId, rollout.FailedInstances, rollout.MaxFailures);
+                return Error.Failure("ROLLOUT_PAUSED", $"Rollout paused after {rollout.FailedInstances} failure(s)");
             }
         }
 
-        // All succeeded
-        rollout.Status = RolloutStatus.Completed;
-        rollout.CompletedAt = DateTimeOffset.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        // Reload to check for external cancellation/pause
+        await _dbContext.Entry(rollout).ReloadAsync(cancellationToken);
+        if (rollout.Status == RolloutStatus.InProgress)
+        {
+            rollout.Status = RolloutStatus.Completed;
+            rollout.CompletedAt = DateTimeOffset.UtcNow;
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Rollout {RolloutId} completed: {Count} instances upgraded",
-            rolloutId, rollout.CompletedInstances);
+            _logger.LogInformation("Rollout {RolloutId} completed: {Count} instances upgraded",
+                rolloutId, rollout.CompletedInstances);
+        }
 
         return true;
     }
