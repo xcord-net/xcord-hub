@@ -3,10 +3,12 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using BCrypt.Net;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using XcordHub.Api.Auth;
 using Minio;
 using Serilog;
 using StackExchange.Redis;
@@ -525,7 +527,9 @@ public static class ServiceCollectionExtensions
                     IssuerSigningKey = new SymmetricSecurityKey(key),
                     ClockSkew = TimeSpan.Zero
                 };
-            });
+            })
+            .AddScheme<AuthenticationSchemeOptions, FederationAuthenticationHandler>(
+                FederationAuthenticationHandler.SchemeName, null);
 
         services.AddAuthorization(options =>
         {
@@ -535,6 +539,11 @@ public static class ServiceCollectionExtensions
             options.AddPolicy(Policies.Admin, policy => policy
                 .RequireAuthenticatedUser()
                 .RequireClaim("admin", "true"));
+
+            options.AddPolicy(Policies.Federation, policy =>
+                policy.AddAuthenticationSchemes(FederationAuthenticationHandler.SchemeName)
+                      .RequireAuthenticatedUser()
+                      .RequireClaim("token_type", "federation"));
         });
     }
 
