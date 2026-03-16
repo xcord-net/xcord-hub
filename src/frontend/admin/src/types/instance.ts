@@ -44,6 +44,7 @@ export interface HealthStatus {
   memory: number;
   diskUsage: number;
   activeConnections: number;
+  version?: string;
   errors?: string[];
 }
 
@@ -55,6 +56,7 @@ export interface Infrastructure {
   redisHost: string;
   minioEndpoint: string;
   minioBucket: string;
+  deployedImage?: string;
 }
 
 export interface LogEntry {
@@ -74,3 +76,49 @@ export type InstanceDetail = Omit<
   health?: HealthStatus;
   infrastructure?: Infrastructure;
 };
+
+export interface AvailableVersion {
+  id: string;
+  version: string;
+  image: string;
+  releaseNotes: string | null;
+  isMinimumVersion: boolean;
+  minimumEnforcementDate: string | null;
+  publishedAt: string;
+}
+
+export interface ReleaseNotes {
+  version: string;
+  features: { summary: string; commit: string }[];
+  fixes: { summary: string; commit: string }[];
+  other: { summary: string; commit: string; type: string }[];
+  breakingChanges: string[];
+  migrationNotes: string;
+  knownIssues: string;
+}
+
+export interface UpgradeRollout {
+  id: string;
+  toImage: string;
+  fromImage: string | null;
+  targetPool: string | null;
+  status: string;
+  totalInstances: number;
+  completedInstances: number;
+  failedInstances: number;
+  batchSize: number;
+  maxFailures: number;
+  scheduledAt: string | null;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+export interface StartRolloutRequest {
+  toImage: string;
+  fromImage?: string;
+  targetPool?: string;
+  force?: boolean;
+  batchSize?: number;
+  maxFailures?: number;
+  scheduledAt?: string;
+}

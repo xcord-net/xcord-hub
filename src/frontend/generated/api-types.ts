@@ -101,6 +101,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/upgrades/{id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PauseRollout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/upgrades/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ResumeRollout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/instances": {
         parameters: {
             query?: never;
@@ -293,6 +325,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federation/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetFederationVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/upgrade-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetUpgradeHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federation/register": {
         parameters: {
             query?: never;
@@ -307,6 +371,38 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/request-upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["FederationRequestUpgrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/batch-upgrades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["UpdateBatchPreference"];
         trace?: never;
     };
     "/api/v1/discover/instances/{instanceId}": {
@@ -1043,6 +1139,24 @@ export interface components {
             secret: string;
             qrCodeUrl: string;
         };
+        FederationUpgradeRequest: {
+            targetVersion: string;
+        };
+        FederationUpgradeResponse: {
+            accepted: boolean;
+            targetImage: string;
+        };
+        FederationVersionItem: {
+            id: string;
+            version: string;
+            image: string;
+            releaseNotes: string | null;
+            isMinimumVersion: boolean;
+            /** Format: date-time */
+            minimumEnforcementDate: string | null;
+            /** Format: date-time */
+            publishedAt: string;
+        };
         ForgotPasswordRequest: {
             email: string;
         };
@@ -1051,6 +1165,11 @@ export interface components {
         };
         GetBillingResponse: {
             instances: components["schemas"]["InstanceBillingItem"][];
+        };
+        GetFederationVersionsResponse: {
+            versions: components["schemas"]["FederationVersionItem"][];
+            currentVersion: string | null;
+            batchUpgradesEnabled: boolean;
         };
         GetInstanceResponse: {
             id: string;
@@ -1073,6 +1192,9 @@ export interface components {
             username: string;
             displayName: string;
             email: string;
+        };
+        GetUpgradeHistoryResponse: {
+            events: components["schemas"]["UpgradeHistoryItem"][];
         };
         GetUpgradeStatusResponse: {
             id: string;
@@ -1228,6 +1350,10 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        PauseRolloutResponse: {
+            id: string;
+            status: string;
+        };
         PlatformRevenueSummary: {
             /** Format: int32 */
             totalAmountCents: number;
@@ -1304,6 +1430,10 @@ export interface components {
         ResetPasswordRequest: {
             token: string;
             newPassword: string;
+        };
+        ResumeRolloutResponse: {
+            id: string;
+            status: string;
         };
         RevenueSummary: {
             instanceId: string;
@@ -1403,6 +1533,12 @@ export interface components {
             backupFiles: boolean;
             backupRedis: boolean;
         };
+        UpdateBatchPreferenceRequest: {
+            enabled: boolean;
+        };
+        UpdateBatchPreferenceResponse: {
+            batchUpgradesEnabled: boolean;
+        };
         UpdateBatchUpgradesRequest: {
             enabled: boolean;
         };
@@ -1467,6 +1603,19 @@ export interface components {
             targetImage: string;
             previousVersion: string | null;
             newVersion: string | null;
+            errorMessage: string | null;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            completedAt: string | null;
+        };
+        UpgradeHistoryItem: {
+            id: string;
+            status: string;
+            previousVersion: string | null;
+            newVersion: string | null;
+            previousImage: string | null;
+            targetImage: string;
             errorMessage: string | null;
             /** Format: date-time */
             startedAt: string | null;
@@ -1648,6 +1797,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublishVersionResponse"];
+                };
+            };
+        };
+    };
+    PauseRollout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PauseRolloutResponse"];
+                };
+            };
+        };
+    };
+    ResumeRollout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeRolloutResponse"];
                 };
             };
         };
@@ -1985,6 +2178,46 @@ export interface operations {
             };
         };
     };
+    GetFederationVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetFederationVersionsResponse"];
+                };
+            };
+        };
+    };
+    GetUpgradeHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetUpgradeHistoryResponse"];
+                };
+            };
+        };
+    };
     FederationRegister: {
         parameters: {
             query?: never;
@@ -2005,6 +2238,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegisterResponse"];
+                };
+            };
+        };
+    };
+    FederationRequestUpgrade: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FederationUpgradeRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FederationUpgradeResponse"];
+                };
+            };
+        };
+    };
+    UpdateBatchPreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBatchPreferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateBatchPreferenceResponse"];
                 };
             };
         };

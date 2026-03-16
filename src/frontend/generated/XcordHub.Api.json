@@ -199,6 +199,70 @@
         }
       }
     },
+    "/api/v1/admin/upgrades/{id}/pause": {
+      "post": {
+        "tags": [
+          "Admin",
+          "Upgrades"
+        ],
+        "operationId": "PauseRollout",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PauseRolloutResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/upgrades/{id}/resume": {
+      "post": {
+        "tags": [
+          "Admin",
+          "Upgrades"
+        ],
+        "operationId": "ResumeRollout",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeRolloutResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/instances": {
       "post": {
         "tags": [
@@ -3223,6 +3287,21 @@
           }
         }
       },
+      "PauseRolloutResponse": {
+        "required": [
+          "id",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "PlatformRevenueSummary": {
         "required": [
           "totalAmountCents",
@@ -3480,6 +3559,21 @@
             "type": "string"
           },
           "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "ResumeRolloutResponse": {
+        "required": [
+          "id",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
             "type": "string"
           }
         }
