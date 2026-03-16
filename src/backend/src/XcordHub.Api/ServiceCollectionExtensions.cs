@@ -96,6 +96,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<InstanceReconciler>();
         services.AddHostedService<UpgradeBackgroundService>();
         services.AddHostedService<MinimumVersionEnforcerService>();
+        services.AddHostedService<ScheduledRolloutService>();
         services.AddScoped<BackupExecutor>();
         services.AddHostedService<BackupBackgroundService>();
 
