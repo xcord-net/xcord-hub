@@ -112,7 +112,6 @@ public sealed class UpgradeBackgroundService : BackgroundService
             {
                 _logger.LogWarning("Recovering stuck in-progress rollout {RolloutId} - marking as Failed", rollout.Id);
                 rollout.Status = RolloutStatus.Failed;
-                rollout.ErrorMessage = "Hub restarted during rollout";
                 rollout.CompletedAt = DateTimeOffset.UtcNow;
             }
 

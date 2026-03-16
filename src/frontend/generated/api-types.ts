@@ -229,6 +229,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hub/instances/{instanceId}/batch-upgrades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["UpdateBatchUpgrades"];
+        trace?: never;
+    };
     "/api/v1/admin/instances/{id}/feature-flags": {
         parameters: {
             query?: never;
@@ -259,22 +275,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["UpdateResourceLimits"];
-        trace?: never;
-    };
-    "/api/v1/hub/instances/{instanceId}/upgrade-policy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["UpdateUpgradePolicy"];
         trace?: never;
     };
     "/api/v1/hub/instances/{instanceId}/upgrade": {
@@ -1084,8 +1084,8 @@ export interface components {
             totalInstances: number;
             /** Format: int32 */
             completedInstances: number;
-            failedInstanceId: string | null;
-            errorMessage: string | null;
+            /** Format: int32 */
+            failedInstances: number;
             /** Format: date-time */
             startedAt: string;
             /** Format: date-time */
@@ -1339,6 +1339,21 @@ export interface components {
             targetPool: string | null;
             /** @default false */
             force: boolean;
+            /**
+             * Format: int32
+             * @default 5
+             */
+            batchSize: number;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            maxFailures: number;
+            /**
+             * Format: date-time
+             * @default null
+             */
+            scheduledAt: string | null;
             /** @default 0 */
             initiatedBy: unknown;
         };
@@ -1348,6 +1363,12 @@ export interface components {
             fromImage: string | null;
             targetPool: string | null;
             status: string;
+            /** Format: int32 */
+            batchSize: number;
+            /** Format: int32 */
+            maxFailures: number;
+            /** Format: date-time */
+            scheduledAt: string | null;
             /** Format: date-time */
             startedAt: string;
         };
@@ -1381,6 +1402,12 @@ export interface components {
             backupDatabase: boolean;
             backupFiles: boolean;
             backupRedis: boolean;
+        };
+        UpdateBatchUpgradesRequest: {
+            enabled: boolean;
+        };
+        UpdateBatchUpgradesResponse: {
+            batchUpgradesEnabled: boolean;
         };
         UpdateFeatureFlagsRequest: {
             canCreateBots: boolean;
@@ -1432,14 +1459,6 @@ export interface components {
             instanceId: string;
             message: string;
         };
-        UpdateUpgradePolicyRequest: {
-            upgradePolicy: components["schemas"]["UpgradePolicy"];
-            pinnedVersion: string | null;
-        };
-        UpdateUpgradePolicyResponse: {
-            upgradePolicy: string;
-            pinnedVersion: string | null;
-        };
         UpgradeEventItem: {
             id: string;
             managedInstanceId: string;
@@ -1460,8 +1479,6 @@ export interface components {
         UpgradeInstanceResponse: {
             accepted: boolean;
         };
-        /** @enum {unknown} */
-        UpgradePolicy: "Auto" | "Manual" | "Pinned";
         UpgradeRolloutListItem: {
             id: string;
             toImage: string;
@@ -1864,6 +1881,32 @@ export interface operations {
             };
         };
     };
+    UpdateBatchUpgrades: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBatchUpgradesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateBatchUpgradesResponse"];
+                };
+            };
+        };
+    };
     UpdateFeatureFlags: {
         parameters: {
             query?: never;
@@ -1912,32 +1955,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UpdateResourceLimitsResponse"];
-                };
-            };
-        };
-    };
-    UpdateUpgradePolicy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                instanceId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateUpgradePolicyRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UpdateUpgradePolicyResponse"];
                 };
             };
         };

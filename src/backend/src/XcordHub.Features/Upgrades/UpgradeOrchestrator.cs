@@ -187,9 +187,9 @@ public sealed class UpgradeOrchestrator
         if (!string.IsNullOrWhiteSpace(rollout.TargetPool))
             query = query.Where(i => i.Infrastructure!.PlacedInPool == rollout.TargetPool);
 
-        // Filter by upgrade policy: skip Manual and Pinned unless force
+        // Filter by batch upgrades: skip instances with batch upgrades disabled unless force
         if (!force)
-            query = query.Where(i => i.Config == null || i.Config.UpgradePolicy == UpgradePolicy.Auto);
+            query = query.Where(i => i.Config == null || i.Config.BatchUpgradesEnabled);
 
         var targetInstances = await query.ToListAsync(cancellationToken);
 
@@ -212,8 +212,7 @@ public sealed class UpgradeOrchestrator
             }
             else
             {
-                rollout.FailedInstanceId = instance.Id;
-                rollout.ErrorMessage = result.Error?.Message;
+                rollout.FailedInstances++;
                 rollout.Status = RolloutStatus.Failed;
                 rollout.CompletedAt = DateTimeOffset.UtcNow;
                 await _dbContext.SaveChangesAsync(cancellationToken);

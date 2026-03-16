@@ -35,9 +35,6 @@ public sealed class UpgradeInstanceHandler(HubDbContext dbContext, IUpgradeQueue
         if (instance.Status != InstanceStatus.Running)
             return Error.BadRequest("INVALID_STATUS", $"Cannot upgrade instance in {instance.Status} status");
 
-        if (instance.Config?.UpgradePolicy == UpgradePolicy.Pinned)
-            return Error.BadRequest("UPGRADE_PINNED", "Instance upgrade policy is Pinned. Change the policy before upgrading.");
-
         await upgradeQueue.EnqueueInstanceUpgradeAsync(
             request.InstanceId, request.TargetImage, cancellationToken: cancellationToken);
 

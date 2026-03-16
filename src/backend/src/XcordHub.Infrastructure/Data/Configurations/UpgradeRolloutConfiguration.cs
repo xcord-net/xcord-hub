@@ -30,10 +30,19 @@ public sealed class UpgradeRolloutConfiguration : IEntityTypeConfiguration<Upgra
         builder.Property(x => x.CompletedInstances)
             .IsRequired();
 
-        builder.Property(x => x.FailedInstanceId);
+        builder.Property(x => x.BatchSize)
+            .IsRequired()
+            .HasDefaultValue(5);
 
-        builder.Property(x => x.ErrorMessage)
-            .HasMaxLength(2000);
+        builder.Property(x => x.MaxFailures)
+            .IsRequired()
+            .HasDefaultValue(1);
+
+        builder.Property(x => x.ScheduledAt);
+
+        builder.Property(x => x.FailedInstances)
+            .IsRequired()
+            .HasDefaultValue(0);
 
         builder.Property(x => x.TargetPool)
             .HasMaxLength(255);

@@ -525,6 +525,48 @@
         }
       }
     },
+    "/api/v1/hub/instances/{instanceId}/batch-upgrades": {
+      "patch": {
+        "tags": [
+          "Instances",
+          "Upgrades"
+        ],
+        "operationId": "UpdateBatchUpgrades",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBatchUpgradesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBatchUpgradesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/instances/{id}/feature-flags": {
       "patch": {
         "tags": [
@@ -602,48 +644,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UpdateResourceLimitsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/hub/instances/{instanceId}/upgrade-policy": {
-      "patch": {
-        "tags": [
-          "Instances",
-          "Upgrades"
-        ],
-        "operationId": "UpdateUpgradePolicy",
-        "parameters": [
-          {
-            "name": "instanceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUpgradePolicyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateUpgradePolicyResponse"
                 }
               }
             }
@@ -2488,8 +2488,7 @@
           "status",
           "totalInstances",
           "completedInstances",
-          "failedInstanceId",
-          "errorMessage",
+          "failedInstances",
           "startedAt",
           "completedAt",
           "events"
@@ -2521,13 +2520,9 @@
             "type": "integer",
             "format": "int32"
           },
-          "failedInstanceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "errorMessage": {
-            "type": "string",
-            "nullable": true
+          "failedInstances": {
+            "type": "integer",
+            "format": "int32"
           },
           "startedAt": {
             "type": "string",
@@ -3387,6 +3382,22 @@
             "type": "boolean",
             "default": false
           },
+          "batchSize": {
+            "type": "integer",
+            "format": "int32",
+            "default": 5
+          },
+          "maxFailures": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time",
+            "default": null,
+            "nullable": true
+          },
           "initiatedBy": {
             "default": "0"
           }
@@ -3399,6 +3410,9 @@
           "fromImage",
           "targetPool",
           "status",
+          "batchSize",
+          "maxFailures",
+          "scheduledAt",
           "startedAt"
         ],
         "type": "object",
@@ -3419,6 +3433,19 @@
           },
           "status": {
             "type": "string"
+          },
+          "batchSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxFailures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           },
           "startedAt": {
             "type": "string",
@@ -3535,6 +3562,28 @@
             "type": "boolean"
           },
           "backupRedis": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateBatchUpgradesRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateBatchUpgradesResponse": {
+        "required": [
+          "batchUpgradesEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "batchUpgradesEnabled": {
             "type": "boolean"
           }
         }
@@ -3687,38 +3736,6 @@
           }
         }
       },
-      "UpdateUpgradePolicyRequest": {
-        "required": [
-          "upgradePolicy",
-          "pinnedVersion"
-        ],
-        "type": "object",
-        "properties": {
-          "upgradePolicy": {
-            "$ref": "#/components/schemas/UpgradePolicy"
-          },
-          "pinnedVersion": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
-      "UpdateUpgradePolicyResponse": {
-        "required": [
-          "upgradePolicy",
-          "pinnedVersion"
-        ],
-        "type": "object",
-        "properties": {
-          "upgradePolicy": {
-            "type": "string"
-          },
-          "pinnedVersion": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
       "UpgradeEventItem": {
         "required": [
           "id",
@@ -3795,13 +3812,6 @@
             "type": "boolean"
           }
         }
-      },
-      "UpgradePolicy": {
-        "enum": [
-          "Auto",
-          "Manual",
-          "Pinned"
-        ]
       },
       "UpgradeRolloutListItem": {
         "required": [

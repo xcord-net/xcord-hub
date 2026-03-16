@@ -40,7 +40,7 @@ public sealed class MinimumVersionEnforcerService(
 
         foreach (var enforcedVersion in enforcedVersions)
         {
-            // Find Running instances not on the enforced image, with Manual or Pinned upgrade policy
+            // Find Running instances not on the enforced image, with batch upgrades disabled
             var nonCompliantInstances = await dbContext.ManagedInstances
                 .Include(i => i.Infrastructure)
                 .Include(i => i.Config)
@@ -49,8 +49,7 @@ public sealed class MinimumVersionEnforcerService(
                     && i.Infrastructure != null
                     && i.Infrastructure.DeployedImage != enforcedVersion.Image
                     && i.Config != null
-                    && (i.Config.UpgradePolicy == UpgradePolicy.Manual
-                        || i.Config.UpgradePolicy == UpgradePolicy.Pinned))
+                    && !i.Config.BatchUpgradesEnabled)
                 .ToListAsync(ct);
 
             if (nonCompliantInstances.Count == 0)

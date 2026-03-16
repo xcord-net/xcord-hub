@@ -28,7 +28,7 @@ public sealed class CancelUpgradeHandler(HubDbContext dbContext)
         if (rollout is null)
             return Error.NotFound("ROLLOUT_NOT_FOUND", "Upgrade rollout not found");
 
-        if (rollout.Status is not (RolloutStatus.Pending or RolloutStatus.InProgress))
+        if (rollout.Status is not (RolloutStatus.Pending or RolloutStatus.InProgress or RolloutStatus.Paused))
             return Error.BadRequest("INVALID_STATUS", $"Cannot cancel a rollout with status '{rollout.Status}'");
 
         rollout.Status = RolloutStatus.Cancelled;

@@ -12,6 +12,9 @@ public sealed record StartUpgradeCommand(
     string? FromImage = null,
     string? TargetPool = null,
     bool Force = false,
+    int BatchSize = 5,
+    int MaxFailures = 1,
+    DateTimeOffset? ScheduledAt = null,
     long InitiatedBy = 0
 );
 
@@ -21,6 +24,9 @@ public sealed record StartUpgradeResponse(
     string? FromImage,
     string? TargetPool,
     string Status,
+    int BatchSize,
+    int MaxFailures,
+    DateTimeOffset? ScheduledAt,
     DateTimeOffset StartedAt
 );
 
@@ -50,6 +56,9 @@ public sealed class StartUpgradeHandler(
             ToImage = request.ToImage,
             TargetPool = request.TargetPool,
             Status = RolloutStatus.Pending,
+            BatchSize = request.BatchSize,
+            MaxFailures = request.MaxFailures,
+            ScheduledAt = request.ScheduledAt,
             StartedAt = now,
             InitiatedBy = request.InitiatedBy
         };
@@ -65,6 +74,9 @@ public sealed class StartUpgradeHandler(
             rollout.FromImage,
             rollout.TargetPool,
             rollout.Status.ToString(),
+            rollout.BatchSize,
+            rollout.MaxFailures,
+            rollout.ScheduledAt,
             rollout.StartedAt
         );
     }

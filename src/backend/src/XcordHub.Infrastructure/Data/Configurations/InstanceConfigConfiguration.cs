@@ -30,14 +30,9 @@ public sealed class InstanceConfigConfiguration : IEntityTypeConfiguration<Insta
         builder.Property(x => x.Version)
             .IsRequired();
 
-        builder.Property(x => x.UpgradePolicy)
+        builder.Property(x => x.BatchUpgradesEnabled)
             .IsRequired()
-            .HasDefaultValue(UpgradePolicy.Auto)
-            .HasConversion<string>()
-            .HasMaxLength(20);
-
-        builder.Property(x => x.PinnedVersion)
-            .HasMaxLength(50);
+            .HasDefaultValue(true);
 
         builder.Property(x => x.CreatedAt)
             .IsRequired();

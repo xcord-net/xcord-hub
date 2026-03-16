@@ -392,9 +392,8 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Property<long>("ManagedInstanceId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("PinnedVersion")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<bool>("BatchUpgradesEnabled")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("ResourceLimitsJson")
                         .IsRequired()
@@ -402,11 +401,6 @@ namespace XcordHub.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpgradePolicy")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasDefaultValue("Auto");
 
                     b.Property<int>("Version")
                         .HasColumnType("integer");
@@ -972,12 +966,17 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Property<int>("CompletedInstances")
                         .HasColumnType("integer");
 
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                    b.Property<int>("BatchSize")
+                        .HasDefaultValue(5);
 
-                    b.Property<long?>("FailedInstanceId")
-                        .HasColumnType("bigint");
+                    b.Property<int>("FailedInstances")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("MaxFailures")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTimeOffset?>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FromImage")
                         .HasMaxLength(500)

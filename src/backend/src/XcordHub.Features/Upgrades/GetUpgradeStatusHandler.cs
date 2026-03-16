@@ -30,8 +30,7 @@ public sealed record GetUpgradeStatusResponse(
     string Status,
     int TotalInstances,
     int CompletedInstances,
-    string? FailedInstanceId,
-    string? ErrorMessage,
+    int FailedInstances,
     DateTimeOffset StartedAt,
     DateTimeOffset? CompletedAt,
     List<UpgradeEventItem> Events
@@ -74,8 +73,7 @@ public sealed class GetUpgradeStatusHandler(HubDbContext dbContext)
             rollout.Status.ToString(),
             rollout.TotalInstances,
             rollout.CompletedInstances,
-            rollout.FailedInstanceId?.ToString(),
-            rollout.ErrorMessage,
+            rollout.FailedInstances,
             rollout.StartedAt,
             rollout.CompletedAt,
             events
