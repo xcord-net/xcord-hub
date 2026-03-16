@@ -9,6 +9,9 @@ import type {
   FeatureFlags,
   LogEntry,
   InstanceStatus,
+  AvailableVersion,
+  UpgradeRollout,
+  StartRolloutRequest,
 } from '../types/instance';
 
 export interface BackupPolicy {
@@ -41,6 +44,8 @@ const store = createRoot(() => {
   const [pageSize] = createSignal(20);
   const [statusFilter, setStatusFilter] = createSignal<InstanceStatus | null>(null);
   const [isLoading, setIsLoading] = createSignal(false);
+  const [availableVersions, setAvailableVersions] = createSignal<AvailableVersion[]>([]);
+  const [activeRollouts, setActiveRollouts] = createSignal<UpgradeRollout[]>([]);
 
   return {
     instances,
@@ -58,6 +63,10 @@ const store = createRoot(() => {
     setStatusFilter,
     isLoading,
     setIsLoading,
+    availableVersions,
+    setAvailableVersions,
+    activeRollouts,
+    setActiveRollouts,
   };
 });
 
@@ -71,6 +80,8 @@ export function useInstances() {
     get pageSize() { return store.pageSize(); },
     get statusFilter() { return store.statusFilter(); },
     get isLoading() { return store.isLoading(); },
+    get availableVersions() { return store.availableVersions(); },
+    get activeRollouts() { return store.activeRollouts(); },
 
     setPage(p: number) {
       store.setPage(p);
@@ -172,6 +183,41 @@ export function useInstances() {
 
     async deleteBackup(id: string, backupId: string): Promise<void> {
       await api.delete(`/api/v1/admin/instances/${id}/backups/${backupId}`);
+    },
+
+    async fetchVersions(): Promise<void> {
+      const response = await api.get<{ versions: AvailableVersion[] }>('/api/v1/admin/versions');
+      store.setAvailableVersions(response.versions);
+    },
+
+    async upgradeInstance(instanceId: string, targetImage: string): Promise<void> {
+      await api.post(`/api/v1/hub/instances/${instanceId}/upgrade`, { targetImage });
+    },
+
+    async startRollout(request: StartRolloutRequest): Promise<UpgradeRollout> {
+      return await api.post<UpgradeRollout>('/api/v1/admin/upgrades', request);
+    },
+
+    async pauseRollout(rolloutId: string): Promise<void> {
+      await api.post(`/api/v1/admin/upgrades/${rolloutId}/pause`);
+    },
+
+    async resumeRollout(rolloutId: string): Promise<void> {
+      await api.post(`/api/v1/admin/upgrades/${rolloutId}/resume`);
+    },
+
+    async cancelRollout(rolloutId: string): Promise<void> {
+      await api.post(`/api/v1/admin/upgrades/${rolloutId}/cancel`);
+    },
+
+    async fetchActiveRollouts(): Promise<void> {
+      const response = await api.get<{ rollouts: UpgradeRollout[] }>('/api/v1/admin/upgrades');
+      store.setActiveRollouts(response.rollouts.filter((r: UpgradeRollout) =>
+        r.status === 'InProgress' || r.status === 'Paused' || r.status === 'Pending'));
+    },
+
+    async updateBatchUpgrades(instanceId: string, enabled: boolean): Promise<void> {
+      await api.patch(`/api/v1/hub/instances/${instanceId}/batch-upgrades`, { enabled });
     },
 
     clearSelectedInstance() {
