@@ -693,6 +693,48 @@
         }
       }
     },
+    "/api/v1/federation/versions": {
+      "get": {
+        "tags": [
+          "Federation",
+          "Upgrades"
+        ],
+        "operationId": "GetFederationVersions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFederationVersionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/upgrade-history": {
+      "get": {
+        "tags": [
+          "Federation",
+          "Upgrades"
+        ],
+        "operationId": "GetUpgradeHistory",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUpgradeHistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/federation/register": {
       "post": {
         "tags": [
@@ -716,6 +758,68 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/request-upgrade": {
+      "post": {
+        "tags": [
+          "Federation",
+          "Upgrades"
+        ],
+        "operationId": "FederationRequestUpgrade",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FederationUpgradeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederationUpgradeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/batch-upgrades": {
+      "patch": {
+        "tags": [
+          "Federation",
+          "Upgrades"
+        ],
+        "operationId": "UpdateBatchPreference",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBatchPreferenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBatchPreferenceResponse"
                 }
               }
             }
@@ -2361,6 +2465,71 @@
           }
         }
       },
+      "FederationUpgradeRequest": {
+        "required": [
+          "targetVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "targetVersion": {
+            "type": "string"
+          }
+        }
+      },
+      "FederationUpgradeResponse": {
+        "required": [
+          "accepted",
+          "targetImage"
+        ],
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "targetImage": {
+            "type": "string"
+          }
+        }
+      },
+      "FederationVersionItem": {
+        "required": [
+          "id",
+          "version",
+          "image",
+          "releaseNotes",
+          "isMinimumVersion",
+          "minimumEnforcementDate",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "releaseNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMinimumVersion": {
+            "type": "boolean"
+          },
+          "minimumEnforcementDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ForgotPasswordRequest": {
         "required": [
           "email"
@@ -2397,6 +2566,29 @@
             "items": {
               "$ref": "#/components/schemas/InstanceBillingItem"
             }
+          }
+        }
+      },
+      "GetFederationVersionsResponse": {
+        "required": [
+          "versions",
+          "currentVersion",
+          "batchUpgradesEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FederationVersionItem"
+            }
+          },
+          "currentVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "batchUpgradesEnabled": {
+            "type": "boolean"
           }
         }
       },
@@ -2476,6 +2668,20 @@
           },
           "email": {
             "type": "string"
+          }
+        }
+      },
+      "GetUpgradeHistoryResponse": {
+        "required": [
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpgradeHistoryItem"
+            }
           }
         }
       },
@@ -3566,6 +3772,28 @@
           }
         }
       },
+      "UpdateBatchPreferenceRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateBatchPreferenceResponse": {
+        "required": [
+          "batchUpgradesEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "batchUpgradesEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "UpdateBatchUpgradesRequest": {
         "required": [
           "enabled"
@@ -3774,6 +4002,57 @@
           "newVersion": {
             "type": "string",
             "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "UpgradeHistoryItem": {
+        "required": [
+          "id",
+          "status",
+          "previousVersion",
+          "newVersion",
+          "previousImage",
+          "targetImage",
+          "errorMessage",
+          "startedAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "previousVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "newVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetImage": {
+            "type": "string"
           },
           "errorMessage": {
             "type": "string",
