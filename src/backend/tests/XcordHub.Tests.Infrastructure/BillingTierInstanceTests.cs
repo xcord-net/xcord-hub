@@ -98,14 +98,19 @@ public sealed class BillingTierInstanceTests
         HubDbContext dbContext,
         ICurrentUserService currentUserService)
     {
+        var creationService = new InstanceCreationService(
+            dbContext,
+            new NoOpCaptchaService(),
+            new SnowflakeIdGenerator(254),
+            BuildConfiguration(),
+            Options.Create(new AuthOptions()));
+
         return new CreateInstanceHandler(
             dbContext,
-            new SnowflakeIdGenerator(254),
             currentUserService,
             NoOpProvisioningQueue(),
-            BuildConfiguration(),
-            new NoOpCaptchaService(),
-            Options.Create(new AuthOptions()));
+            creationService,
+            Options.Create(new StripeOptions()));
     }
 
     // ---------------------------------------------------------------------------

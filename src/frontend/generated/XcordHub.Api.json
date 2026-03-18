@@ -1006,6 +1006,26 @@
         }
       }
     },
+    "/api/v1/hub/features": {
+      "get": {
+        "tags": [
+          "Config"
+        ],
+        "operationId": "GetFeatures",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFeaturesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hub/instances/{instanceId}/billing/cancel": {
       "post": {
         "tags": [
@@ -1701,6 +1721,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RegisterApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/register-with-instance": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "RegisterWithInstance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterWithInstanceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterWithInstanceResponse"
                 }
               }
             }
@@ -2633,6 +2683,17 @@
           }
         }
       },
+      "GetFeaturesResponse": {
+        "required": [
+          "paymentsEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "paymentsEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "GetFederationVersionsResponse": {
         "required": [
           "versions",
@@ -3548,6 +3609,89 @@
           }
         }
       },
+      "RegisterWithInstanceCommand": {
+        "required": [
+          "username",
+          "displayName",
+          "email",
+          "password",
+          "subdomain",
+          "instanceDisplayName"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "subdomain": {
+            "type": "string"
+          },
+          "instanceDisplayName": {
+            "type": "string"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/InstanceTier"
+          },
+          "mediaEnabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "captchaId": {
+            "type": "string",
+            "default": null,
+            "nullable": true
+          },
+          "captchaAnswer": {
+            "type": "string",
+            "default": null,
+            "nullable": true
+          }
+        }
+      },
+      "RegisterWithInstanceResponse": {
+        "required": [
+          "userId",
+          "username",
+          "accessToken",
+          "instanceId",
+          "domain",
+          "instanceDisplayName",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "instanceId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "instanceDisplayName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "ResetPasswordRequest": {
         "required": [
           "token",
@@ -4312,6 +4456,9 @@
     },
     {
       "name": "Contact"
+    },
+    {
+      "name": "Config"
     },
     {
       "name": "Billing"

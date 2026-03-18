@@ -89,6 +89,37 @@ async function signup(email: string, password: string, displayName: string, user
   }
 }
 
+async function signupWithInstance(
+  email: string, password: string, displayName: string, username: string,
+  subdomain: string, instanceDisplayName: string,
+  tier: string = 'Free', mediaEnabled: boolean = false,
+  captchaId?: string, captchaAnswer?: string
+): Promise<{ instanceId: string; domain: string } | false> {
+  setError(null);
+  try {
+    const response = await fetch('/api/v1/hub/register-with-instance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, displayName, username, subdomain, instanceDisplayName, tier, mediaEnabled, captchaId, captchaAnswer }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      setError(data?.detail || data?.message || 'Failed to create account and server');
+      return false;
+    }
+
+    const data = await response.json();
+    setToken(data.accessToken);
+    setUser({ userId: String(data.userId), username: data.username, displayName, email });
+    localStorage.setItem('xcord_hub_token', data.accessToken);
+    return { instanceId: data.instanceId, domain: data.domain };
+  } catch {
+    setError('Network error. Please try again.');
+    return false;
+  }
+}
+
 function logout() {
   setUser(null);
   setToken(null);
@@ -191,6 +222,7 @@ export function useAuth() {
     login,
     loginWith2FA,
     signup,
+    signupWithInstance,
     logout,
     restoreSession,
     changePassword,
@@ -209,6 +241,7 @@ export const authStore = {
   login,
   loginWith2FA,
   signup,
+  signupWithInstance,
   logout,
   restoreSession,
   changePassword,

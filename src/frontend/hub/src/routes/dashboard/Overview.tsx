@@ -60,7 +60,7 @@ export default function Overview() {
       <div class="flex items-center justify-between mb-8">
         <h1 class="text-2xl font-bold text-xcord-text-primary">Overview</h1>
         <A
-          href="/dashboard/create"
+          href="/get-started"
           class="px-4 py-2 bg-xcord-brand hover:bg-xcord-brand-hover text-white rounded text-sm font-medium transition"
         >
           Create Instance
@@ -95,7 +95,7 @@ export default function Overview() {
             <div class="bg-xcord-bg-secondary rounded-lg p-8 text-center">
               <p class="text-xcord-text-muted mb-4">No servers yet.</p>
               <A
-                href="/dashboard/create"
+                href="/get-started"
                 class="inline-block px-6 py-2 bg-xcord-brand hover:bg-xcord-brand-hover text-white rounded text-sm font-medium transition"
               >
                 Launch one

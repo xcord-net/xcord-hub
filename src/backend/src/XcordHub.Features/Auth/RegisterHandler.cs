@@ -1,14 +1,8 @@
 using System.Text.RegularExpressions;
-using BCrypt.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
-using XcordHub.Infrastructure.Options;
-using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Auth;
 
@@ -27,16 +21,11 @@ public sealed record RegisterApiResponse(string UserId, string Username, string 
 
 public sealed class RegisterHandler(
     HubDbContext dbContext,
-    IEncryptionService encryptionService,
-    IJwtService jwtService,
+    UserRegistrationService userRegistrationService,
     SnowflakeIdGenerator snowflakeGenerator,
-    ICaptchaService captchaService,
-    IHttpContextAccessor httpContextAccessor,
-    IOptions<AuthOptions> authOptions)
+    IHttpContextAccessor httpContextAccessor)
     : IRequestHandler<RegisterRequest, Result<RegisterResponse>>, IValidatable<RegisterRequest>
 {
-    private readonly AuthOptions _authOptions = authOptions.Value;
-
     public Error? Validate(RegisterRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Username))
@@ -74,81 +63,27 @@ public sealed class RegisterHandler(
 
     public async Task<Result<RegisterResponse>> Handle(RegisterRequest request, CancellationToken cancellationToken)
     {
-        // Validate captcha
-        if (!await captchaService.ValidateAsync(request.CaptchaId ?? "", request.CaptchaAnswer ?? ""))
-        {
-            return Error.BadRequest("CAPTCHA_FAILED", "Invalid or expired captcha");
-        }
+        var result = await userRegistrationService.RegisterAsync(
+            request.Username,
+            request.DisplayName,
+            request.Email,
+            request.Password,
+            request.CaptchaId,
+            request.CaptchaAnswer,
+            cancellationToken);
 
-        // Check if username already exists
-        var usernameExists = await dbContext.HubUsers
-            .AnyAsync(u => u.Username == request.Username, cancellationToken);
+        if (result.IsFailure)
+            return result.Error;
 
-        if (usernameExists)
-        {
-            return Error.Conflict("USERNAME_TAKEN", "Username is already taken");
-        }
-
-        // Check if email already exists (by EmailHash)
-        var emailHash = encryptionService.ComputeHmac(request.Email.ToLowerInvariant());
-        var emailExists = await dbContext.HubUsers
-            .AnyAsync(u => u.EmailHash == emailHash, cancellationToken);
-
-        if (emailExists)
-        {
-            return Error.Conflict("EMAIL_TAKEN", "Email is already registered");
-        }
-
-        // Hash password (BCrypt, configurable work factor) - offloaded to thread pool to avoid starvation
-        var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.Password, _authOptions.BcryptWorkFactor));
-
-        // Encrypt email
-        var encryptedEmail = encryptionService.Encrypt(request.Email.ToLowerInvariant());
-
-        // Create user
-        var userId = snowflakeGenerator.NextId();
-        var now = DateTimeOffset.UtcNow;
-
-        var user = new Entities.HubUser
-        {
-            Id = userId,
-            Username = request.Username,
-            DisplayName = request.DisplayName,
-            Email = encryptedEmail,
-            EmailHash = emailHash,
-            PasswordHash = passwordHash,
-            IsAdmin = false,
-            IsDisabled = false,
-            CreatedAt = now,
-            LastLoginAt = now
-        };
-
-        dbContext.HubUsers.Add(user);
-
-        // Create refresh token (30 days)
-        var refreshTokenValue = TokenHelper.GenerateToken();
-        var refreshTokenHash = TokenHelper.HashToken(refreshTokenValue);
-        var refreshToken = new Entities.RefreshToken
-        {
-            Id = snowflakeGenerator.NextId(),
-            TokenHash = refreshTokenHash,
-            HubUserId = userId,
-            ExpiresAt = now.AddDays(30),
-            CreatedAt = now
-        };
-
-        dbContext.RefreshTokens.Add(refreshToken);
+        var reg = result.Value;
 
         // Record login attempt (registration counts as a successful login)
         dbContext.LoginAttempts.Add(
-            LoginAttemptRecorder.Create(snowflakeGenerator, httpContextAccessor, request.Email, null, userId));
+            LoginAttemptRecorder.Create(snowflakeGenerator, httpContextAccessor, request.Email, null, reg.User.Id));
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Generate JWT access token
-        var accessToken = jwtService.GenerateAccessToken(userId, user.IsAdmin);
-
-        return new RegisterResponse(userId.ToString(), user.Username, user.DisplayName, request.Email, accessToken, refreshTokenValue);
+        return new RegisterResponse(reg.User.Id.ToString(), reg.User.Username, reg.User.DisplayName, request.Email, reg.AccessToken, reg.RefreshToken);
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)

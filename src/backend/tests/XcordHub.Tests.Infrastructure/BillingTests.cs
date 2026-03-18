@@ -116,14 +116,19 @@ public sealed class BillingTests
         dbContext.HubUsers.Add(user);
         await dbContext.SaveChangesAsync();
 
+        var creationService = new InstanceCreationService(
+            dbContext,
+            new NoOpCaptchaService(),
+            new SnowflakeIdGenerator(255),
+            BuildConfiguration(),
+            Options.Create(new AuthOptions()));
+
         var handler = new CreateInstanceHandler(
             dbContext,
-            new SnowflakeIdGenerator(255),
             StubUser(userId),
             new NoOpProvisioningQueue(),
-            BuildConfiguration(),
-            new NoOpCaptchaService(),
-            Options.Create(new AuthOptions()));
+            creationService,
+            NoStripeOptions());
 
         // Subdomain must be lowercase alphanumeric with hyphens only (no underscores).
         var subdomain = $"bt-{usernameSuffix}".Replace("_", "-").ToLowerInvariant();

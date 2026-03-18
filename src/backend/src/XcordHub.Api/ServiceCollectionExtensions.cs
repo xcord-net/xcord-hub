@@ -16,6 +16,7 @@ using XcordHub.Api.Options;
 using XcordHub.Entities;
 using XcordHub.Features;
 using XcordHub.Features.Auth;
+using XcordHub.Features.Instances;
 using XcordHub.Features.Monitoring;
 using XcordHub.Features.Destruction;
 using XcordHub.Features.Provisioning;
@@ -125,10 +126,14 @@ public static class ServiceCollectionExtensions
         // Current user service
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
+        // Instance creation service
+        services.AddScoped<InstanceCreationService>();
+
         // Request handlers
         services.AddRequestHandlers(typeof(FeaturesAssemblyMarker).Assembly);
         services.AddScoped<RefreshTokenHandler>();
         services.AddScoped<SetupHandler>();
+        services.AddScoped<UserRegistrationService>();
 
         // Rate limiting
         AddRateLimiting(services, config);

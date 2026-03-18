@@ -1,5 +1,5 @@
 import { A } from '@solidjs/router';
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For, Show, onMount } from 'solid-js';
 import PageMeta from '../components/PageMeta';
 import ContactModal from '../components/ContactModal';
 
@@ -105,10 +105,27 @@ const faqs = [
 export default function Pricing() {
   const [openFaq, setOpenFaq] = createSignal<number | null>(null);
   const [showContact, setShowContact] = createSignal(false);
+  const [paymentsEnabled, setPaymentsEnabled] = createSignal(false);
   const [notifyCardKey, setNotifyCardKey] = createSignal<string | null>(null);
   const [notifyEmail, setNotifyEmail] = createSignal('');
   const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [notifyMessage, setNotifyMessage] = createSignal('');
+
+  onMount(async () => {
+    try {
+      const res = await fetch('/api/v1/hub/features');
+      if (res.ok) {
+        const data = await res.json();
+        setPaymentsEnabled(data.paymentsEnabled);
+      }
+    } catch { /* default to false */ }
+  });
+
+  const tierCta = (tier: Tier) => {
+    if (tier.cta === 'get-started' || tier.cta === 'contact') return tier.cta;
+    // 'notify' tiers become 'get-started' when payments are enabled
+    return paymentsEnabled() ? 'get-started' : 'notify';
+  };
 
   async function handleNotify(e: Event) {
     e.preventDefault();
@@ -204,16 +221,16 @@ export default function Pricing() {
                 </ul>
 
                 {/* CTA */}
-                <Show when={tier.cta === 'get-started'}>
+                <Show when={tierCta(tier) === 'get-started'}>
                   <A
-                    href="/register"
+                    href={tier.isFree ? '/get-started' : `/get-started?tier=${tier.name}`}
                     class="block text-center py-2.5 rounded-lg font-medium transition bg-xcord-brand hover:bg-xcord-brand-hover text-white"
                   >
                     Get Started
                   </A>
                 </Show>
 
-                <Show when={tier.cta === 'contact'}>
+                <Show when={tierCta(tier) === 'contact'}>
                   <button
                     onClick={() => setShowContact(true)}
                     class="w-full block text-center py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
@@ -222,7 +239,7 @@ export default function Pricing() {
                   </button>
                 </Show>
 
-                <Show when={tier.cta === 'notify'}>
+                <Show when={tierCta(tier) === 'notify'}>
                   <Show
                     when={notifyCardKey() === tier.name}
                     fallback={

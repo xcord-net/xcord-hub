@@ -44,12 +44,11 @@ public sealed class ChangePlanHandler(
         if (!Enum.IsDefined(request.TargetTier))
             return Error.Validation("VALIDATION_FAILED", "Invalid tier");
 
-        // Beta gate - remove when payment processing launches
-        if (request.TargetTier != InstanceTier.Free)
-            return Error.Validation("PAID_TIER_UNAVAILABLE", "Paid tiers are not yet available.");
+        if (request.TargetTier != InstanceTier.Free && !stripeOptions.Value.IsConfigured)
+            return Error.Validation("PAID_TIER_UNAVAILABLE", "Payment processing is not configured. Only the free tier is available.");
 
-        if (request.MediaEnabled)
-            return Error.Validation("MEDIA_UNAVAILABLE", "Voice & video is not yet available.");
+        if (request.MediaEnabled && !stripeOptions.Value.IsConfigured)
+            return Error.Validation("MEDIA_UNAVAILABLE", "Payment processing is not configured. Voice & video requires a paid add-on.");
 
         return null;
     }

@@ -453,6 +453,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hub/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetFeatures"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hub/instances/{instanceId}/billing/cancel": {
         parameters: {
             query?: never;
@@ -821,6 +837,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hub/register-with-instance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RegisterWithInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/reset-password": {
         parameters: {
             query?: never;
@@ -1166,6 +1198,9 @@ export interface components {
         GetBillingResponse: {
             instances: components["schemas"]["InstanceBillingItem"][];
         };
+        GetFeaturesResponse: {
+            paymentsEnabled: boolean;
+        };
         GetFederationVersionsResponse: {
             versions: components["schemas"]["FederationVersionItem"][];
             currentVersion: string | null;
@@ -1426,6 +1461,30 @@ export interface components {
             instanceOAuthToken: string;
             instanceId: string;
             domain: string;
+        };
+        RegisterWithInstanceCommand: {
+            username: string;
+            displayName: string;
+            email: string;
+            password: string;
+            subdomain: string;
+            instanceDisplayName: string;
+            tier?: components["schemas"]["InstanceTier"];
+            /** @default false */
+            mediaEnabled: boolean;
+            /** @default null */
+            captchaId: string | null;
+            /** @default null */
+            captchaAnswer: string | null;
+        };
+        RegisterWithInstanceResponse: {
+            userId: string;
+            username: string;
+            accessToken: string;
+            instanceId: string;
+            domain: string;
+            instanceDisplayName: string;
+            status: string;
         };
         ResetPasswordRequest: {
             token: string;
@@ -2361,6 +2420,26 @@ export interface operations {
             };
         };
     };
+    GetFeatures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetFeaturesResponse"];
+                };
+            };
+        };
+    };
     CancelInstanceBilling: {
         parameters: {
             query?: never;
@@ -2896,6 +2975,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegisterApiResponse"];
+                };
+            };
+        };
+    };
+    RegisterWithInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterWithInstanceCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisterWithInstanceResponse"];
                 };
             };
         };

@@ -6,6 +6,39 @@ import PasswordStrength from '../../components/PasswordStrength';
 import ContactModal from '../../components/ContactModal';
 import PageMeta from '../../components/PageMeta';
 
+type Tier = 'Free' | 'Basic' | 'Pro' | 'Enterprise';
+
+const TIER_PRICE_CENTS: Record<Tier, number> = {
+  Free: 0,
+  Basic: 6000,
+  Pro: 15000,
+  Enterprise: 30000,
+};
+
+const TIER_MEDIA_CENTS: Record<Tier, number> = {
+  Free: 400,
+  Basic: 300,
+  Pro: 200,
+  Enterprise: 100,
+};
+
+const TIER_MAX_USERS: Record<Tier, number> = {
+  Free: 10,
+  Basic: 50,
+  Pro: 200,
+  Enterprise: 500,
+};
+
+function formatPriceSummary(tier: Tier, mediaEnabled: boolean): string {
+  const base = TIER_PRICE_CENTS[tier];
+  const maxUsers = TIER_MAX_USERS[tier];
+  const mediaCents = mediaEnabled ? TIER_MEDIA_CENTS[tier] * maxUsers : 0;
+  const total = base + mediaCents;
+  if (total === 0) return 'Free';
+  const dollars = total / 100;
+  return `$${dollars % 1 === 0 ? dollars : dollars.toFixed(2)}/mo`;
+}
+
 export default function CreateInstance() {
   const navigate = useNavigate();
   const [subdomain, setSubdomain] = createSignal('');
@@ -25,18 +58,28 @@ export default function CreateInstance() {
   const [notifyMessage, setNotifyMessage] = createSignal('');
   const [hasExistingInstance, setHasExistingInstance] = createSignal(false);
   const [checkingInstances, setCheckingInstances] = createSignal(true);
+  const [paymentsEnabled, setPaymentsEnabled] = createSignal(false);
+  const [selectedTier, setSelectedTier] = createSignal<Tier>('Free');
+  const [mediaEnabled, setMediaEnabled] = createSignal(false);
 
   onMount(async () => {
     try {
       const token = localStorage.getItem('xcord_hub_token');
-      const res = await fetch('/api/v1/hub/billing', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const [billingRes, featuresRes] = await Promise.all([
+        fetch('/api/v1/hub/billing', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        fetch('/api/v1/hub/features'),
+      ]);
+      if (billingRes.ok) {
+        const data = await billingRes.json();
         if (data.instances && data.instances.length > 0) {
           setHasExistingInstance(true);
         }
+      }
+      if (featuresRes.ok) {
+        const data = await featuresRes.json();
+        setPaymentsEnabled(data.paymentsEnabled ?? false);
       }
     } catch {
       // If we can't check, allow form to show - backend will enforce
@@ -118,12 +161,12 @@ export default function CreateInstance() {
 
     setLoading(true);
     try {
-      const result = await instanceStore.createInstance(
+      await instanceStore.createInstance(
         subdomain(),
         displayName(),
         adminPassword(),
-        'Free',
-        false,
+        selectedTier(),
+        mediaEnabled(),
         captchaId(),
         captchaAnswer()
       );
@@ -164,6 +207,11 @@ export default function CreateInstance() {
       setNotifyStatus('error');
       setNotifyMessage('Network error. Please try again.');
     }
+  };
+
+  const tierButtonClass = (tier: Tier) => {
+    const isSelected = selectedTier() === tier;
+    return `px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition${isSelected ? ' ring-2 ring-xcord-brand' : ''}`;
   };
 
   return (
@@ -250,42 +298,125 @@ export default function CreateInstance() {
             <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Plan</label>
             <p class="text-xs text-xcord-text-muted mb-2">Tier</p>
             <div class="grid grid-cols-4 gap-2 mb-4">
-              {/* Free - always selected */}
-              <button type="button" disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ring-2 ring-xcord-brand">
+              {/* Free - always selectable */}
+              <button
+                type="button"
+                disabled={loading()}
+                onClick={() => setSelectedTier('Free')}
+                class={tierButtonClass('Free')}
+              >
                 <div class="font-semibold">Free</div>
                 <div class="text-xs text-xcord-text-muted mt-1">Up to 10 users</div>
               </button>
-              {/* Basic - notify me */}
-              <button type="button" onClick={() => { setNotifyTier('Basic'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
-                <div class="font-semibold">Basic</div>
-                <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
-                <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
-              </button>
-              {/* Pro - notify me */}
-              <button type="button" onClick={() => { setNotifyTier('Pro'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
-                <div class="font-semibold">Pro</div>
-                <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
-                <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
-              </button>
-              {/* Enterprise - contact us */}
-              <button type="button" onClick={() => setShowContact(true)} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
+
+              {/* Basic */}
+              <Show
+                when={paymentsEnabled()}
+                fallback={
+                  <button
+                    type="button"
+                    onClick={() => { setNotifyTier('Basic'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }}
+                    disabled={loading()}
+                    class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition"
+                  >
+                    <div class="font-semibold">Basic</div>
+                    <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
+                    <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
+                  </button>
+                }
+              >
+                <button
+                  type="button"
+                  disabled={loading()}
+                  onClick={() => setSelectedTier('Basic')}
+                  class={tierButtonClass('Basic')}
+                >
+                  <div class="font-semibold">Basic</div>
+                  <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
+                  <div class="text-xs text-xcord-text-muted mt-1">$60/mo</div>
+                </button>
+              </Show>
+
+              {/* Pro */}
+              <Show
+                when={paymentsEnabled()}
+                fallback={
+                  <button
+                    type="button"
+                    onClick={() => { setNotifyTier('Pro'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }}
+                    disabled={loading()}
+                    class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition"
+                  >
+                    <div class="font-semibold">Pro</div>
+                    <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
+                    <div class="text-xs text-xcord-brand mt-1">Coming soon</div>
+                  </button>
+                }
+              >
+                <button
+                  type="button"
+                  disabled={loading()}
+                  onClick={() => setSelectedTier('Pro')}
+                  class={tierButtonClass('Pro')}
+                >
+                  <div class="font-semibold">Pro</div>
+                  <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
+                  <div class="text-xs text-xcord-text-muted mt-1">$150/mo</div>
+                </button>
+              </Show>
+
+              {/* Enterprise - always contact us */}
+              <button
+                type="button"
+                onClick={() => setShowContact(true)}
+                class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition"
+              >
                 <div class="font-semibold">Enterprise</div>
                 <div class="text-xs text-xcord-text-muted mt-1">500+ users</div>
                 <div class="text-xs text-xcord-brand mt-1">Contact us</div>
               </button>
             </div>
 
-            {/* Media - notify me */}
-            <div class="flex items-center gap-3 mb-4">
-              <span class="text-sm text-xcord-text-primary">Voice & video</span>
-              <button type="button" onClick={() => { setNotifyTier('Voice & Video'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} class="text-xs text-xcord-brand hover:underline">Notify me</button>
-            </div>
+            {/* Voice & video */}
+            <Show
+              when={paymentsEnabled()}
+              fallback={
+                <div class="flex items-center gap-3 mb-4">
+                  <span class="text-sm text-xcord-text-primary">Voice &amp; video</span>
+                  <button
+                    type="button"
+                    onClick={() => { setNotifyTier('Voice & Video'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }}
+                    class="text-xs text-xcord-brand hover:underline"
+                  >
+                    Notify me
+                  </button>
+                </div>
+              }
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <span class="text-sm text-xcord-text-primary">Voice &amp; video</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={mediaEnabled()}
+                  onClick={() => setMediaEnabled(v => !v)}
+                  disabled={loading()}
+                  class={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-xcord-brand ${mediaEnabled() ? 'bg-xcord-brand' : 'bg-xcord-bg-accent'}`}
+                >
+                  <span
+                    class={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${mediaEnabled() ? 'translate-x-5' : 'translate-x-1'}`}
+                  />
+                </button>
+              </div>
+            </Show>
 
-            {/* Price summary - always free */}
+            {/* Price summary */}
             <div class="px-3 py-2 bg-xcord-bg-accent rounded">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-medium text-xcord-text-primary">Total</span>
-                <span class="text-sm font-bold text-xcord-text-primary">Free</span>
+                <span class="text-sm font-bold text-xcord-text-primary">
+                  {formatPriceSummary(selectedTier(), mediaEnabled())}
+                </span>
               </div>
             </div>
           </div>

@@ -1,12 +1,7 @@
-using System.Text.Json;
-using BCrypt.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using XcordHub;
 using XcordHub.Entities;
 using XcordHub.Features.Auth;
 using XcordHub.Infrastructure.Data;
@@ -35,17 +30,13 @@ public sealed record CreateInstanceResponse(
 
 public sealed class CreateInstanceHandler(
     HubDbContext dbContext,
-    SnowflakeIdGenerator snowflakeGenerator,
     ICurrentUserService currentUserService,
     IProvisioningQueue provisioningQueue,
-    IConfiguration configuration,
-    ICaptchaService captchaService,
-    IOptions<AuthOptions> authOptions)
+    InstanceCreationService instanceCreationService,
+    IOptions<StripeOptions> stripeOptions)
     : IRequestHandler<CreateInstanceCommand, Result<CreateInstanceResponse>>,
       IValidatable<CreateInstanceCommand>
 {
-    private readonly AuthOptions _authOptions = authOptions.Value;
-
     public Error? Validate(CreateInstanceCommand request)
     {
         var subdomainError = ValidationHelpers.ValidateSubdomain(request.Subdomain);
@@ -61,126 +52,50 @@ public sealed class CreateInstanceHandler(
         if (!Enum.IsDefined(request.Tier))
             return Error.Validation("VALIDATION_FAILED", "Invalid tier");
 
-        // Beta gate - remove when payment processing launches
-        if (request.Tier != InstanceTier.Free)
-            return Error.Validation("PAID_TIER_UNAVAILABLE", "Paid tiers are not yet available.");
+        if (request.Tier != InstanceTier.Free && !stripeOptions.Value.IsConfigured)
+            return Error.Validation("PAID_TIER_UNAVAILABLE", "Payment processing is not configured. Only the free tier is available.");
 
-        if (request.MediaEnabled)
-            return Error.Validation("MEDIA_UNAVAILABLE", "Voice & video is not yet available.");
+        if (request.MediaEnabled && !stripeOptions.Value.IsConfigured)
+            return Error.Validation("MEDIA_UNAVAILABLE", "Payment processing is not configured. Voice & video requires a paid add-on.");
 
         return null;
     }
 
     public async Task<Result<CreateInstanceResponse>> Handle(CreateInstanceCommand request, CancellationToken cancellationToken)
     {
-        // Validate captcha for free tier without media
-        var isFreeTier = request.Tier == InstanceTier.Free && !request.MediaEnabled;
-        if (isFreeTier && !await captchaService.ValidateAsync(request.CaptchaId ?? "", request.CaptchaAnswer ?? ""))
-        {
-            return Error.BadRequest("CAPTCHA_FAILED", "Invalid or expired captcha");
-        }
-
         var userIdResult = currentUserService.GetCurrentUserId();
         if (userIdResult.IsFailure) return userIdResult.Error!;
         var userId = userIdResult.Value;
-
-        // One free instance per user (permanent limit)
-        if (request.Tier == InstanceTier.Free)
-        {
-            var hasFreeInstance = await dbContext.ManagedInstances
-                .AnyAsync(i => i.OwnerId == userId && i.Billing != null && i.Billing.Tier == InstanceTier.Free, cancellationToken);
-
-            if (hasFreeInstance)
-                return Error.BadRequest("FREE_INSTANCE_LIMIT", "You already have a free instance.");
-        }
-
-        var baseDomain = configuration.GetValue<string>("Hub:BaseDomain") ?? "xcord-dev.net";
-        var domain = $"{request.Subdomain}.{baseDomain}";
-
-        var domainExists = await dbContext.ManagedInstances
-            .AnyAsync(i => i.Domain == domain, cancellationToken);
-
-        if (domainExists)
-        {
-            return Error.Conflict("SUBDOMAIN_TAKEN", "This subdomain is already taken");
-        }
-
-        var user = await dbContext.HubUsers
-            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-
-        if (user == null)
-        {
-            return Error.NotFound("USER_NOT_FOUND", "User not found");
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var instanceId = snowflakeGenerator.NextId();
 
         // Generate admin password if not provided
         var adminPassword = !string.IsNullOrWhiteSpace(request.AdminPassword)
             ? request.AdminPassword
             : Guid.NewGuid().ToString("N")[..16];
 
-        // Create managed instance
-        var instance = new ManagedInstance
-        {
-            Id = instanceId,
-            OwnerId = userId,
-            Domain = domain,
-            DisplayName = request.DisplayName,
-            Status = InstanceStatus.Pending,
-            SnowflakeWorkerId = 0, // Will be allocated by AllocateWorkerIdStep in the provisioning pipeline
-            CreatedAt = now
-        };
+        var result = await instanceCreationService.CreateAsync(
+            userId,
+            request.Subdomain,
+            request.DisplayName,
+            adminPassword,
+            request.Tier,
+            request.MediaEnabled,
+            skipCaptcha: false,
+            request.CaptchaId,
+            request.CaptchaAnswer,
+            cancellationToken);
 
-        dbContext.ManagedInstances.Add(instance);
-
-        // Create billing record
-        var billing = new InstanceBilling
-        {
-            Id = snowflakeGenerator.NextId(),
-            ManagedInstanceId = instanceId,
-            Tier = request.Tier,
-            MediaEnabled = request.MediaEnabled,
-            BillingStatus = BillingStatus.Active,
-            BillingExempt = false,
-            NextBillingDate = now.AddMonths(1),
-            CreatedAt = now
-        };
-
-        dbContext.InstanceBillings.Add(billing);
-
-        // Create config with tier defaults and hashed admin password - offloaded to thread pool to avoid starvation
-        var resourceLimits = TierDefaults.GetResourceLimits(request.Tier);
-        var featureFlags = TierDefaults.GetFeatureFlags(request.Tier, request.MediaEnabled);
-        var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(adminPassword, _authOptions.BcryptWorkFactor));
-
-        var config = new InstanceConfig
-        {
-            Id = snowflakeGenerator.NextId(),
-            ManagedInstanceId = instanceId,
-            ConfigJson = JsonSerializer.Serialize(new
-            {
-                AdminPasswordHash = adminPasswordHash
-            }),
-            ResourceLimitsJson = JsonSerializer.Serialize(resourceLimits),
-            FeatureFlagsJson = JsonSerializer.Serialize(featureFlags),
-            Version = 1,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-
-        dbContext.InstanceConfigs.Add(config);
+        if (result.IsFailure) return result.Error!;
+        var instance = result.Value;
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // Enqueue for background provisioning
-        await provisioningQueue.EnqueueAsync(instanceId, cancellationToken);
+        await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken);
 
         return new CreateInstanceResponse(
-            instanceId.ToString(),
-            domain,
-            request.DisplayName,
+            instance.Id.ToString(),
+            instance.Domain,
+            instance.DisplayName,
             InstanceStatus.Pending.ToString(),
             adminPassword
         );
