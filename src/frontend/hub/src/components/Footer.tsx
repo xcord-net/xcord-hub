@@ -29,7 +29,7 @@ export default function Footer() {
           <div>
             <h3 class="text-sm font-semibold text-white mb-3">Xcord</h3>
             <p class="text-sm text-xcord-landing-text-muted">
-              Community chat that scales with you.
+              Your server. Your keys. Your community.
             </p>
           </div>
         </div>

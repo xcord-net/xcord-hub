@@ -93,12 +93,12 @@ export default function Overview() {
           when={instances().length > 0}
           fallback={
             <div class="bg-xcord-bg-secondary rounded-lg p-8 text-center">
-              <p class="text-xcord-text-muted mb-4">You haven't created any instances yet.</p>
+              <p class="text-xcord-text-muted mb-4">No servers yet.</p>
               <A
                 href="/dashboard/create"
                 class="inline-block px-6 py-2 bg-xcord-brand hover:bg-xcord-brand-hover text-white rounded text-sm font-medium transition"
               >
-                Create Your First Instance
+                Launch one
               </A>
             </div>
           }

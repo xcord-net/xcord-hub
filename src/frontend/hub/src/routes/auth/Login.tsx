@@ -47,10 +47,12 @@ export default function Login() {
       <div class="w-full max-w-md bg-xcord-bg-secondary rounded-lg shadow-lg p-8">
         <div class="text-center mb-8">
           <A href="/" class="text-2xl font-bold text-white"><Logo /></A>
-          <h1 class="text-xl text-xcord-text-primary mt-4">Welcome back!</h1>
-          <p class="text-sm text-xcord-text-muted mt-1">
-            {needs2FA() ? 'Enter the 6-digit code from your authenticator app.' : "We're so excited to see you again!"}
-          </p>
+          <h1 class="text-xl text-xcord-text-primary mt-4">Log in</h1>
+          <Show when={needs2FA()}>
+            <p class="text-sm text-xcord-text-muted mt-1">
+              Enter the 6-digit code from your authenticator app.
+            </p>
+          </Show>
         </div>
 
         <form onSubmit={handleSubmit} class="space-y-4">

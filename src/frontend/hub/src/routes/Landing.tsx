@@ -16,7 +16,7 @@ export default function Landing() {
           name: 'Xcord',
           url: window.location.origin,
           logo: `${window.location.origin}/android-chrome-512x512.png`,
-          description: 'Open-source, self-hostable community platform with voice, video, and text. A federated alternative to Discord.',
+          description: 'Open-source, self-hostable community platform with voice, video, and text.',
         },
         {
           '@type': 'WebSite',
@@ -36,7 +36,7 @@ export default function Landing() {
     <div>
       <PageMeta
         title="Xcord - Open Source Community Platform | Self-Hostable Discord Alternative"
-        description="Open-source, self-hostable alternative to Discord with voice, video, and text. Host it yourself or start free on our cloud."
+        description="Open-source community platform with voice, video, and text. You own the server and the encryption keys - whether we host it or you do."
         path="/"
       />
       {/* Hero Section */}
@@ -46,13 +46,13 @@ export default function Landing() {
             <span class="inline-block text-xs font-bold uppercase tracking-widest bg-xcord-brand/20 text-xcord-brand px-3 py-1 rounded-full">beta</span>
           </div>
           <h1 class="text-4xl sm:text-6xl font-bold text-white tracking-tight">
-            Chat that's
+            Your server. Your keys.
             <br />
-            <span class="text-xcord-brand">actually yours.</span>
+            <span class="text-xcord-brand">Your community.</span>
           </h1>
           <p class="mt-6 text-lg sm:text-xl text-xcord-landing-text-muted max-w-2xl mx-auto">
             Open-source community platform with voice, video, and text.
-            Host it yourself or start free on our cloud.
+            Every server generates its own encryption keys. We never see them - even on our cloud.
           </p>
           <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <A
@@ -60,7 +60,7 @@ export default function Landing() {
               href="/register"
               class="px-8 py-3 bg-xcord-brand text-white font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors text-lg"
             >
-              Get Started Free
+              Launch a Server
             </A>
             <A
               data-testid="hero-cta-pricing"
@@ -79,7 +79,7 @@ export default function Landing() {
           <div class="text-center mb-16">
             <h2 class="text-3xl font-bold text-white">Why Xcord?</h2>
             <p class="mt-4 text-xcord-landing-text-muted max-w-xl mx-auto">
-              From plug-and-play to full control - your community, your way.
+              You own it whether we host it or you do.
             </p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -95,8 +95,8 @@ export default function Landing() {
             />
             <FeatureCard
               icon="🌐"
-              title="Federated + Open Source"
-              description="Communities connect across instances - like email, but for chat. Apache 2.0 licensed. Inspect the code, contribute, or fork it."
+              title="Open Source, Full Stop"
+              description="Apache 2.0. No open-core tricks, no enterprise edition behind a paywall. The code running on our cloud is the same code you'd run on yours."
             />
           </div>
         </div>
@@ -106,35 +106,34 @@ export default function Landing() {
       <section class="py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold text-white">How It Works</h2>
-            <p class="mt-4 text-xcord-landing-text-muted">Three steps to your own community.</p>
+            <h2 class="text-3xl font-bold text-white">Up and running in minutes</h2>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="text-center">
               <div class="w-12 h-12 bg-xcord-brand/10 text-xcord-brand rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
                 1
               </div>
-              <h3 class="text-lg font-semibold text-white mb-2">Sign Up</h3>
+              <h3 class="text-lg font-semibold text-white mb-2">Claim a subdomain</h3>
               <p class="text-sm text-xcord-landing-text-muted">
-                Create your free account in seconds. No credit card required.
+                Pick your address on xcord.net. No credit card, no phone number.
               </p>
             </div>
             <div class="text-center">
               <div class="w-12 h-12 bg-xcord-brand/10 text-xcord-brand rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
                 2
               </div>
-              <h3 class="text-lg font-semibold text-white mb-2">Create Your Server</h3>
+              <h3 class="text-lg font-semibold text-white mb-2">You're the admin</h3>
               <p class="text-sm text-xcord-landing-text-muted">
-                Launch your instance with a custom subdomain and your branding. Ready in under a minute.
+                Your instance generates its own encryption keys on first boot. Set your rules, add your branding.
               </p>
             </div>
             <div class="text-center">
               <div class="w-12 h-12 bg-xcord-brand/10 text-xcord-brand rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
                 3
               </div>
-              <h3 class="text-lg font-semibold text-white mb-2">Invite Your Community</h3>
+              <h3 class="text-lg font-semibold text-white mb-2">Bring your people</h3>
               <p class="text-sm text-xcord-landing-text-muted">
-                Share your invite link and start chatting. Voice, video, and text - all in one place.
+                Share a link. Text, voice, and video - all built in.
               </p>
             </div>
           </div>
@@ -146,7 +145,7 @@ export default function Landing() {
       {/* Final CTA */}
       <section class="py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 class="text-3xl sm:text-4xl font-bold text-white">Ready to start building?</h2>
+          <h2 class="text-3xl sm:text-4xl font-bold text-white">Own your community server.</h2>
           <p class="mt-4 text-lg text-xcord-landing-text-muted max-w-xl mx-auto">
             Join communities that chose their own platform.
           </p>
@@ -155,7 +154,7 @@ export default function Landing() {
             href="/register"
             class="mt-8 inline-block px-8 py-3 bg-xcord-brand text-white font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors text-lg"
           >
-            Get Started for Free
+            Launch a Server
           </A>
         </div>
       </section>

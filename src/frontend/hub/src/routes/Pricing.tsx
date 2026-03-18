@@ -95,10 +95,10 @@ const tiers: Tier[] = [
 ];
 
 const faqs = [
-  { q: 'Can I switch plans later?', a: 'Yes, you can upgrade or downgrade at any time. Changes take effect immediately and billing is prorated.' },
-  { q: 'What happens to my data if I cancel?', a: 'Your data remains available for 30 days after cancellation. You can export everything at any time.' },
-  { q: 'Is the self-hosted version really free?', a: 'Yes. Xcord is open source. You only pay for your own infrastructure costs.' },
-  { q: 'Can I connect a self-hosted instance to the hub?', a: 'Absolutely. Self-hosted instances can connect to the hub for discovery and SSO, or run completely standalone.' },
+  { q: 'Can I switch plans later?', a: 'Yes. Upgrades apply instantly, downgrades at the next cycle. Everything is prorated.' },
+  { q: 'What happens to my data if I cancel?', a: 'It stays for 30 days. You can export anytime, whether you\'re on a paid plan or not.' },
+  { q: 'Is the self-hosted version really free?', a: 'Yes. Apache 2.0. No enterprise edition, no open-core gotchas. Same code we run on our cloud.' },
+  { q: 'Can I connect a self-hosted instance to the hub?', a: 'Yes. Connect it for discovery and SSO, or run it standalone. Either way, same software, same features.' },
   { q: 'This is amazing! Can I still donate even if I have the FREE plan?', a: 'Unfortunately, no one has ever asked this question. Then again, nobody\'s ever asked the other questions, either.' },
 ];
 
@@ -154,7 +154,7 @@ export default function Pricing() {
           <span class="ml-2 align-middle text-xs font-bold uppercase tracking-widest bg-xcord-brand/20 text-xcord-brand px-2.5 py-1 rounded-full">beta</span>
         </h1>
         <p class="text-xcord-landing-text-muted mb-12">
-          Choose a plan based on your community size and the features you need.
+          Same software on every tier. You're paying for hosting, not features.
         </p>
 
         {/* Tier cards */}
