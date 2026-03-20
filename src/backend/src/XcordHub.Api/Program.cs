@@ -77,6 +77,8 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseCrawlerPrerendered();
+
 app.UseStaticFiles();
 
 app.MapControllers();

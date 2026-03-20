@@ -1,7 +1,26 @@
 import { A } from '@solidjs/router';
+import { onMount, onCleanup } from 'solid-js';
 import PageMeta from '../components/PageMeta';
 
 export default function TermsOfService() {
+  onMount(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'xcord-terms-jsonld';
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Terms of Service - Xcord',
+      url: `${window.location.origin}/terms`,
+      dateModified: '2026-02-01',
+    });
+    document.head.appendChild(script);
+  });
+
+  onCleanup(() => {
+    document.getElementById('xcord-terms-jsonld')?.remove();
+  });
+
   return (
     <article class="max-w-3xl mx-auto px-6 py-20 text-xcord-landing-text">
       <PageMeta

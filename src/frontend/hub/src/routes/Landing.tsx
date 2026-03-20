@@ -14,9 +14,10 @@ export default function Landing() {
         {
           '@type': 'Organization',
           name: 'Xcord',
+          alternateName: 'Xcord - Open Source Discord Alternative',
           url: window.location.origin,
           logo: `${window.location.origin}/android-chrome-512x512.png`,
-          description: 'Open-source, self-hostable community platform with voice, video, and text.',
+          description: 'Open-source, self-hosted Discord alternative with voice, video, and text. Federated community platform where you own the server and the encryption keys.',
         },
         {
           '@type': 'WebSite',
@@ -35,8 +36,8 @@ export default function Landing() {
   return (
     <div>
       <PageMeta
-        title="Xcord - Open Source Community Platform | Self-Hostable Discord Alternative"
-        description="Open-source community platform with voice, video, and text. You own the server and the encryption keys - whether we host it or you do."
+        title="Xcord - The Open Source Discord Alternative | Self-Hosted Chat Platform"
+        description="Xcord is an open-source Discord alternative you can self-host or run on our cloud. Federated community platform with voice, video, and text. You own the server and the encryption keys."
         path="/"
       />
       {/* Hero Section */}

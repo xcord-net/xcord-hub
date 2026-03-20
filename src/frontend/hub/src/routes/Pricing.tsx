@@ -1,5 +1,5 @@
 import { A } from '@solidjs/router';
-import { createSignal, For, Show, onMount } from 'solid-js';
+import { createSignal, For, Show, onMount, onCleanup } from 'solid-js';
 import PageMeta from '../components/PageMeta';
 import ContactModal from '../components/ContactModal';
 
@@ -112,6 +112,36 @@ export default function Pricing() {
   const [notifyMessage, setNotifyMessage] = createSignal('');
 
   onMount(async () => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'xcord-pricing-jsonld';
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Xcord Pricing',
+      description: 'Hosted plans for Xcord, the open-source Discord alternative.',
+      url: `${window.location.origin}/pricing`,
+      mainEntity: {
+        '@type': 'ItemList',
+        itemListElement: tiers.map((tier, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          item: {
+            '@type': 'Product',
+            name: `Xcord ${tier.name}`,
+            description: tier.memberLimit,
+            offers: {
+              '@type': 'Offer',
+              price: tier.isFree ? '0' : tier.basePrice.replace(/[^0-9.]/g, ''),
+              priceCurrency: 'USD',
+              ...(tier.isEnterprise ? {} : { priceValidUntil: '2027-12-31' }),
+            },
+          },
+        })),
+      },
+    });
+    document.head.appendChild(script);
+
     try {
       const res = await fetch('/api/v1/hub/features');
       if (res.ok) {
@@ -119,6 +149,10 @@ export default function Pricing() {
         setPaymentsEnabled(data.paymentsEnabled);
       }
     } catch { /* default to false */ }
+  });
+
+  onCleanup(() => {
+    document.getElementById('xcord-pricing-jsonld')?.remove();
   });
 
   const tierCta = (tier: Tier) => {
@@ -161,8 +195,8 @@ export default function Pricing() {
   return (
     <>
       <PageMeta
-        title="Pricing - Xcord"
-        description="Choose a plan based on your community size. Free tier for up to 10 members. Voice, video, and text included."
+        title="Xcord Pricing - Hosted Discord Alternative Plans"
+        description="Choose a plan for your self-hosted Discord alternative. Free tier for up to 10 members, or scale up with Basic, Pro, and Enterprise. Voice, video, and text included. Same open-source software on every tier."
         path="/pricing"
       />
       <section class="max-w-7xl mx-auto px-6 py-20 text-center">

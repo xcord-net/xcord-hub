@@ -188,7 +188,7 @@ export default function Download() {
       '@type': 'SoftwareApplication',
       name: 'Xcord',
       applicationCategory: 'CommunicationApplication',
-      description: 'Open-source community platform with voice, video, and text chat.',
+      description: 'Open-source Discord alternative with voice, video, and text chat. Self-hosted community platform.',
       operatingSystem: 'Windows 10+, macOS 12+, Linux',
       url: `${window.location.origin}/download`,
       offers: {
@@ -207,8 +207,8 @@ export default function Download() {
   return (
     <>
       <PageMeta
-        title="Download Xcord - Open Source Community Platform for Desktop & Mobile"
-        description="Download Xcord for Windows, macOS, and Linux. Connect to any Xcord server."
+        title="Download Xcord - Self-Hosted Discord Alternative for Desktop and Mobile"
+        description="Download the Xcord desktop app for Windows, macOS, and Linux. Connect to any self-hosted Xcord server or our cloud. Open-source Discord alternative with voice, video, and text."
         path="/download"
       />
 

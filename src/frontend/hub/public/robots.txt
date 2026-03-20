@@ -5,5 +5,6 @@ Disallow: /register
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /dashboard
+Disallow: /admin
 
 Sitemap: https://xcord.net/sitemap.xml

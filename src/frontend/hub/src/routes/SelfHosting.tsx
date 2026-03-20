@@ -1,12 +1,37 @@
 import { A } from '@solidjs/router';
+import { onMount, onCleanup } from 'solid-js';
 import PageMeta from '../components/PageMeta';
 
 export default function SelfHosting() {
+  onMount(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'xcord-selfhosting-jsonld';
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'TechArticle',
+      headline: 'Self-Hosting Guide - Xcord',
+      description: 'Step-by-step guide to deploy your own self-hosted Discord alternative with Docker, automatic TLS, and full infrastructure control.',
+      url: `${window.location.origin}/docs/self-hosting`,
+      datePublished: '2026-02-01',
+      publisher: {
+        '@type': 'Organization',
+        name: 'Xcord',
+        url: window.location.origin,
+      },
+    });
+    document.head.appendChild(script);
+  });
+
+  onCleanup(() => {
+    document.getElementById('xcord-selfhosting-jsonld')?.remove();
+  });
+
   return (
     <article class="max-w-3xl mx-auto px-6 py-20 text-xcord-landing-text">
       <PageMeta
-        title="Self-Hosting Guide - Xcord"
-        description="Deploy your own Xcord instance with full control. Step-by-step guide for Docker-based deployment with automatic TLS."
+        title="Self-Hosting Guide - Deploy Your Own Discord Alternative"
+        description="Step-by-step guide to self-host Xcord, the open-source Discord alternative. Deploy with Docker, automatic TLS, and full infrastructure control. Own your data and encryption keys."
         path="/docs/self-hosting"
       />
       <h1 class="text-4xl font-bold text-white mb-2">Self-Hosting Guide</h1>
