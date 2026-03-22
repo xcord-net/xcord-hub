@@ -1,10 +1,11 @@
-import { Show, For, createEffect } from 'solid-js';
+import { Show, For, createEffect, createSignal } from 'solid-js';
 import { A, useNavigate, useLocation } from '@solidjs/router';
 import { instanceStore } from '../stores/instance.store';
 import { unreadStore } from '../stores/unread.store';
 import { useAuth } from '../stores/auth.store';
 import InstanceIframe from './InstanceIframe';
 import DashboardSidebar, { setSidebarOpen } from './DashboardSidebar';
+import AddServerPopover from './AddServerPopover';
 import Logo from './Logo';
 import type { JSX } from 'solid-js';
 
@@ -28,9 +29,10 @@ export default function AppShell(props: { children: JSX.Element }) {
     instanceStore.selectInstance(url);
   };
 
+  const [addPopoverOpen, setAddPopoverOpen] = createSignal(false);
+
   const handleAddInstance = () => {
-    instanceStore.selectInstance(null);
-    navigate('/dashboard/create');
+    setAddPopoverOpen(!addPopoverOpen());
   };
 
   // If an instance gets selected, ensure we stay on dashboard path for URL consistency
@@ -93,14 +95,20 @@ export default function AppShell(props: { children: JSX.Element }) {
           }}
         </For>
 
-        {/* Add button */}
-        <button
-          onClick={handleAddInstance}
-          class="px-3 py-1.5 rounded text-sm text-xcord-text-muted hover:bg-xcord-bg-accent/50 hover:text-xcord-text-primary transition"
-          title="Add server"
-        >
-          +
-        </button>
+        {/* Add button + popover */}
+        <div class="relative">
+          <button
+            onClick={handleAddInstance}
+            class="px-3 py-1.5 rounded text-sm text-xcord-text-muted hover:bg-xcord-bg-accent/50 hover:text-xcord-text-primary transition"
+            title="Add server"
+          >
+            +
+          </button>
+          <AddServerPopover
+            open={addPopoverOpen()}
+            onClose={() => setAddPopoverOpen(false)}
+          />
+        </div>
 
         {/* Spacer */}
         <div class="flex-1" />

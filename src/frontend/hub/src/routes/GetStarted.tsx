@@ -263,7 +263,7 @@ export default function GetStarted() {
     <>
       <PageMeta
         title="Get Started with Xcord - Launch Your Self-Hosted Chat Server"
-        description="Create your own Xcord server in minutes. Choose a subdomain, pick a plan, and launch your self-hosted Discord alternative with voice, video, and text."
+        description="Create your own Xcord server in minutes. Choose a subdomain, pick a plan, and launch your self-hosted Discord alternative with voice and video streaming."
         path="/get-started"
       />
       <Show when={ready()} fallback={

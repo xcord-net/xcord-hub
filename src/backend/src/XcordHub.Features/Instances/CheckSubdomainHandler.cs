@@ -71,7 +71,7 @@ public sealed class CheckSubdomainHandler(
         {
             return await handler.ExecuteAsync(new CheckSubdomainQuery(subdomain), ct);
         })
-        .RequireAuthorization(Policies.User)
+        .AllowAnonymous()
         .Produces<CheckSubdomainResponse>(200)
         .WithName("CheckSubdomain")
         .WithTags("Instances");
