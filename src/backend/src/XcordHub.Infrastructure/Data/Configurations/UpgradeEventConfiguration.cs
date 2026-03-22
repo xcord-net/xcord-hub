@@ -46,6 +46,8 @@ public sealed class UpgradeEventConfiguration : IEntityTypeConfiguration<Upgrade
 
         builder.HasIndex(x => x.UpgradeRolloutId);
 
+        builder.HasQueryFilter(x => x.ManagedInstance!.DeletedAt == null);
+
         builder.HasOne(x => x.Rollout)
             .WithMany(x => x.UpgradeEvents)
             .HasForeignKey(x => x.UpgradeRolloutId)

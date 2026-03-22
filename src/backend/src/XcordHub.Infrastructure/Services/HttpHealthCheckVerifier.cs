@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace XcordHub.Infrastructure.Services;
@@ -8,11 +9,13 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<HttpHealthCheckVerifier> _logger;
+    private readonly string _scheme;
 
-    public HttpHealthCheckVerifier(HttpClient httpClient, ILogger<HttpHealthCheckVerifier> logger)
+    public HttpHealthCheckVerifier(HttpClient httpClient, IHostEnvironment env, ILogger<HttpHealthCheckVerifier> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _scheme = env.IsDevelopment() ? "http" : "https";
     }
 
     public async Task<(bool IsHealthy, int ResponseTimeMs, string? ErrorMessage, string? Version)> VerifyInstanceHealthAsync(
@@ -23,11 +26,7 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
 
         try
         {
-            // Use the container's internal Docker hostname (xcord-{subdomain}-api:80)
-            // instead of the public domain, so the check works from inside the Docker network.
-            var subdomain = ValidationHelpers.ExtractSubdomain(domain);
-            var containerHost = $"xcord-{subdomain}-api";
-            var healthUrl = $"http://{containerHost}:80/api/v1/health";
+            var healthUrl = $"{_scheme}://{domain}/api/v1/health";
             var response = await _httpClient.GetAsync(healthUrl, cancellationToken);
 
             stopwatch.Stop();

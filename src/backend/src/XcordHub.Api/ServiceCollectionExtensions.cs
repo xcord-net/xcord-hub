@@ -337,8 +337,13 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(5);
         });
 
-        // Health monitoring
-        services.AddHttpClient<IHealthCheckVerifier, HttpHealthCheckVerifier>();
+        // Health monitoring - disable auto-redirect so HTTP health checks in dev
+        // don't follow Caddy's 308 redirect to HTTPS
+        services.AddHttpClient<IHealthCheckVerifier, HttpHealthCheckVerifier>()
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+            });
         var alertWebhookUrl = config.GetSection("Alerting:WebhookUrl").Value;
         services.AddHttpClient<IAlertService, WebhookAlertService>(client =>
         {

@@ -43,6 +43,8 @@ public sealed class InstanceConfigConfiguration : IEntityTypeConfiguration<Insta
         builder.HasIndex(x => x.ManagedInstanceId)
             .IsUnique();
 
+        builder.HasQueryFilter(x => x.ManagedInstance!.DeletedAt == null);
+
         builder.HasOne(x => x.ManagedInstance)
             .WithOne(x => x.Config)
             .HasForeignKey<InstanceConfig>(x => x.ManagedInstanceId)

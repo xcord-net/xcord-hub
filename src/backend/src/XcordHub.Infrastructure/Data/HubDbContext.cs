@@ -47,12 +47,8 @@ public sealed class HubDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply configurations that don't require injected services via assembly scan
-        modelBuilder.ApplyConfigurationsFromAssembly(
-            typeof(HubDbContext).Assembly,
-            t => t != typeof(InstanceInfrastructureConfiguration));
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(HubDbContext).Assembly);
 
-        // Apply configurations that require injected services explicitly
-        modelBuilder.ApplyConfiguration(new InstanceInfrastructureConfiguration(_encryptionService));
+        new InstanceInfrastructureConfiguration(_encryptionService).Configure(modelBuilder.Entity<InstanceInfrastructure>());
     }
 }

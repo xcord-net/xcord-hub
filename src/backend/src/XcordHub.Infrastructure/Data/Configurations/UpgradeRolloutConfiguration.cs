@@ -59,6 +59,8 @@ public sealed class UpgradeRolloutConfiguration : IEntityTypeConfiguration<Upgra
 
         builder.HasIndex(x => x.Status);
 
+        builder.HasQueryFilter(x => x.Initiator!.DeletedAt == null);
+
         builder.HasOne(x => x.Initiator)
             .WithMany()
             .HasForeignKey(x => x.InitiatedBy)

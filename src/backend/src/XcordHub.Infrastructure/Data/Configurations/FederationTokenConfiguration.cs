@@ -29,6 +29,8 @@ public sealed class FederationTokenConfiguration : IEntityTypeConfiguration<Fede
 
         builder.HasIndex(x => x.ManagedInstanceId);
 
+        builder.HasQueryFilter(x => x.ManagedInstance!.DeletedAt == null);
+
         builder.HasOne(x => x.ManagedInstance)
             .WithMany(x => x.FederationTokens)
             .HasForeignKey(x => x.ManagedInstanceId)

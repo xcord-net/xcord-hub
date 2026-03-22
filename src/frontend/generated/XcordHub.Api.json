@@ -464,8 +464,8 @@
         }
       }
     },
-    "/api/v1/admin/instances/{instanceId}": {
-      "delete": {
+    "/api/v1/hub/instances/{instanceId}/destroy": {
+      "post": {
         "tags": [
           "Instances"
         ],
@@ -527,7 +527,77 @@
         }
       }
     },
-    "/api/v1/admin/instances/{instanceId}/resume": {
+    "/api/v1/hub/instances/{instanceId}": {
+      "get": {
+        "tags": [
+          "Instances"
+        ],
+        "operationId": "GetInstance",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetInstanceResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Instances"
+        ],
+        "operationId": "UpdateInstance",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetInstanceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hub/instances/{instanceId}/resume": {
       "post": {
         "tags": [
           "Instances"
@@ -558,7 +628,7 @@
         }
       }
     },
-    "/api/v1/admin/instances/{instanceId}/suspend": {
+    "/api/v1/hub/instances/{instanceId}/suspend": {
       "post": {
         "tags": [
           "Instances"
@@ -914,7 +984,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetInstanceResponse"
+                  "$ref": "#/components/schemas/GetInstanceResponse2"
                 }
               }
             }
@@ -2720,6 +2790,46 @@
       "GetInstanceResponse": {
         "required": [
           "id",
+          "subdomain",
+          "displayName",
+          "domain",
+          "status",
+          "tier",
+          "mediaEnabled",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subdomain": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tier": {
+            "type": "string"
+          },
+          "mediaEnabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GetInstanceResponse2": {
+        "required": [
+          "id",
           "name",
           "description",
           "iconUrl",
@@ -4105,6 +4215,18 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateInstanceRequest": {
+        "required": [
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "nullable": true
           }
         }
       },

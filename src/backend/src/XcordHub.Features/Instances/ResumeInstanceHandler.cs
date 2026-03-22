@@ -98,7 +98,7 @@ public sealed class ResumeInstanceHandler(
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
-        return app.MapPost("/api/v1/admin/instances/{instanceId:long}/resume", async (
+        return app.MapPost("/api/v1/hub/instances/{instanceId:long}/resume", async (
             [FromRoute] long instanceId,
             ClaimsPrincipal user,
             ResumeInstanceHandler handler,

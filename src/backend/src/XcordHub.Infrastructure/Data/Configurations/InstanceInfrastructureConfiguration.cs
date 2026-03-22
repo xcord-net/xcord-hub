@@ -6,7 +6,7 @@ using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Infrastructure.Data.Configurations;
 
-public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfiguration<InstanceInfrastructure>
+public sealed class InstanceInfrastructureConfiguration
 {
     private readonly EncryptedStringConverter _encryptedStringConverter;
 
@@ -109,6 +109,8 @@ public sealed class InstanceInfrastructureConfiguration : IEntityTypeConfigurati
 
         builder.HasIndex(x => x.ManagedInstanceId)
             .IsUnique();
+
+        builder.HasQueryFilter(x => x.ManagedInstance!.DeletedAt == null);
 
         builder.HasOne(x => x.ManagedInstance)
             .WithOne(x => x.Infrastructure)

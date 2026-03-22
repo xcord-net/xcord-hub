@@ -35,6 +35,8 @@ public sealed class InstanceHealthConfiguration : IEntityTypeConfiguration<Insta
         builder.HasIndex(x => x.ManagedInstanceId)
             .IsUnique();
 
+        builder.HasQueryFilter(x => x.ManagedInstance!.DeletedAt == null);
+
         builder.HasOne(x => x.ManagedInstance)
             .WithOne(x => x.Health)
             .HasForeignKey<InstanceHealth>(x => x.ManagedInstanceId)

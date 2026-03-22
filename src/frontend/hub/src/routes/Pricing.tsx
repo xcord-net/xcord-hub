@@ -106,6 +106,7 @@ export default function Pricing() {
   const [openFaq, setOpenFaq] = createSignal<number | null>(null);
   const [showContact, setShowContact] = createSignal(false);
   const [paymentsEnabled, setPaymentsEnabled] = createSignal(false);
+  const [featuresLoaded, setFeaturesLoaded] = createSignal(false);
   const [notifyCardKey, setNotifyCardKey] = createSignal<string | null>(null);
   const [notifyEmail, setNotifyEmail] = createSignal('');
   const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -149,6 +150,7 @@ export default function Pricing() {
         setPaymentsEnabled(data.paymentsEnabled);
       }
     } catch { /* default to false */ }
+    setFeaturesLoaded(true);
   });
 
   onCleanup(() => {
@@ -208,8 +210,8 @@ export default function Pricing() {
           Same software on every tier. You're paying for hosting, not features.
         </p>
 
-        {/* Tier cards */}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-6">
+        {/* Tier cards - hidden until features check completes to prevent CTA flash */}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-6" style={{ opacity: featuresLoaded() ? 1 : 0, transition: 'opacity 0.15s' }}>
           <For each={tiers}>
             {(tier) => (
               <div class="bg-xcord-landing-surface border border-xcord-landing-border rounded-xl p-6 flex flex-col text-left">

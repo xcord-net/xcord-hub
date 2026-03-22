@@ -197,7 +197,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/instances/{instanceId}": {
+    "/api/v1/hub/instances/{instanceId}/destroy": {
         parameters: {
             query?: never;
             header?: never;
@@ -206,8 +206,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
-        delete: operations["DestroyInstance"];
+        post: operations["DestroyInstance"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -229,7 +229,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/instances/{instanceId}/resume": {
+    "/api/v1/hub/instances/{instanceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetInstance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["UpdateInstance"];
+        trace?: never;
+    };
+    "/api/v1/hub/instances/{instanceId}/resume": {
         parameters: {
             query?: never;
             header?: never;
@@ -245,7 +261,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/instances/{instanceId}/suspend": {
+    "/api/v1/hub/instances/{instanceId}/suspend": {
         parameters: {
             query?: never;
             header?: never;
@@ -1208,6 +1224,17 @@ export interface components {
         };
         GetInstanceResponse: {
             id: string;
+            subdomain: string;
+            displayName: string;
+            domain: string;
+            status: string;
+            tier: string;
+            mediaEnabled: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        GetInstanceResponse2: {
+            id: string;
             name: string;
             description: string;
             iconUrl: string;
@@ -1617,6 +1644,9 @@ export interface components {
         UpdateFeatureFlagsResponse: {
             instanceId: string;
             message: string;
+        };
+        UpdateInstanceRequest: {
+            displayName: string | null;
         };
         UpdateProfileRequest: {
             displayName: string | null;
@@ -2089,6 +2119,54 @@ export interface operations {
             };
         };
     };
+    GetInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetInstanceResponse"];
+                };
+            };
+        };
+    };
+    UpdateInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInstanceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetInstanceResponse"];
+                };
+            };
+        };
+    };
     ResumeInstance: {
         parameters: {
             query?: never;
@@ -2366,7 +2444,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GetInstanceResponse"];
+                    "application/json": components["schemas"]["GetInstanceResponse2"];
                 };
             };
         };

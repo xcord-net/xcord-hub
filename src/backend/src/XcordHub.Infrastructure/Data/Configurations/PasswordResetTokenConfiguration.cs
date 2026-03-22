@@ -33,6 +33,8 @@ public sealed class PasswordResetTokenConfiguration : IEntityTypeConfiguration<P
 
         builder.HasIndex(x => x.HubUserId);
 
+        builder.HasQueryFilter(x => x.HubUser!.DeletedAt == null);
+
         builder.HasOne(x => x.HubUser)
             .WithMany(x => x.PasswordResetTokens)
             .HasForeignKey(x => x.HubUserId)

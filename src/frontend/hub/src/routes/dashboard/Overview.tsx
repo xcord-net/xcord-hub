@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show, For } from 'solid-js';
+import { createSignal, createEffect, onMount, onCleanup, Show, For } from 'solid-js';
 import { A } from '@solidjs/router';
 import { instanceStore, type ConnectedInstance } from '../../stores/instance.store';
 import PageMeta from '../../components/PageMeta';
@@ -17,7 +17,9 @@ export default function Overview() {
   const [instances, setInstances] = createSignal<InstanceInfo[]>([]);
   const [loading, setLoading] = createSignal(true);
 
-  onMount(async () => {
+  const TRANSIENT_STATUSES = ['provisioning', 'suspending', 'resuming', 'destroying', 'pending'];
+
+  const fetchInstances = async () => {
     try {
       const token = localStorage.getItem('xcord_hub_token');
       const response = await fetch('/api/v1/hub/instances', {
@@ -29,9 +31,32 @@ export default function Overview() {
       }
     } catch {
       // API may not be available yet
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const hasTransientInstances = () =>
+    instances().some(i => TRANSIENT_STATUSES.includes(i.status.toLowerCase()));
+
+  onMount(async () => {
+    await fetchInstances();
+    setLoading(false);
+  });
+
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+  createEffect(() => {
+    if (hasTransientInstances()) {
+      if (!pollTimer) {
+        pollTimer = setInterval(fetchInstances, 3000);
+      }
+    } else if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = undefined;
+    }
+  });
+
+  onCleanup(() => {
+    if (pollTimer) clearInterval(pollTimer);
   });
 
   const statusDot = (status: string) => {

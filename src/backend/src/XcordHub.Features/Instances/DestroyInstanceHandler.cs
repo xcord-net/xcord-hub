@@ -110,7 +110,7 @@ public sealed class DestroyInstanceHandler(
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
-        return app.MapDelete("/api/v1/admin/instances/{instanceId:long}", async (
+        return app.MapPost("/api/v1/hub/instances/{instanceId:long}/destroy", async (
             [FromRoute] long instanceId,
             ClaimsPrincipal user,
             DestroyInstanceHandler handler,

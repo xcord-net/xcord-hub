@@ -12,6 +12,7 @@ public sealed class InstanceRevenueConfigConfiguration : IEntityTypeConfiguratio
         builder.HasKey(c => c.Id);
         builder.Property(c => c.StripeConnectedAccountId).HasMaxLength(255);
         builder.Property(c => c.CreatedAt).IsRequired();
+        builder.HasQueryFilter(c => c.ManagedInstance!.DeletedAt == null);
         builder.HasOne(c => c.ManagedInstance).WithMany().HasForeignKey(c => c.ManagedInstanceId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(c => c.ManagedInstanceId).IsUnique();
     }

@@ -34,6 +34,8 @@ public sealed class ProvisioningEventConfiguration : IEntityTypeConfiguration<Pr
 
         builder.HasIndex(x => x.ManagedInstanceId);
 
+        builder.HasQueryFilter(x => x.ManagedInstance!.DeletedAt == null);
+
         builder.HasOne(x => x.ManagedInstance)
             .WithMany(x => x.ProvisioningEvents)
             .HasForeignKey(x => x.ManagedInstanceId)

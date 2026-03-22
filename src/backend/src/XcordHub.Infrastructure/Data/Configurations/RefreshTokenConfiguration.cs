@@ -30,6 +30,8 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
 
         builder.HasIndex(x => x.HubUserId);
 
+        builder.HasQueryFilter(x => x.HubUser!.DeletedAt == null);
+
         builder.HasOne(x => x.HubUser)
             .WithMany(x => x.RefreshTokens)
             .HasForeignKey(x => x.HubUserId)

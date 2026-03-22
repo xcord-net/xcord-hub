@@ -44,6 +44,8 @@ public sealed class InstanceBillingConfiguration : IEntityTypeConfiguration<Inst
         builder.HasIndex(x => x.ManagedInstanceId)
             .IsUnique();
 
+        builder.HasQueryFilter(x => x.ManagedInstance!.DeletedAt == null);
+
         builder.HasOne(x => x.ManagedInstance)
             .WithOne(x => x.Billing)
             .HasForeignKey<InstanceBilling>(x => x.ManagedInstanceId)

@@ -13,6 +13,7 @@ public sealed class PlatformRevenueConfiguration : IEntityTypeConfiguration<Plat
         builder.Property(r => r.StripeTransferId).HasMaxLength(255);
         builder.Property(r => r.Currency).IsRequired().HasMaxLength(3);
         builder.Property(r => r.CreatedAt).IsRequired();
+        builder.HasQueryFilter(r => r.ManagedInstance!.DeletedAt == null);
         builder.HasOne(r => r.ManagedInstance).WithMany().HasForeignKey(r => r.ManagedInstanceId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(r => r.ManagedInstanceId);
         builder.HasIndex(r => new { r.ManagedInstanceId, r.PeriodStart, r.PeriodEnd });

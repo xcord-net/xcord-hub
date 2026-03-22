@@ -42,6 +42,8 @@ public sealed class AvailableVersionConfiguration : IEntityTypeConfiguration<Ava
 
         builder.HasIndex(x => x.PublishedBy);
 
+        builder.HasQueryFilter(x => x.Publisher!.DeletedAt == null);
+
         builder.HasOne(x => x.Publisher)
             .WithMany()
             .HasForeignKey(x => x.PublishedBy)

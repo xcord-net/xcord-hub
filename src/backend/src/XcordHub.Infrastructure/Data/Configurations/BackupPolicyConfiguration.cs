@@ -24,5 +24,7 @@ public sealed class BackupPolicyConfiguration : IEntityTypeConfiguration<BackupP
 
         builder.HasIndex(x => x.ManagedInstanceId)
             .IsUnique();
+
+        builder.HasQueryFilter(x => x.ManagedInstance!.DeletedAt == null);
     }
 }
