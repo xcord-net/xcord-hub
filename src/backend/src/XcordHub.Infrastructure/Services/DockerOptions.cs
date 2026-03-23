@@ -3,7 +3,7 @@ namespace XcordHub.Infrastructure.Services;
 public sealed class DockerOptions
 {
     public string SocketProxyUrl { get; set; } = "http://docker-socket-proxy:2375";
-    public bool UseReal { get; set; } = false;
+    public bool UseReal { get; set; } = true;
 
     /// <summary>
     /// The Docker image to use when provisioning xcord-fed instance containers.

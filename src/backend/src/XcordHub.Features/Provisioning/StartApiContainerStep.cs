@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
@@ -13,9 +12,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
 {
     private readonly HubDbContext _dbContext;
     private readonly IDockerService _dockerService;
+    private readonly IEncryptionService _encryptionService;
     private readonly string _hubConnectionString;
     private readonly TopologyResolver _resolver;
-    private readonly bool _isDevelopment;
 
     public string StepName => "StartApiContainer";
 
@@ -23,17 +22,17 @@ public sealed class StartApiContainerStep : IProvisioningStep
     private readonly string _stripeWebhookSecret;
     private readonly string _testSeedKey;
 
-    public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IConfiguration configuration, TopologyResolver resolver, IHostEnvironment hostEnvironment)
+    public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IEncryptionService encryptionService, IConfiguration configuration, TopologyResolver resolver)
     {
         _dbContext = dbContext;
         _dockerService = dockerService;
+        _encryptionService = encryptionService;
         _hubConnectionString = configuration.GetSection("Database:ConnectionString").Value
             ?? throw new InvalidOperationException("Database:ConnectionString not configured");
         _resolver = resolver;
         _stripeSecretKey = configuration.GetSection("Stripe:SecretKey").Value ?? "";
         _stripeWebhookSecret = configuration.GetSection("Stripe:WebhookSecret").Value ?? "";
         _testSeedKey = configuration.GetSection("TestSeed:Key").Value ?? "";
-        _isDevelopment = hostEnvironment.IsDevelopment();
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -41,6 +40,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
         var instance = await _dbContext.ManagedInstances
             .Include(i => i.Infrastructure)
             .Include(i => i.Config)
+            .Include(i => i.Owner)
             .FirstOrDefaultAsync(i => i.Id == instanceId, cancellationToken);
 
         if (instance?.Infrastructure == null)
@@ -72,13 +72,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 }
             }
 
-            // In development, remove resource limits so instances have unlimited capacity
-            if (_isDevelopment)
-            {
-                limits = null;
-                containerResourceLimits = null;
-            }
-
             // Resolve pool-specific service endpoints, falling back to defaults.
             // Data pool overrides compute pool for DB, Redis, and storage when configured.
             var pool = instance.Infrastructure.PlacedInPool;
@@ -91,16 +84,24 @@ public sealed class StartApiContainerStep : IProvisioningStep
             var livekitConfig = _resolver.GetLiveKitConfig(pool);
             var livekitHost = livekitConfig?.Host ?? "ws://livekit:7880";
 
+            // Decrypt owner email for admin user seeding on the instance
+            var ownerEmail = instance.Owner != null
+                ? _encryptionService.Decrypt(instance.Owner.Email)
+                : "";
+            var ownerUsername = instance.Owner?.Username ?? "";
+            var ownerDisplayName = instance.Owner?.DisplayName ?? ownerUsername;
+            var adminPasswordHash = instance.Infrastructure.AdminPasswordHash ?? "";
+
             // Generate config JSON in xcord-config.json format (read by xcord-fed entrypoint).
             // Use per-instance MinIO credentials provisioned by ProvisionMinioStep.
             var configJson = GenerateConfigJson(
                 instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId,
                 dbConnStr, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
                 redisConnStr, storageEndpoint, livekitHost,
-                _isDevelopment,
                 featureFlags, limits,
                 _stripeSecretKey, _stripeWebhookSecret,
-                _testSeedKey);
+                _testSeedKey,
+                ownerEmail, ownerUsername, ownerDisplayName, adminPasswordHash);
 
             // Create a Docker secret containing the config. The secret is mounted at
             // /run/secrets/xcord-config inside the container and read by entrypoint.sh.
@@ -172,12 +173,15 @@ public sealed class StartApiContainerStep : IProvisioningStep
         string redisConnectionString,
         string storageEndpoint,
         string livekitHost,
-        bool isDevelopment = false,
         FeatureFlags? featureFlags = null,
         ResourceLimits? resourceLimits = null,
         string stripeSecretKey = "",
         string stripeWebhookSecret = "",
-        string testSeedKey = "")
+        string testSeedKey = "",
+        string adminEmail = "",
+        string adminUsername = "",
+        string adminDisplayName = "",
+        string adminPasswordHash = "")
     {
         // Domain format for the instance: subdomain is used as-is (no suffix appended here -
         // the full domain (e.g. "test.localhost") is stored in ManagedInstance.Domain).
@@ -259,16 +263,24 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 windowSeconds = 60,
                 authRegisterPermitLimit = 100,
                 authForgotPasswordPermitLimit = 3,
-                authPermitLimit = isDevelopment ? 1000 : 10
+                authPermitLimit = 10
             },
             auth = new
             {
-                bcryptWorkFactor = 10
+                bcryptWorkFactor = 10,
+                registrationEnabled = false
             },
             gif = new
             {
                 provider = "none",
                 apiKey = ""
+            },
+            admin = new
+            {
+                email = adminEmail,
+                username = adminUsername,
+                displayName = adminDisplayName,
+                passwordHash = adminPasswordHash
             },
             memberBilling = new
             {

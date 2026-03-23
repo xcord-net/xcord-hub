@@ -93,14 +93,15 @@ async function signupWithInstance(
   email: string, password: string, displayName: string, username: string,
   subdomain: string, instanceDisplayName: string,
   tier: string = 'Free', mediaEnabled: boolean = false,
-  captchaId?: string, captchaAnswer?: string
+  captchaId?: string, captchaAnswer?: string,
+  paymentMethodId?: string
 ): Promise<{ instanceId: string; domain: string } | false> {
   setError(null);
   try {
     const response = await fetch('/api/v1/hub/register-with-instance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, displayName, username, subdomain, instanceDisplayName, tier, mediaEnabled, captchaId, captchaAnswer }),
+      body: JSON.stringify({ email, password, displayName, username, subdomain, instanceDisplayName, tier, mediaEnabled, captchaId, captchaAnswer, paymentMethodId }),
     });
 
     if (!response.ok) {

@@ -22,6 +22,8 @@ public sealed class InstanceInfrastructure
     public string PlacedInDataPool { get; set; } = string.Empty;
     public string PlacementRegion { get; set; } = string.Empty;
     public string? DeployedImage { get; set; }
+    public string? AdminPasswordHash { get; set; }
+    public string? PaymentMethodId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 
     // Navigation properties

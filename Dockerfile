@@ -12,7 +12,7 @@ COPY src/frontend/generated/ /generated/
 
 # Build if package.json exists, otherwise create placeholder
 RUN if [ -f package.json ]; then \
-        npm ci && npx playwright install --with-deps chromium && npm run build; \
+        npm ci && npm run build:docker; \
     else \
         mkdir -p dist && \
         echo '<!DOCTYPE html><html><head><title>Hub</title></head><body><h1>Hub SPA - Coming Soon</h1></body></html>' > dist/index.html; \

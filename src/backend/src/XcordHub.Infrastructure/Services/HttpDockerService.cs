@@ -110,6 +110,25 @@ public sealed class HttpDockerService : IDockerService
         _logger.LogInformation("Creating Docker secret {SecretName} for instance {Domain}", secretName, instanceDomain);
 
         var response = await _httpClient.PostAsJsonAsync("/secrets/create", payload, cancellationToken);
+
+        // Handle 409 Conflict: secret already exists (provisioning retry after partial failure).
+        // Look up the existing secret by name and return its ID.
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            _logger.LogInformation("Secret {SecretName} already exists, looking up existing ID", secretName);
+            var lookupResponse = await _httpClient.GetAsync(
+                $"/secrets?filters=%7B%22name%22%3A%5B%22{secretName}%22%5D%7D", cancellationToken);
+            lookupResponse.EnsureSuccessStatusCode();
+            var secrets = await lookupResponse.Content.ReadFromJsonAsync<List<DockerSecretListItem>>(cancellationToken);
+            var existing = secrets?.FirstOrDefault(s => s.Spec?.Name == secretName);
+            if (existing?.ID != null)
+            {
+                _logger.LogInformation("Found existing secret {SecretId} for {SecretName}", existing.ID, secretName);
+                return existing.ID;
+            }
+            throw new InvalidOperationException($"Secret '{secretName}' conflict but could not find existing secret");
+        }
+
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<DockerSecretCreateResponse>(cancellationToken);
@@ -732,6 +751,17 @@ public sealed class HttpDockerService : IDockerService
     private sealed class DockerSecretCreateResponse
     {
         public string Id { get; set; } = string.Empty;
+    }
+
+    private sealed class DockerSecretListItem
+    {
+        public string? ID { get; set; }
+        public DockerSecretSpec? Spec { get; set; }
+    }
+
+    private sealed class DockerSecretSpec
+    {
+        public string? Name { get; set; }
     }
 
     private sealed class DockerServiceCreateResponse

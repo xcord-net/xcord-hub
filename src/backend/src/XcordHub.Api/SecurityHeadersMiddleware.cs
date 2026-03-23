@@ -3,12 +3,10 @@ namespace XcordHub.Api;
 public sealed class SecurityHeadersMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly bool _isDevelopment;
 
-    public SecurityHeadersMiddleware(RequestDelegate next, IWebHostEnvironment env)
+    public SecurityHeadersMiddleware(RequestDelegate next)
     {
         _next = next;
-        _isDevelopment = env.IsDevelopment();
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -19,15 +17,11 @@ public sealed class SecurityHeadersMiddleware
 
             headers["X-Content-Type-Options"] = "nosniff";
             headers["X-Frame-Options"] = "DENY";
-            headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' wss:; img-src 'self' data: blob:; font-src 'self'; frame-ancestors 'none'";
+            headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' wss: https://api.stripe.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; frame-src https://js.stripe.com; frame-ancestors 'none'";
             headers["X-XSS-Protection"] = "0";
             headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
             headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
-
-            if (!_isDevelopment)
-            {
-                headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
-            }
+            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
 
             return Task.CompletedTask;
         });

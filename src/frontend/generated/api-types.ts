@@ -501,6 +501,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/hub/billing/create-payment-intent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateSetupIntent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hub/billing": {
         parameters: {
             query?: never;
@@ -1177,6 +1193,15 @@ export interface components {
             status: string;
             adminPassword: string;
         };
+        CreateSetupIntentCommand: {
+            tier: string;
+            mediaEnabled: boolean;
+        };
+        CreateSetupIntentResponse: {
+            clientSecret: string;
+            /** Format: int32 */
+            priceCents: number;
+        };
         DeleteAccountRequest: {
             password: string;
         };
@@ -1216,6 +1241,7 @@ export interface components {
         };
         GetFeaturesResponse: {
             paymentsEnabled: boolean;
+            stripePublishableKey: string | null;
         };
         GetFederationVersionsResponse: {
             versions: components["schemas"]["FederationVersionItem"][];
@@ -1499,6 +1525,8 @@ export interface components {
             tier?: components["schemas"]["InstanceTier"];
             /** @default false */
             mediaEnabled: boolean;
+            /** @default null */
+            paymentMethodId: string | null;
             /** @default null */
             captchaId: string | null;
             /** @default null */
@@ -2536,6 +2564,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CancelInstanceBillingResponse"];
+                };
+            };
+        };
+    };
+    CreateSetupIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSetupIntentCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateSetupIntentResponse"];
                 };
             };
         };

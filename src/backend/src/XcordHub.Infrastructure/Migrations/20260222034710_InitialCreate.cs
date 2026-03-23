@@ -275,6 +275,8 @@ namespace XcordHub.Infrastructure.Migrations
                     LiveKitSecretKey = table.Column<byte[]>(type: "bytea", nullable: false),
                     BootstrapTokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     DeployedImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    AdminPasswordHash = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    PaymentMethodId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     PlacedInPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: "default"),
                     PlacedInDataPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
                     PlacementRegion = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),

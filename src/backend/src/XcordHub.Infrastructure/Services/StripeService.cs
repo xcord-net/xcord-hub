@@ -81,6 +81,61 @@ public sealed class StripeService : IStripeService
         return new CheckoutResult(session.Id, session.Url);
     }
 
+    public async Task<SetupIntentResult> CreateSetupIntentAsync(Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+    {
+        var service = new SetupIntentService();
+        var options = new SetupIntentCreateOptions
+        {
+            PaymentMethodTypes = new List<string> { "card" },
+            Metadata = metadata ?? new Dictionary<string, string>()
+        };
+
+        var intent = await service.CreateAsync(options, cancellationToken: ct);
+        _logger.LogInformation("Created Stripe SetupIntent {SetupIntentId}", intent.Id);
+
+        return new SetupIntentResult(intent.Id, intent.ClientSecret);
+    }
+
+    public async Task<CreateSubscriptionResult> CreateSubscriptionAsync(
+        string customerId, string priceId, string paymentMethodId,
+        Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+    {
+        // Attach payment method to customer
+        var pmService = new PaymentMethodService();
+        await pmService.AttachAsync(paymentMethodId, new PaymentMethodAttachOptions
+        {
+            Customer = customerId,
+        }, cancellationToken: ct);
+
+        // Set as default payment method
+        var customerService = new CustomerService();
+        await customerService.UpdateAsync(customerId, new CustomerUpdateOptions
+        {
+            InvoiceSettings = new CustomerInvoiceSettingsOptions
+            {
+                DefaultPaymentMethod = paymentMethodId,
+            }
+        }, cancellationToken: ct);
+
+        // Create subscription - first invoice is charged automatically
+        var subService = new SubscriptionService();
+        var sub = await subService.CreateAsync(new SubscriptionCreateOptions
+        {
+            Customer = customerId,
+            Items = new List<SubscriptionItemOptions>
+            {
+                new() { Price = priceId }
+            },
+            DefaultPaymentMethod = paymentMethodId,
+            Metadata = metadata ?? new Dictionary<string, string>(),
+        }, cancellationToken: ct);
+
+        _logger.LogInformation("Created Stripe subscription {SubscriptionId} for customer {CustomerId}",
+            sub.Id, customerId);
+
+        return new CreateSubscriptionResult(sub.Id, sub.LatestInvoiceId);
+    }
+
     public async Task CancelSubscriptionAsync(string subscriptionId, CancellationToken ct = default)
     {
         var service = new SubscriptionService();

@@ -86,6 +86,7 @@ public sealed class StripeWebhookHandler(
         }
 
         var billing = await dbContext.InstanceBillings
+            .Include(b => b.ManagedInstance)
             .FirstOrDefaultAsync(b => b.ManagedInstanceId == instanceId, ct);
 
         if (billing == null)
@@ -98,6 +99,7 @@ public sealed class StripeWebhookHandler(
         billing.BillingStatus = BillingStatus.Active;
 
         await dbContext.SaveChangesAsync(ct);
+
         logger.LogInformation("Checkout completed for instance {InstanceId}, subscription {SubscriptionId}",
             instanceId, session.SubscriptionId);
     }

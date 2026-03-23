@@ -1,16 +1,12 @@
 {
-    # Admin API on port 2019 (internal to Docker network only, not host-exposed)
     admin :2019
-
-    # Dev stack: no TLS. Production uses xcord-topo-generated Caddyfiles
-    # with real ACME certs and security headers.
-    auto_https off
 }
 
-# Hub domain only — serves the gateway API and hub SPA.
+# Hub domain - serves the gateway API and hub SPA.
 # Instance routes are added dynamically via the Caddy Admin API by the gateway
 # provisioner after each instance container is started.
-http://{$HUB_DOMAIN:localhost} {
+{$HUB_DOMAIN:localhost} {
+    tls internal
     reverse_proxy gateway:80
 
     log {
@@ -19,6 +15,7 @@ http://{$HUB_DOMAIN:localhost} {
     }
 }
 
-http://mail.{$HUB_DOMAIN:localhost} {
+mail.{$HUB_DOMAIN:localhost} {
+    tls internal
     reverse_proxy mailpit:8025
 }

@@ -934,6 +934,12 @@ file sealed class NoOpStripeService : IStripeService
     public Task<CheckoutResult> CreateCheckoutSessionAsync(CreateCheckoutRequest request, CancellationToken ct = default)
         => Task.FromResult(new CheckoutResult("cs_noop", "https://example.com/checkout/noop"));
 
+    public Task<SetupIntentResult> CreateSetupIntentAsync(Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+        => Task.FromResult(new SetupIntentResult("seti_noop", "seti_noop_secret"));
+
+    public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+        => Task.FromResult(new CreateSubscriptionResult("sub_noop", "in_noop"));
+
     public Task CancelSubscriptionAsync(string subscriptionId, CancellationToken ct = default)
         => Task.CompletedTask;
 
@@ -974,6 +980,12 @@ file sealed class SpyStripeService : IStripeService
         CreateCheckoutCalled = true;
         return Task.FromResult(new CheckoutResult("cs_spy_test", _checkoutUrl));
     }
+
+    public Task<SetupIntentResult> CreateSetupIntentAsync(Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+        => Task.FromResult(new SetupIntentResult("seti_spy_test", "seti_spy_test_secret"));
+
+    public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+        => Task.FromResult(new CreateSubscriptionResult("sub_spy_test", "in_spy_test"));
 
     public Task CancelSubscriptionAsync(string subscriptionId, CancellationToken ct = default)
     {

@@ -63,9 +63,9 @@ public sealed class SecurityHeaderTests
     }
 
     [Fact]
-    public async Task Hsts_ShouldNotBePresent_InDevelopment()
+    public async Task Hsts_ShouldBePresent_InAllEnvironments()
     {
-        // Arrange
+        // Arrange - HSTS is always sent regardless of environment (no dev/prod branching)
         using var host = await new HostBuilder()
             .ConfigureWebHost(webBuilder =>
             {
@@ -89,8 +89,8 @@ public sealed class SecurityHeaderTests
         // Act
         var response = await client.GetAsync("/");
 
-        // Assert
-        response.Headers.Should().NotContainKey("Strict-Transport-Security");
+        // Assert - HSTS always present, no environment branching
+        response.Headers.Should().ContainKey("Strict-Transport-Security");
     }
 
     [Fact]

@@ -1127,6 +1127,36 @@
         }
       }
     },
+    "/api/v1/hub/billing/create-payment-intent": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "CreateSetupIntent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSetupIntentCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSetupIntentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hub/billing": {
       "get": {
         "tags": [
@@ -2612,6 +2642,37 @@
           }
         }
       },
+      "CreateSetupIntentCommand": {
+        "required": [
+          "tier",
+          "mediaEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string"
+          },
+          "mediaEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CreateSetupIntentResponse": {
+        "required": [
+          "clientSecret",
+          "priceCents"
+        ],
+        "type": "object",
+        "properties": {
+          "clientSecret": {
+            "type": "string"
+          },
+          "priceCents": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "DeleteAccountRequest": {
         "required": [
           "password"
@@ -2755,12 +2816,17 @@
       },
       "GetFeaturesResponse": {
         "required": [
-          "paymentsEnabled"
+          "paymentsEnabled",
+          "stripePublishableKey"
         ],
         "type": "object",
         "properties": {
           "paymentsEnabled": {
             "type": "boolean"
+          },
+          "stripePublishableKey": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -3754,6 +3820,11 @@
           "mediaEnabled": {
             "type": "boolean",
             "default": false
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "default": null,
+            "nullable": true
           },
           "captchaId": {
             "type": "string",

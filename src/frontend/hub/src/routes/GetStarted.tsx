@@ -1,11 +1,12 @@
-import { createSignal, Show, onMount } from 'solid-js';
+import { createSignal, createEffect, Show, onMount } from 'solid-js';
 import { A, useNavigate, useSearchParams } from '@solidjs/router';
+import { loadStripe } from '@stripe/stripe-js';
+import type { Stripe, StripeElements } from '@stripe/stripe-js';
 import { useAuth } from '../stores/auth.store';
 import { instanceStore } from '../stores/instance.store';
 import Captcha from '../components/Captcha';
 import PasswordStrength from '../components/PasswordStrength';
 import ContactModal from '../components/ContactModal';
-import Logo from '../components/Logo';
 import PageMeta from '../components/PageMeta';
 
 // Must match backend ValidationHelpers.ReservedSubdomains
@@ -21,6 +22,23 @@ const RESERVED = new Set([
   '_dmarc', 'autoconfig', 'autodiscover',
 ]);
 
+interface StripeContext {
+  stripe: Stripe;
+  elements: StripeElements;
+}
+
+// Tier base prices in dollars
+const TIER_BASE_PRICE: Record<string, number> = {
+  Basic: 60,
+  Pro: 150,
+};
+
+// Media addon total price (base + per-user * max users)
+const TIER_MEDIA_ADDON: Record<string, number> = {
+  Basic: 150,  // $3/user * 50 users
+  Pro: 400,    // $2/user * 200 users
+};
+
 export default function GetStarted() {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -31,7 +49,7 @@ export default function GetStarted() {
     ? (searchParams.tier as 'Free' | 'Basic' | 'Pro')
     : 'Free';
 
-  // Wizard step (1 = config, 2 = account)
+  // Wizard step (1 = config, 2 = payment [paid only], 3 = account [new users only])
   const [step, setStep] = createSignal(1);
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal('');
@@ -39,6 +57,7 @@ export default function GetStarted() {
 
   // Features
   const [paymentsEnabled, setPaymentsEnabled] = createSignal(false);
+  const [stripePublishableKey, setStripePublishableKey] = createSignal('');
 
   // Step 1 - Instance config
   const [subdomain, setSubdomain] = createSignal('');
@@ -48,7 +67,12 @@ export default function GetStarted() {
   const [subdomainStatus, setSubdomainStatus] = createSignal<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [subdomainReason, setSubdomainReason] = createSignal('');
 
-  // Step 2 - Account
+  // Step 2 - Payment
+  const [clientSecret, setClientSecret] = createSignal('');
+  const [paymentMethodId, setPaymentMethodId] = createSignal('');
+  const [stripeCtx, setStripeCtx] = createSignal<StripeContext | null>(null);
+
+  // Step 3 (or 2 for free) - Account
   const [email, setEmail] = createSignal('');
   const [username, setUsername] = createSignal('');
   const [displayName, setDisplayName] = createSignal('');
@@ -67,6 +91,20 @@ export default function GetStarted() {
   const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [notifyMessage, setNotifyMessage] = createSignal('');
 
+  // Derived: is the selected tier a paid tier?
+  const isPaidTier = () => (selectedTier() !== 'Free' || mediaEnabled()) && paymentsEnabled();
+
+  // Total wizard steps depending on auth state and tier
+  const totalSteps = () => {
+    if (isLoggedIn()) {
+      return isPaidTier() ? 2 : 1;
+    }
+    return isPaidTier() ? 3 : 2;
+  };
+
+  // Step number for the account step (varies based on whether payment step exists)
+  const accountStep = () => isPaidTier() ? 3 : 2;
+
   // On mount: fetch features + check auth
   onMount(async () => {
     try {
@@ -74,6 +112,9 @@ export default function GetStarted() {
       if (featRes.ok) {
         const feat = await featRes.json();
         setPaymentsEnabled(feat.paymentsEnabled);
+        if (feat.stripePublishableKey) {
+          setStripePublishableKey(feat.stripePublishableKey);
+        }
       }
     } catch { /* default to false */ }
 
@@ -99,8 +140,39 @@ export default function GetStarted() {
     setReady(true);
   });
 
+  // Mount Stripe Payment Element when clientSecret is available
+  createEffect(async () => {
+    const secret = clientSecret();
+    if (!secret) return;
+
+    const key = stripePublishableKey();
+    if (!key) return;
+
+    const stripe = await loadStripe(key);
+    if (!stripe) return;
+
+    const elements = stripe.elements({
+      clientSecret: secret,
+      appearance: {
+        theme: 'night',
+        variables: {
+          colorPrimary: '#d4943a',
+          colorBackground: '#1e1f22',
+          colorText: '#dbdee1',
+          colorTextSecondary: '#949ba4',
+          borderRadius: '6px',
+        },
+      },
+    });
+    const paymentElement = elements.create('payment', {
+      layout: { type: 'tabs', defaultCollapsed: false },
+    });
+    paymentElement.mount('#payment-element');
+
+    setStripeCtx({ stripe, elements });
+  });
+
   const isLoggedIn = () => auth.isAuthenticated;
-  const totalSteps = () => isLoggedIn() ? 1 : 2;
 
   // Subdomain validation
   const subdomainError = () => {
@@ -149,8 +221,35 @@ export default function GetStarted() {
 
   const canProceedStep1 = () => subdomainValid() && subdomainStatus() === 'available' && serverName().trim().length > 0;
 
+  // Move from step 1 to payment step (for paid tiers)
+  const handleNextToPayment = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/v1/hub/billing/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: selectedTier(), mediaEnabled: mediaEnabled() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setError((err as any).message || 'Failed to initialize payment');
+        return;
+      }
+      const data = await res.json();
+      setClientSecret(data.clientSecret);
+      setStep(2);
+    } catch {
+      setError('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNext = () => {
-    if (isLoggedIn()) {
+    if (isPaidTier()) {
+      handleNextToPayment();
+    } else if (isLoggedIn()) {
       handleSubmitLoggedIn();
     } else {
       setStep(2);
@@ -163,7 +262,54 @@ export default function GetStarted() {
     setError('');
   };
 
-  // Submit for logged-in users (Step 1 only)
+  const handleBackFromPayment = () => {
+    setStep(1);
+    setError('');
+    setClientSecret('');
+    setStripeCtx(null);
+  };
+
+  // Confirm payment via Stripe Elements
+  const handleConfirmPayment = async () => {
+    const ctx = stripeCtx();
+    if (!ctx) {
+      setError('Payment form not ready');
+      return;
+    }
+    setLoading(true);
+    setError('');
+
+    const { error: stripeError, setupIntent } = await ctx.stripe.confirmSetup({
+      elements: ctx.elements,
+      redirect: 'if_required',
+    });
+
+    if (stripeError) {
+      setError(stripeError.message || 'Card validation failed');
+      setLoading(false);
+      return;
+    }
+
+    if (!setupIntent?.payment_method) {
+      setError('Card setup did not complete');
+      setLoading(false);
+      return;
+    }
+
+    setPaymentMethodId(typeof setupIntent.payment_method === 'string'
+      ? setupIntent.payment_method
+      : setupIntent.payment_method.id);
+    setLoading(false);
+
+    if (isLoggedIn()) {
+      handleSubmitLoggedIn();
+    } else {
+      setStep(3);
+      setError('');
+    }
+  };
+
+  // Submit for logged-in users (after step 1 or step 2)
   const handleSubmitLoggedIn = async () => {
     setError('');
     setLoading(true);
@@ -186,7 +332,7 @@ export default function GetStarted() {
     }
   };
 
-  // Submit for new users (Step 2)
+  // Submit for new users (account creation step)
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
     setError('');
@@ -215,7 +361,8 @@ export default function GetStarted() {
       selectedTier(),
       mediaEnabled(),
       captchaId(),
-      captchaAnswer()
+      captchaAnswer(),
+      paymentMethodId() || undefined
     );
 
     setLoading(false);
@@ -242,10 +389,10 @@ export default function GetStarted() {
       const data = await res.json();
       if (!res.ok) {
         setNotifyStatus('error');
-        setNotifyMessage(data.message ?? 'Something went wrong.');
+        setNotifyMessage((data as any).message ?? 'Something went wrong.');
       } else {
         setNotifyStatus('success');
-        setNotifyMessage(data.message);
+        setNotifyMessage((data as any).message);
         setTimeout(() => {
           setNotifyTier(null);
           setNotifyEmail('');
@@ -277,11 +424,17 @@ export default function GetStarted() {
             <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
               step() === 1 ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
             }`}>1</div>
-            <Show when={!isLoggedIn()}>
+            <Show when={isPaidTier()}>
               <div class="w-8 h-0.5 bg-xcord-bg-accent" />
               <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                 step() === 2 ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
               }`}>2</div>
+            </Show>
+            <Show when={!isLoggedIn()}>
+              <div class="w-8 h-0.5 bg-xcord-bg-accent" />
+              <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                step() === accountStep() ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
+              }`}>{accountStep()}</div>
             </Show>
           </div>
 
@@ -290,7 +443,7 @@ export default function GetStarted() {
             <div class="bg-xcord-bg-secondary rounded-lg p-8">
               <h1 class="text-xl font-bold text-xcord-text-primary mb-1">Configure Your Server</h1>
               <p class="text-sm text-xcord-text-muted mb-6">
-                Step 1{!isLoggedIn() ? ' of 2' : ''} - Choose your server's identity
+                Step 1 of {totalSteps()} - Choose your server's identity
               </p>
 
               <div class="space-y-5">
@@ -418,7 +571,11 @@ export default function GetStarted() {
                   disabled={loading() || !canProceedStep1()}
                   class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
                 >
-                  {loading() ? 'Creating...' : isLoggedIn() ? 'Create Server' : 'Next'}
+                  {loading()
+                    ? (isPaidTier() ? 'Initializing...' : 'Creating...')
+                    : isLoggedIn()
+                      ? (isPaidTier() ? 'Next: Payment' : 'Create Server')
+                      : 'Next'}
                 </button>
               </div>
 
@@ -430,11 +587,70 @@ export default function GetStarted() {
             </div>
           </Show>
 
-          {/* Step 2: Create Your Account */}
-          <Show when={step() === 2}>
+          {/* Step 2: Payment (paid tiers only) */}
+          <Show when={step() === 2 && isPaidTier()}>
+            <div class="bg-xcord-bg-secondary rounded-lg p-8">
+              <h1 class="text-xl font-bold text-xcord-text-primary mb-1">Payment</h1>
+              <p class="text-sm text-xcord-text-muted mb-6">
+                Step 2 of {totalSteps()} - {selectedTier()} plan
+              </p>
+
+              {/* Price summary */}
+              <div class="mb-6 p-4 bg-xcord-bg-accent rounded space-y-1">
+                <div class="flex justify-between text-sm">
+                  <span class="text-xcord-text-primary">{selectedTier()} plan</span>
+                  <span class="text-xcord-text-primary font-medium">${TIER_BASE_PRICE[selectedTier()] ?? 0}/mo</span>
+                </div>
+                <Show when={mediaEnabled()}>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-xcord-text-muted">Voice & video</span>
+                    <span class="text-xcord-text-muted">+${TIER_MEDIA_ADDON[selectedTier()] ?? 0}/mo</span>
+                  </div>
+                </Show>
+                <div class="flex justify-between text-sm pt-1 border-t border-xcord-bg-tertiary">
+                  <span class="text-xcord-text-primary font-medium">Total</span>
+                  <span class="text-xcord-text-primary font-bold">
+                    ${(TIER_BASE_PRICE[selectedTier()] ?? 0) + (mediaEnabled() ? (TIER_MEDIA_ADDON[selectedTier()] ?? 0) : 0)}/mo
+                  </span>
+                </div>
+              </div>
+
+              {/* Stripe Payment Element mount point */}
+              <div id="payment-element" class="mb-6" />
+
+              <Show when={error()}>
+                <div class="text-sm text-xcord-red mb-4">{error()}</div>
+              </Show>
+
+              <div class="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleBackFromPayment}
+                  disabled={loading()}
+                  class="px-4 py-2 bg-xcord-bg-tertiary hover:bg-xcord-bg-accent text-xcord-text-primary rounded font-medium transition"
+                >
+                  Back
+                </button>
+                <button
+                  data-testid="get-started-payment-continue"
+                  type="button"
+                  onClick={handleConfirmPayment}
+                  disabled={loading() || !stripeCtx()}
+                  class="flex-1 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+                >
+                  {loading() ? 'Processing...' : 'Continue'}
+                </button>
+              </div>
+            </div>
+          </Show>
+
+          {/* Account creation step (step 2 for free, step 3 for paid) */}
+          <Show when={step() === accountStep() && !isLoggedIn()}>
             <div class="bg-xcord-bg-secondary rounded-lg p-8">
               <h1 class="text-xl font-bold text-xcord-text-primary mb-1">Create Your Account</h1>
-              <p class="text-sm text-xcord-text-muted mb-6">Step 2 of 2 - Set up your account for {subdomain()}.xcord-dev.net</p>
+              <p class="text-sm text-xcord-text-muted mb-6">
+                Step {accountStep()} of {totalSteps()} - Set up your account for {subdomain()}.xcord-dev.net
+              </p>
 
               <form onSubmit={handleSubmit} class="space-y-4">
                 <div>
@@ -553,7 +769,7 @@ export default function GetStarted() {
                 <div class="flex gap-3">
                   <button
                     type="button"
-                    onClick={handleBack}
+                    onClick={isPaidTier() ? () => { setStep(2); setError(''); } : handleBack}
                     disabled={loading()}
                     class="px-4 py-2 bg-xcord-bg-tertiary hover:bg-xcord-bg-accent text-xcord-text-primary rounded font-medium transition"
                   >

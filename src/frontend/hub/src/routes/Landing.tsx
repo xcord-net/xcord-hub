@@ -57,8 +57,8 @@ export default function Landing() {
           </p>
           <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <A
-              data-testid="hero-cta-register"
-              href="/register"
+              data-testid="hero-cta-get-started"
+              href="/get-started"
               class="px-8 py-3 bg-xcord-brand text-white font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors text-lg"
             >
               Launch a Server
@@ -171,8 +171,8 @@ export default function Landing() {
             Free for up to 10 members. No credit card required.
           </p>
           <A
-            data-testid="final-cta-register"
-            href="/register"
+            data-testid="final-cta-get-started"
+            href="/get-started"
             class="mt-8 inline-block px-8 py-3 bg-xcord-brand text-white font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors text-lg"
           >
             Launch a Server

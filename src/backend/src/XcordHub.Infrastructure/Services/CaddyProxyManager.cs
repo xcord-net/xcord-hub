@@ -66,6 +66,11 @@ public sealed class CaddyProxyManager : ICaddyProxyManager
             throw new InvalidOperationException($"Failed to create Caddy route: {error}");
         }
 
+        // Add a TLS automation policy so Caddy provisions a cert for this domain.
+        // Uses the same "internal" issuer as the hub domain (self-signed CA locally,
+        // ACME in production via the Caddyfile's tls directive).
+        await EnsureTlsAutomationPolicyAsync(instanceDomain, cancellationToken);
+
         _logger.LogInformation("Created Caddy route {RouteId} for instance {Domain}", routeId, instanceDomain);
         return routeId;
     }
@@ -85,6 +90,39 @@ public sealed class CaddyProxyManager : ICaddyProxyManager
         {
             _logger.LogWarning(ex, "Failed to verify Caddy route {RouteId}", routeId);
             return false;
+        }
+    }
+
+    private async Task EnsureTlsAutomationPolicyAsync(string domain, CancellationToken cancellationToken)
+    {
+        // Append a TLS automation policy for this domain using the internal issuer.
+        // This tells Caddy to provision a certificate for the domain.
+        var policy = new Dictionary<string, object>
+        {
+            ["subjects"] = new[] { domain },
+            ["issuers"] = new[]
+            {
+                new Dictionary<string, string>
+                {
+                    ["module"] = "internal"
+                }
+            }
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(
+            "/config/apps/tls/automation/policies",
+            policy,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning("Failed to add TLS automation policy for {Domain}: {Error}", domain, error);
+            // Non-fatal: in production, ACME certs may be handled differently
+        }
+        else
+        {
+            _logger.LogInformation("Added TLS automation policy for {Domain}", domain);
         }
     }
 

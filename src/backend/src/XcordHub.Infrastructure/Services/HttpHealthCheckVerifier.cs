@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text.Json;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace XcordHub.Infrastructure.Services;
@@ -9,13 +8,11 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<HttpHealthCheckVerifier> _logger;
-    private readonly string _scheme;
 
-    public HttpHealthCheckVerifier(HttpClient httpClient, IHostEnvironment env, ILogger<HttpHealthCheckVerifier> logger)
+    public HttpHealthCheckVerifier(HttpClient httpClient, ILogger<HttpHealthCheckVerifier> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
-        _scheme = env.IsDevelopment() ? "http" : "https";
     }
 
     public async Task<(bool IsHealthy, int ResponseTimeMs, string? ErrorMessage, string? Version)> VerifyInstanceHealthAsync(
@@ -26,7 +23,7 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
 
         try
         {
-            var healthUrl = $"{_scheme}://{domain}/api/v1/health";
+            var healthUrl = $"https://{domain}/api/v1/health";
             var response = await _httpClient.GetAsync(healthUrl, cancellationToken);
 
             stopwatch.Stop();

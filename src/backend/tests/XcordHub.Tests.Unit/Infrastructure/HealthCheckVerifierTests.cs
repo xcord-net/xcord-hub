@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using XcordHub.Infrastructure.Services;
 
@@ -18,12 +17,8 @@ public sealed class HealthCheckVerifierTests
     // Helpers
     // ---------------------------------------------------------------------------
 
-    private static readonly IHostEnvironment ProductionEnv = new FakeHostEnvironment("Production");
-    private static readonly IHostEnvironment DevelopmentEnv = new FakeHostEnvironment("Development");
-
-
     private static (HttpHealthCheckVerifier verifier, FakeHttpMessageHandler handler) CreateVerifier(
-        HttpResponseMessage response, IHostEnvironment? env = null)
+        HttpResponseMessage response)
     {
         var handler = new FakeHttpMessageHandler(response);
         var httpClient = new HttpClient(handler)
@@ -31,11 +26,11 @@ public sealed class HealthCheckVerifierTests
             Timeout = TimeSpan.FromSeconds(10)
         };
         var logger = NullLogger<HttpHealthCheckVerifier>.Instance;
-        var verifier = new HttpHealthCheckVerifier(httpClient, env ?? ProductionEnv, logger);
+        var verifier = new HttpHealthCheckVerifier(httpClient, logger);
         return (verifier, handler);
     }
 
-    private static HttpHealthCheckVerifier CreateThrowingVerifier(Exception ex, IHostEnvironment? env = null)
+    private static HttpHealthCheckVerifier CreateThrowingVerifier(Exception ex)
     {
         var handler = new ThrowingHttpMessageHandler(ex);
         var httpClient = new HttpClient(handler)
@@ -43,7 +38,7 @@ public sealed class HealthCheckVerifierTests
             Timeout = TimeSpan.FromSeconds(10)
         };
         var logger = NullLogger<HttpHealthCheckVerifier>.Instance;
-        return new HttpHealthCheckVerifier(httpClient, env ?? ProductionEnv, logger);
+        return new HttpHealthCheckVerifier(httpClient, logger);
     }
 
     private static HttpResponseMessage OkWithVersion(string version)
@@ -78,31 +73,17 @@ public sealed class HealthCheckVerifierTests
     }
 
     [Fact]
-    public async Task VerifyInstanceHealthAsync_Production_UsesHttpsScheme()
+    public async Task VerifyInstanceHealthAsync_AlwaysUsesHttps()
     {
         // Arrange
-        var (verifier, handler) = CreateVerifier(new HttpResponseMessage(HttpStatusCode.OK), ProductionEnv);
+        var (verifier, handler) = CreateVerifier(new HttpResponseMessage(HttpStatusCode.OK));
 
         // Act
         await verifier.VerifyInstanceHealthAsync("tserver.xcord-dev.net");
 
-        // Assert - production uses HTTPS via Caddy TLS
+        // Assert - always HTTPS, no environment branching
         handler.Requests.Should().HaveCount(1);
         handler.Requests[0].RequestUri!.Scheme.Should().Be("https");
-    }
-
-    [Fact]
-    public async Task VerifyInstanceHealthAsync_Development_UsesHttpScheme()
-    {
-        // Arrange
-        var (verifier, handler) = CreateVerifier(new HttpResponseMessage(HttpStatusCode.OK), DevelopmentEnv);
-
-        // Act
-        await verifier.VerifyInstanceHealthAsync("tserver.xcord-dev.net");
-
-        // Assert - dev uses HTTP (no TLS on local fed instances)
-        handler.Requests.Should().HaveCount(1);
-        handler.Requests[0].RequestUri!.Scheme.Should().Be("http");
     }
 
     [Fact]
@@ -120,10 +101,10 @@ public sealed class HealthCheckVerifierTests
     }
 
     [Fact]
-    public async Task VerifyInstanceHealthAsync_Production_FullUrlIsCorrect()
+    public async Task VerifyInstanceHealthAsync_FullUrlIsCorrect()
     {
         // Arrange
-        var (verifier, handler) = CreateVerifier(new HttpResponseMessage(HttpStatusCode.OK), ProductionEnv);
+        var (verifier, handler) = CreateVerifier(new HttpResponseMessage(HttpStatusCode.OK));
 
         // Act
         await verifier.VerifyInstanceHealthAsync("alpha.xcord-dev.net");

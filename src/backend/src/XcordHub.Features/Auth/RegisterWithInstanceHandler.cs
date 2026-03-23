@@ -22,6 +22,8 @@ public sealed record RegisterWithInstanceCommand(
     string InstanceDisplayName,
     InstanceTier Tier = InstanceTier.Free,
     bool MediaEnabled = false,
+    // Payment
+    string? PaymentMethodId = null,
     // Captcha
     string? CaptchaId = null,
     string? CaptchaAnswer = null
@@ -101,6 +103,9 @@ public sealed class RegisterWithInstanceHandler(
         if (request.MediaEnabled && !stripeOptions.Value.IsConfigured)
             return Error.Validation("MEDIA_UNAVAILABLE", "Payment processing is not configured. Voice & video requires a paid add-on.");
 
+        if (request.Tier != InstanceTier.Free && stripeOptions.Value.IsConfigured && string.IsNullOrWhiteSpace(request.PaymentMethodId))
+            return Error.Validation("PAYMENT_REQUIRED", "Payment is required for paid tiers");
+
         return null;
     }
 
@@ -133,7 +138,8 @@ public sealed class RegisterWithInstanceHandler(
             skipCaptcha: true,
             captchaId: null,
             captchaAnswer: null,
-            cancellationToken);
+            cancellationToken,
+            paymentMethodId: request.PaymentMethodId);
 
         if (instanceResult.IsFailure)
             return instanceResult.Error;
@@ -148,6 +154,7 @@ public sealed class RegisterWithInstanceHandler(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // 5. Enqueue provisioning (after save - EnqueueAsync calls its own SaveChangesAsync)
+        // Payment was already collected via the payment intent in the wizard step 2
         await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken);
 
         return new RegisterWithInstanceInternalResponse(

@@ -360,13 +360,10 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IProvisioningQueue, DatabaseProvisioningQueue>();
 
-        var useRealDocker = config.GetValue<bool>("Docker:UseReal", false);
-        var useRealCaddy = config.GetValue<bool>("Caddy:UseReal", false);
-
-        if (useRealDocker)
-            services.AddSingleton<IDockerService, HttpDockerService>();
-        else
-            services.AddSingleton<IDockerService, NoopDockerService>();
+        // Always use real Docker and Caddy - no noop services in any environment.
+        // Tests that need to override can replace via DI in their test fixtures.
+        services.AddSingleton<IDockerService, HttpDockerService>();
+        services.AddSingleton<ICaddyProxyManager, CaddyProxyManager>();
 
         var dnsProvider = config.GetValue<string>("Dns:Provider", "noop");
         switch (dnsProvider.ToLowerInvariant())
@@ -385,11 +382,6 @@ public static class ServiceCollectionExtensions
                 break;
         }
 
-        if (useRealCaddy)
-            services.AddSingleton<ICaddyProxyManager, CaddyProxyManager>();
-        else
-            services.AddSingleton<ICaddyProxyManager, NoopCaddyProxyManager>();
-
         services.AddSingleton<TopologyResolver>();
 
         // Provisioning pipeline steps
@@ -404,6 +396,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProvisioningStep, StartApiContainerStep>();
         services.AddScoped<IProvisioningStep, ConfigureDnsAndProxyStep>();
         services.AddScoped<IProvisioningStep, ConfigureBackupPolicyStep>();
+        services.AddScoped<IProvisioningStep, CreateSubscriptionStep>();
 
         // Provisioning pipeline
         services.AddScoped<ProvisioningPipeline>();

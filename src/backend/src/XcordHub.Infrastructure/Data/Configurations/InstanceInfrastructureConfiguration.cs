@@ -104,6 +104,12 @@ public sealed class InstanceInfrastructureConfiguration
         builder.Property(x => x.DeployedImage)
             .HasMaxLength(500);
 
+        builder.Property(x => x.AdminPasswordHash)
+            .HasMaxLength(255);
+
+        builder.Property(x => x.PaymentMethodId)
+            .HasMaxLength(255);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

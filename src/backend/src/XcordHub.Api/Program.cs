@@ -50,11 +50,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 app.UseRateLimiter();
 
-if (app.Environment.IsProduction())
-{
-    app.UseHttpsRedirection();
-}
-
+// HTTPS redirect handled by Caddy at the edge - gateway only receives HTTP from the reverse proxy
 app.UseCors();
 
 // Admin SPA: rewrite non-file /admin paths to admin/index.html.

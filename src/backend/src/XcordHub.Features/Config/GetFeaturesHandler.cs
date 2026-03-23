@@ -6,7 +6,7 @@ using XcordHub.Infrastructure.Options;
 
 namespace XcordHub.Features.Config;
 
-public sealed record GetFeaturesResponse(bool PaymentsEnabled);
+public sealed record GetFeaturesResponse(bool PaymentsEnabled, string? StripePublishableKey);
 
 public sealed class GetFeaturesHandler : IEndpoint
 {
@@ -14,8 +14,10 @@ public sealed class GetFeaturesHandler : IEndpoint
     {
         return app.MapGet("/api/v1/hub/features", (IOptions<StripeOptions> stripeOptions) =>
         {
+            var opts = stripeOptions.Value;
             return Results.Ok(new GetFeaturesResponse(
-                PaymentsEnabled: stripeOptions.Value.IsConfigured));
+                PaymentsEnabled: opts.IsConfigured,
+                StripePublishableKey: opts.IsConfigured ? opts.PublishableKey : null));
         })
         .AllowAnonymous()
         .Produces<GetFeaturesResponse>(200)

@@ -29,7 +29,8 @@ public sealed class InstanceCreationService(
         bool skipCaptcha,
         string? captchaId,
         string? captchaAnswer,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? paymentMethodId = null)
     {
         // Validate captcha for free tier without media
         var isFreeTier = tier == InstanceTier.Free && !mediaEnabled;
@@ -109,7 +110,8 @@ public sealed class InstanceCreationService(
             ManagedInstanceId = instanceId,
             ConfigJson = JsonSerializer.Serialize(new
             {
-                AdminPasswordHash = adminPasswordHash
+                AdminPasswordHash = adminPasswordHash,
+                PaymentMethodId = paymentMethodId
             }),
             ResourceLimitsJson = JsonSerializer.Serialize(resourceLimits),
             FeatureFlagsJson = JsonSerializer.Serialize(featureFlags),
