@@ -113,6 +113,9 @@ internal sealed class FakeStripeService : IStripeService
     public Task<SetupIntentResult> CreateSetupIntentAsync(Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new SetupIntentResult("seti_fake_123", "seti_fake_123_secret_abc"));
 
+    public Task<string?> ResolvePriceIdByLookupKeyAsync(string lookupKey, CancellationToken ct = default)
+        => Task.FromResult<string?>($"price_resolved_{lookupKey}");
+
     public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new CreateSubscriptionResult("sub_fake_123", "in_fake_123"));
 }

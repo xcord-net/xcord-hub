@@ -118,7 +118,8 @@ export default function GetStarted() {
       }
     } catch { /* default to false */ }
 
-    const restored = await auth.restoreSession();
+    const hasToken = !!localStorage.getItem('xcord_hub_token');
+    const restored = hasToken ? await auth.restoreSession() : false;
     if (restored) {
       // Check if user already has an instance
       try {

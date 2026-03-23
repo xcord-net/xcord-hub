@@ -33,6 +33,7 @@ if (!app.Environment.IsEnvironment("OpenApiGen"))
     var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
     await dbContext.Database.MigrateAsync();
     await app.SeedAdminAsync();
+    await app.EnsureStripePricesAsync();
 }
 
 // Middleware pipeline

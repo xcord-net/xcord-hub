@@ -96,6 +96,18 @@ public sealed class StripeService : IStripeService
         return new SetupIntentResult(intent.Id, intent.ClientSecret);
     }
 
+    public async Task<string?> ResolvePriceIdByLookupKeyAsync(string lookupKey, CancellationToken ct = default)
+    {
+        var service = new PriceService();
+        var prices = await service.ListAsync(new PriceListOptions
+        {
+            LookupKeys = new List<string> { lookupKey },
+            Limit = 1
+        }, cancellationToken: ct);
+
+        return prices.Data.Count > 0 ? prices.Data[0].Id : null;
+    }
+
     public async Task<CreateSubscriptionResult> CreateSubscriptionAsync(
         string customerId, string priceId, string paymentMethodId,
         Dictionary<string, string>? metadata = null, CancellationToken ct = default)

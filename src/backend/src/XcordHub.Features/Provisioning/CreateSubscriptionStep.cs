@@ -90,8 +90,14 @@ public sealed class CreateSubscriptionStep : IProvisioningStep
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
-            // Build price ID from tier + media
-            var priceId = BuildStripePriceId(tier, mediaEnabled);
+            // Resolve the Stripe price ID from our lookup key convention
+            var lookupKey = BuildStripePriceId(tier, mediaEnabled);
+            var priceId = await _stripeService.ResolvePriceIdByLookupKeyAsync(lookupKey, cancellationToken);
+            if (priceId == null)
+            {
+                _logger.LogError("Stripe price not found for lookup key {LookupKey}", lookupKey);
+                return true; // Don't fail provisioning
+            }
 
             // Create the subscription - charges the first invoice automatically
             var result = await _stripeService.CreateSubscriptionAsync(

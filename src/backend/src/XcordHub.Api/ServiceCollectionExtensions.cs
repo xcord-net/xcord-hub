@@ -605,4 +605,110 @@ public static class ServiceCollectionExtensions
 
         Log.Information("Admin user '{Username}' created successfully", adminUsername);
     }
+
+    /// <summary>
+    /// Verifies that all required Stripe prices exist for each tier/media combination.
+    /// Creates any missing prices as recurring monthly prices with the correct amount.
+    /// Skipped when Stripe is not configured.
+    /// </summary>
+    public static async Task EnsureStripePricesAsync(this WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+        var stripeOptions = scope.ServiceProvider.GetRequiredService<IOptions<StripeOptions>>().Value;
+
+        if (!stripeOptions.IsConfigured)
+        {
+            Log.Information("Stripe not configured, skipping price verification");
+            return;
+        }
+
+        Stripe.StripeConfiguration.ApiKey = stripeOptions.SecretKey;
+
+        var tiers = new[] { InstanceTier.Free, InstanceTier.Basic, InstanceTier.Pro, InstanceTier.Enterprise };
+        var priceService = new Stripe.PriceService();
+        var productService = new Stripe.ProductService();
+
+        // Ensure a product exists for Xcord hosting
+        string productId;
+        try
+        {
+            var products = await productService.ListAsync(new Stripe.ProductListOptions { Limit = 100 });
+            var existing = products.Data.FirstOrDefault(p => p.Metadata.ContainsKey("xcord_hosting") && p.Active);
+            if (existing != null)
+            {
+                productId = existing.Id;
+            }
+            else
+            {
+                var product = await productService.CreateAsync(new Stripe.ProductCreateOptions
+                {
+                    Name = "Xcord Hosting",
+                    Metadata = new Dictionary<string, string> { ["xcord_hosting"] = "true" }
+                });
+                productId = product.Id;
+                Log.Information("Created Stripe product {ProductId} for Xcord hosting", productId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to verify Stripe product, skipping price verification");
+            return;
+        }
+
+        foreach (var tier in tiers)
+        {
+            foreach (var mediaEnabled in new[] { false, true })
+            {
+                var priceCents = TierDefaults.GetTotalPriceCents(tier, mediaEnabled);
+                if (priceCents == 0 && !mediaEnabled) continue; // Skip free without media
+
+                var lookupKey = BuildStripePriceId(tier, mediaEnabled);
+
+                try
+                {
+                    // Check if a price with this lookup key already exists
+                    var existing = await priceService.ListAsync(new Stripe.PriceListOptions
+                    {
+                        LookupKeys = new List<string> { lookupKey },
+                        Limit = 1
+                    });
+
+                    if (existing.Data.Count > 0)
+                        continue; // Price exists
+
+                    // Create the price with a lookup key
+                    var suffix = mediaEnabled ? " + Media" : "";
+                    var created = await priceService.CreateAsync(new Stripe.PriceCreateOptions
+                    {
+                        Product = productId,
+                        Currency = "usd",
+                        UnitAmount = priceCents,
+                        Recurring = new Stripe.PriceRecurringOptions { Interval = "month" },
+                        LookupKey = lookupKey,
+                        TransferLookupKey = true,
+                        Nickname = $"{tier}{suffix}",
+                        Metadata = new Dictionary<string, string>
+                        {
+                            ["tier"] = tier.ToString(),
+                            ["mediaEnabled"] = mediaEnabled.ToString().ToLowerInvariant()
+                        }
+                    });
+                    Log.Information("Created Stripe price {LookupKey} -> {PriceId} ({Amount} cents/mo)",
+                        lookupKey, created.Id, priceCents);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to ensure Stripe price {LookupKey}", lookupKey);
+                }
+            }
+        }
+
+        Log.Information("Stripe price verification completed");
+    }
+
+    private static string BuildStripePriceId(InstanceTier tier, bool mediaEnabled)
+    {
+        var suffix = mediaEnabled ? "_media" : "";
+        return $"price_xcord_{tier.ToString().ToLowerInvariant()}{suffix}";
+    }
 }

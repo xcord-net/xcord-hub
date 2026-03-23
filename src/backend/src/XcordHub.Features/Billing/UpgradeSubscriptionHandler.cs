@@ -98,8 +98,11 @@ public sealed class ChangePlanHandler(
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
 
-            // Build a Stripe Price ID from the plan combination
-            var priceId = BuildStripePriceId(request.TargetTier, request.MediaEnabled);
+            // Resolve Stripe Price ID from lookup key
+            var lookupKey = BuildStripePriceId(request.TargetTier, request.MediaEnabled);
+            var priceId = await stripeService.ResolvePriceIdByLookupKeyAsync(lookupKey, cancellationToken);
+            if (priceId == null)
+                return Error.Failure("STRIPE_PRICE_NOT_FOUND", $"Stripe price not found for {lookupKey}");
 
             var baseUrl = configuration.GetValue<string>("Hub:BaseUrl") ?? "https://xcord-dev.net";
             var checkout = await stripeService.CreateCheckoutSessionAsync(new CreateCheckoutRequest(

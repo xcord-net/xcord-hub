@@ -937,6 +937,9 @@ file sealed class NoOpStripeService : IStripeService
     public Task<SetupIntentResult> CreateSetupIntentAsync(Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new SetupIntentResult("seti_noop", "seti_noop_secret"));
 
+    public Task<string?> ResolvePriceIdByLookupKeyAsync(string lookupKey, CancellationToken ct = default)
+        => Task.FromResult<string?>($"price_resolved_{lookupKey}");
+
     public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new CreateSubscriptionResult("sub_noop", "in_noop"));
 
@@ -983,6 +986,9 @@ file sealed class SpyStripeService : IStripeService
 
     public Task<SetupIntentResult> CreateSetupIntentAsync(Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new SetupIntentResult("seti_spy_test", "seti_spy_test_secret"));
+
+    public Task<string?> ResolvePriceIdByLookupKeyAsync(string lookupKey, CancellationToken ct = default)
+        => Task.FromResult<string?>($"price_resolved_{lookupKey}");
 
     public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new CreateSubscriptionResult("sub_spy_test", "in_spy_test"));
