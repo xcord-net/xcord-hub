@@ -90,7 +90,18 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 : "";
             var ownerUsername = instance.Owner?.Username ?? "";
             var ownerDisplayName = instance.Owner?.DisplayName ?? ownerUsername;
-            var adminPasswordHash = instance.Infrastructure.AdminPasswordHash ?? "";
+            // Read admin password hash from config JSON (set by InstanceCreationService)
+            var adminPasswordHash = "";
+            if (instance.Config?.ConfigJson != null)
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(instance.Config.ConfigJson);
+                    if (doc.RootElement.TryGetProperty("AdminPasswordHash", out var hashElem))
+                        adminPasswordHash = hashElem.GetString() ?? "";
+                }
+                catch { /* config JSON parse failure */ }
+            }
 
             // Generate config JSON in xcord-config.json format (read by xcord-fed entrypoint).
             // Use per-instance MinIO credentials provisioned by ProvisionMinioStep.

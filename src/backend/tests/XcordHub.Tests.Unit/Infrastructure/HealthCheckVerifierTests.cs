@@ -55,7 +55,7 @@ public sealed class HealthCheckVerifierTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task VerifyInstanceHealthAsync_UsesPublicDomainNotContainerName()
+    public async Task VerifyInstanceHealthAsync_UsesDockerServiceName()
     {
         // Arrange
         var (verifier, handler) = CreateVerifier(new HttpResponseMessage(HttpStatusCode.OK));
@@ -63,27 +63,25 @@ public sealed class HealthCheckVerifierTests
         // Act
         await verifier.VerifyInstanceHealthAsync("tserver.xcord-dev.net");
 
-        // Assert - URL must use the public domain, never a Docker container name
+        // Assert - gateway runs inside Docker, uses Docker service DNS
         handler.Requests.Should().HaveCount(1);
         var uri = handler.Requests[0].RequestUri!;
-        uri.Host.Should().Be("tserver.xcord-dev.net",
-            "health checks must use the public domain so they work both inside and outside Docker");
-        uri.Host.Should().NotContain("xcord-tserver-api",
-            "Docker container names are not resolvable outside Docker networks");
+        uri.Host.Should().Be("xcord-tserver-api",
+            "health checks use Docker service name since gateway runs inside Docker");
     }
 
     [Fact]
-    public async Task VerifyInstanceHealthAsync_AlwaysUsesHttps()
+    public async Task VerifyInstanceHealthAsync_UsesHttpInsideDocker()
     {
-        // Arrange
+        // Arrange - gateway talks to instances over HTTP inside Docker (TLS is at Caddy edge)
         var (verifier, handler) = CreateVerifier(new HttpResponseMessage(HttpStatusCode.OK));
 
         // Act
         await verifier.VerifyInstanceHealthAsync("tserver.xcord-dev.net");
 
-        // Assert - always HTTPS, no environment branching
+        // Assert - HTTP inside Docker (TLS terminated at Caddy)
         handler.Requests.Should().HaveCount(1);
-        handler.Requests[0].RequestUri!.Scheme.Should().Be("https");
+        handler.Requests[0].RequestUri!.Scheme.Should().Be("http");
     }
 
     [Fact]
@@ -97,7 +95,7 @@ public sealed class HealthCheckVerifierTests
 
         // Assert
         handler.Requests.Should().HaveCount(1);
-        handler.Requests[0].RequestUri!.AbsolutePath.Should().Be("/api/v1/health");
+        handler.Requests[0].RequestUri!.AbsolutePath.Should().Be("/health");
     }
 
     [Fact]
@@ -109,10 +107,10 @@ public sealed class HealthCheckVerifierTests
         // Act
         await verifier.VerifyInstanceHealthAsync("alpha.xcord-dev.net");
 
-        // Assert - the complete URL uses HTTPS + public domain + health path
+        // Assert - Docker service name + HTTP + /health path
         handler.Requests.Should().HaveCount(1);
         handler.Requests[0].RequestUri!.ToString()
-            .Should().Be("https://alpha.xcord-dev.net/api/v1/health");
+            .Should().Be("http://xcord-alpha-api/health");
     }
 
     // ---------------------------------------------------------------------------

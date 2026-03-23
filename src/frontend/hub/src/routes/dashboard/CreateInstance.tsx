@@ -56,35 +56,19 @@ export default function CreateInstance() {
   const [notifyEmail, setNotifyEmail] = createSignal('');
   const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [notifyMessage, setNotifyMessage] = createSignal('');
-  const [hasExistingInstance, setHasExistingInstance] = createSignal(false);
-  const [checkingInstances, setCheckingInstances] = createSignal(true);
   const [paymentsEnabled, setPaymentsEnabled] = createSignal(false);
   const [selectedTier, setSelectedTier] = createSignal<Tier>('Free');
   const [mediaEnabled, setMediaEnabled] = createSignal(false);
 
   onMount(async () => {
     try {
-      const token = localStorage.getItem('xcord_hub_token');
-      const [billingRes, featuresRes] = await Promise.all([
-        fetch('/api/v1/hub/billing', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }),
-        fetch('/api/v1/hub/features'),
-      ]);
-      if (billingRes.ok) {
-        const data = await billingRes.json();
-        if (data.instances && data.instances.length > 0) {
-          setHasExistingInstance(true);
-        }
-      }
+      const featuresRes = await fetch('/api/v1/hub/features');
       if (featuresRes.ok) {
         const data = await featuresRes.json();
         setPaymentsEnabled(data.paymentsEnabled ?? false);
       }
     } catch {
       // If we can't check, allow form to show - backend will enforce
-    } finally {
-      setCheckingInstances(false);
     }
   });
 
@@ -225,19 +209,7 @@ export default function CreateInstance() {
       <div class="p-8 max-w-xl">
       <h1 class="text-2xl font-bold text-xcord-text-primary mb-2">Create Instance</h1>
 
-      <Show when={checkingInstances()}>
-        <p class="text-sm text-xcord-text-muted">Loading...</p>
-      </Show>
-
-      <Show when={!checkingInstances() && hasExistingInstance()}>
-        <div class="bg-xcord-bg-secondary rounded-lg p-6 text-center">
-          <p class="text-sm text-xcord-text-muted mb-2">You already have an instance.</p>
-          <a href="/dashboard" class="text-sm text-xcord-text-link hover:underline">Go to dashboard</a>
-        </div>
-      </Show>
-
-      <Show when={!checkingInstances() && !hasExistingInstance()}>
-        <p class="text-sm text-xcord-text-muted mb-8">
+      <p class="text-sm text-xcord-text-muted mb-8">
           Launch a new Xcord instance. Choose a subdomain and set up your admin account.
         </p>
         <form onSubmit={handleSubmit} class="space-y-5">
@@ -470,9 +442,8 @@ export default function CreateInstance() {
             {loading() ? 'Creating...' : 'Create Instance'}
           </button>
         </form>
-      </Show>
 
-      {/* Notify-me modal - always rendered outside the form Show */}
+      {/* Notify-me modal */}
       <Show when={notifyTier()}>
         <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setNotifyTier(null); }}>
           <div class="bg-xcord-bg-primary rounded-xl w-full max-w-sm p-6">

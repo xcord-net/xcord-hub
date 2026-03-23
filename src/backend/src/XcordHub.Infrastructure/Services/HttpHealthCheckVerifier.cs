@@ -23,7 +23,12 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
 
         try
         {
-            var healthUrl = $"https://{domain}/api/v1/health";
+            // Use the Docker service name for health checks. The gateway always runs
+            // inside Docker (both dev and production), so Docker DNS resolves service names.
+            // The public domain resolves to 127.0.0.1 via /etc/hosts on the host, not inside Docker.
+            var subdomain = ValidationHelpers.ExtractSubdomain(domain);
+            var serviceHost = $"xcord-{subdomain}-api";
+            var healthUrl = $"http://{serviceHost}:80/health";
             var response = await _httpClient.GetAsync(healthUrl, cancellationToken);
 
             stopwatch.Stop();
