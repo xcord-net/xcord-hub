@@ -940,7 +940,7 @@ file sealed class NoOpStripeService : IStripeService
     public Task<string?> ResolvePriceIdByLookupKeyAsync(string lookupKey, CancellationToken ct = default)
         => Task.FromResult<string?>($"price_resolved_{lookupKey}");
 
-    public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+    public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new CreateSubscriptionResult("sub_noop", "in_noop"));
 
     public Task CancelSubscriptionAsync(string subscriptionId, CancellationToken ct = default)
@@ -990,7 +990,7 @@ file sealed class SpyStripeService : IStripeService
     public Task<string?> ResolvePriceIdByLookupKeyAsync(string lookupKey, CancellationToken ct = default)
         => Task.FromResult<string?>($"price_resolved_{lookupKey}");
 
-    public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+    public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new CreateSubscriptionResult("sub_spy_test", "in_spy_test"));
 
     public Task CancelSubscriptionAsync(string subscriptionId, CancellationToken ct = default)

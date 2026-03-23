@@ -30,7 +30,7 @@ public interface IStripeService
     Task<CheckoutResult> CreateCheckoutSessionAsync(CreateCheckoutRequest request, CancellationToken ct = default);
     Task<SetupIntentResult> CreateSetupIntentAsync(Dictionary<string, string>? metadata = null, CancellationToken ct = default);
     Task<string?> ResolvePriceIdByLookupKeyAsync(string lookupKey, CancellationToken ct = default);
-    Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, Dictionary<string, string>? metadata = null, CancellationToken ct = default);
+    Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default);
     Task CancelSubscriptionAsync(string subscriptionId, CancellationToken ct = default);
     Task<List<StripeInvoice>> GetInvoicesAsync(string customerId, int limit = 25, CancellationToken ct = default);
 }

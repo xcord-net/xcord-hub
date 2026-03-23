@@ -110,7 +110,7 @@ public sealed class StripeService : IStripeService
 
     public async Task<CreateSubscriptionResult> CreateSubscriptionAsync(
         string customerId, string priceId, string paymentMethodId,
-        Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+        int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
     {
         // Attach payment method to customer
         var pmService = new PaymentMethodService();
@@ -129,7 +129,7 @@ public sealed class StripeService : IStripeService
             }
         }, cancellationToken: ct);
 
-        // Create subscription - first invoice is charged automatically
+        // Create subscription with a trial period - no charge until trial ends
         var subService = new SubscriptionService();
         var sub = await subService.CreateAsync(new SubscriptionCreateOptions
         {
@@ -139,6 +139,7 @@ public sealed class StripeService : IStripeService
                 new() { Price = priceId }
             },
             DefaultPaymentMethod = paymentMethodId,
+            TrialPeriodDays = trialDays > 0 ? trialDays : null,
             Metadata = metadata ?? new Dictionary<string, string>(),
         }, cancellationToken: ct);
 

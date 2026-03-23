@@ -99,11 +99,12 @@ public sealed class CreateSubscriptionStep : IProvisioningStep
                 return true; // Don't fail provisioning
             }
 
-            // Create the subscription - charges the first invoice automatically
+            // Create subscription with 30-day trial - no charge until trial ends
             var result = await _stripeService.CreateSubscriptionAsync(
                 instance.Owner.StripeCustomerId,
                 priceId,
                 paymentMethodId,
+                trialDays: 30,
                 new Dictionary<string, string>
                 {
                     ["instance_id"] = instanceId.ToString(),
