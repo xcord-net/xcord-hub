@@ -41,3 +41,4 @@ appsettings.*.local.json
 # Claude Code (local-only)
 .claude/
 CLAUDE.md
+src/backend/src/XcordHub.Api/appsettings.Development.json
