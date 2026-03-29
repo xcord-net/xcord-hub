@@ -39,7 +39,13 @@ if (!app.Environment.IsEnvironment("OpenApiGen"))
 // Middleware pipeline
 app.UseExceptionHandler();
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.GetLevel = (httpContext, _, _) =>
+        httpContext.Request.Path.StartsWithSegments("/health")
+            ? Serilog.Events.LogEventLevel.Debug
+            : Serilog.Events.LogEventLevel.Information;
+});
 
 app.UseSecurityHeaders();
 
