@@ -34,6 +34,13 @@ public sealed class InstanceBillingConfiguration : IEntityTypeConfiguration<Inst
         builder.Property(x => x.StripeSubscriptionId)
             .HasMaxLength(255);
 
+        builder.Property(x => x.StripeSubscriptionItemId)
+            .HasMaxLength(255);
+
+        builder.Property(x => x.IsMeteredBilling)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(x => x.CurrentPeriodEnd);
 
         builder.Property(x => x.NextBillingDate);

@@ -359,6 +359,15 @@ namespace XcordHub.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("StripeSubscriptionItemId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsMeteredBilling")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("Tier")
                         .HasColumnType("integer");
 
@@ -512,6 +521,15 @@ namespace XcordHub.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<string>("RedisUsername")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<byte[]>("RedisPassword")
+                        .IsRequired()
+                        .HasColumnType("bytea");
 
                     b.Property<string>("DockerKekSecretId")
                         .IsRequired()
@@ -1053,6 +1071,46 @@ namespace XcordHub.Infrastructure.Migrations
                     b.ToTable("worker_id_registry", (string)null);
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.UptimeInterval", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ManagedInstanceId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ReportedToStripe")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset?>("ReportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagedInstanceId", "EndedAt");
+
+                    b.HasIndex("ReportedToStripe", "EndedAt");
+
+                    b.ToTable("uptime_intervals", (string)null);
+                });
+
             modelBuilder.Entity("XcordHub.Entities.AvailableVersion", b =>
                 {
                     b.HasOne("XcordHub.Entities.HubUser", "Publisher")
@@ -1246,6 +1304,17 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Navigation("ManagedInstance");
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.UptimeInterval", b =>
+                {
+                    b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
+                        .WithMany("UptimeIntervals")
+                        .HasForeignKey("ManagedInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ManagedInstance");
+                });
+
             modelBuilder.Entity("XcordHub.Entities.HubUser", b =>
                 {
                     b.Navigation("ManagedInstances");
@@ -1274,6 +1343,8 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Navigation("ProvisioningEvents");
 
                     b.Navigation("UpgradeEvents");
+
+                    b.Navigation("UptimeIntervals");
                 });
 
             modelBuilder.Entity("XcordHub.Entities.UpgradeRollout", b =>

@@ -207,7 +207,7 @@ export default function CreateInstance() {
         noindex
       />
       <div class="p-8 max-w-xl">
-      <h1 class="text-2xl font-bold text-xcord-text-primary mb-2">Create Instance</h1>
+      <h1 data-testid="create-instance-heading" class="text-2xl font-bold text-xcord-text-primary mb-2">Create Instance</h1>
 
       <p class="text-sm text-xcord-text-muted mb-8">
           Launch a new Xcord instance. Choose a subdomain and set up your admin account.
@@ -220,6 +220,7 @@ export default function CreateInstance() {
             </label>
             <div class="flex items-center">
               <input
+                data-testid="create-instance-subdomain"
                 type="text"
                 value={subdomain()}
                 onInput={(e) => handleSubdomainInput(e.currentTarget.value)}
@@ -254,6 +255,7 @@ export default function CreateInstance() {
               Display Name
             </label>
             <input
+              data-testid="create-instance-display-name"
               type="text"
               value={displayName()}
               onInput={(e) => setDisplayName(e.currentTarget.value)}

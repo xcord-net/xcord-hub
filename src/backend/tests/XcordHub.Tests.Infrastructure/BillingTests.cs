@@ -948,6 +948,12 @@ file sealed class NoOpStripeService : IStripeService
 
     public Task<List<StripeInvoice>> GetInvoicesAsync(string customerId, int limit = 25, CancellationToken ct = default)
         => Task.FromResult(new List<StripeInvoice>());
+
+    public Task ReportUsageAsync(string subscriptionItemId, long minutesUptime, DateTimeOffset timestamp, CancellationToken ct = default)
+        => Task.CompletedTask;
+
+    public Task<CreateMeteredSubscriptionResult> CreateMeteredSubscriptionAsync(string customerId, string meteredPriceId, string paymentMethodId, int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+        => Task.FromResult(new CreateMeteredSubscriptionResult("sub_noop", "si_noop", null));
 }
 
 /// <summary>
@@ -1006,4 +1012,10 @@ file sealed class SpyStripeService : IStripeService
         LastGetInvoicesCustomerId = customerId;
         return Task.FromResult(_invoices);
     }
+
+    public Task ReportUsageAsync(string subscriptionItemId, long minutesUptime, DateTimeOffset timestamp, CancellationToken ct = default)
+        => Task.CompletedTask;
+
+    public Task<CreateMeteredSubscriptionResult> CreateMeteredSubscriptionAsync(string customerId, string meteredPriceId, string paymentMethodId, int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+        => Task.FromResult(new CreateMeteredSubscriptionResult("sub_spy", "si_spy", null));
 }

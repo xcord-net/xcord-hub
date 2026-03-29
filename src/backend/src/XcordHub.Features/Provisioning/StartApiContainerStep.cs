@@ -108,7 +108,8 @@ public sealed class StartApiContainerStep : IProvisioningStep
             var configJson = GenerateConfigJson(
                 instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId,
                 dbConnStr, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
-                redisConnStr, storageEndpoint, livekitHost,
+                redisConnStr, instance.Infrastructure.RedisUsername, instance.Infrastructure.RedisPassword,
+                storageEndpoint, livekitHost,
                 featureFlags, limits,
                 _stripeSecretKey, _stripeWebhookSecret,
                 _testSeedKey,
@@ -125,8 +126,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
             var kekSecretId = !string.IsNullOrWhiteSpace(instance.Infrastructure.DockerKekSecretId)
                 ? instance.Infrastructure.DockerKekSecretId
                 : null;
+            var poolNetworkName = _resolver.GetPoolNetworkName(pool);
             var containerId = await _dockerService.StartContainerAsync(
-                instance.Domain, secretId, kekSecretId, containerResourceLimits, cancellationToken);
+                instance.Domain, secretId, kekSecretId, containerResourceLimits, poolNetworkName, cancellationToken);
 
             // Track the deployed image (pool-specific or fallback)
             instance.Infrastructure.DeployedImage = _resolver.GetInstanceImageForPool(pool);
@@ -186,6 +188,8 @@ public sealed class StartApiContainerStep : IProvisioningStep
         string minioAccessKey,
         string minioSecretKey,
         string redisConnectionString,
+        string redisUsername,
+        string redisPassword,
         string storageEndpoint,
         string livekitHost,
         FeatureFlags? featureFlags = null,
@@ -227,7 +231,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
             redis = new
             {
                 connectionString = redisConnectionString,
-                channelPrefix = $"{domain}:"
+                channelPrefix = $"{domain}:",
+                username = redisUsername,
+                password = redisPassword
             },
             jwt = new
             {

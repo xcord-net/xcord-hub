@@ -28,4 +28,5 @@ public sealed class ManagedInstance : ISoftDeletable
     public ICollection<UpgradeEvent> UpgradeEvents { get; set; } = new List<UpgradeEvent>();
     public BackupPolicy? BackupPolicy { get; set; }
     public ICollection<BackupRecord> BackupRecords { get; set; } = new List<BackupRecord>();
+    public ICollection<UptimeInterval> UptimeIntervals { get; set; } = new List<UptimeInterval>();
 }

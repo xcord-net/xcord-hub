@@ -505,26 +505,26 @@ export default function GetStarted() {
                       <div class="text-xs text-xcord-text-muted mt-1">Up to 10 users</div>
                     </button>
                     <Show when={paymentsEnabled()} fallback={
-                      <button type="button" onClick={() => { setNotifyTier('Basic'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
+                      <button data-testid="get-started-plan-basic-notify" type="button" onClick={() => { setNotifyTier('Basic'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
                         <div class="font-semibold">Basic</div>
                         <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
                         <div class="text-xs text-xcord-brand mt-1">Notify me</div>
                       </button>
                     }>
-                      <button type="button" disabled={loading()} onClick={() => setSelectedTier('Basic')} class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ${selectedTier() === 'Basic' ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'} transition`}>
+                      <button data-testid="get-started-plan-basic" type="button" disabled={loading()} onClick={() => setSelectedTier('Basic')} class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ${selectedTier() === 'Basic' ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'} transition`}>
                         <div class="font-semibold">Basic</div>
                         <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
                         <div class="text-xs text-xcord-brand mt-1">$60/mo</div>
                       </button>
                     </Show>
                     <Show when={paymentsEnabled()} fallback={
-                      <button type="button" onClick={() => { setNotifyTier('Pro'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
+                      <button data-testid="get-started-plan-pro-notify" type="button" onClick={() => { setNotifyTier('Pro'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
                         <div class="font-semibold">Pro</div>
                         <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
                         <div class="text-xs text-xcord-brand mt-1">Notify me</div>
                       </button>
                     }>
-                      <button type="button" disabled={loading()} onClick={() => setSelectedTier('Pro')} class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ${selectedTier() === 'Pro' ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'} transition`}>
+                      <button data-testid="get-started-plan-pro" type="button" disabled={loading()} onClick={() => setSelectedTier('Pro')} class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ${selectedTier() === 'Pro' ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'} transition`}>
                         <div class="font-semibold">Pro</div>
                         <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
                         <div class="text-xs text-xcord-brand mt-1">$150/mo</div>
@@ -590,7 +590,7 @@ export default function GetStarted() {
 
           {/* Step 2: Payment (paid tiers only) */}
           <Show when={step() === 2 && isPaidTier()}>
-            <div class="bg-xcord-bg-secondary rounded-lg p-8">
+            <div data-testid="get-started-payment-step" class="bg-xcord-bg-secondary rounded-lg p-8">
               <h1 class="text-xl font-bold text-xcord-text-primary mb-1">Payment</h1>
               <p class="text-sm text-xcord-text-muted mb-6">
                 Step 2 of {totalSteps()} - {selectedTier()} plan
@@ -617,7 +617,7 @@ export default function GetStarted() {
               </div>
 
               {/* Stripe Payment Element mount point */}
-              <div id="payment-element" class="mb-6" />
+              <div id="payment-element" data-testid="stripe-payment-element" class="mb-6" />
 
               <Show when={error()}>
                 <div class="text-sm text-xcord-red mb-4">{error()}</div>

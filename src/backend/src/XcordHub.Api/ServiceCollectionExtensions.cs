@@ -22,6 +22,7 @@ using XcordHub.Features.Destruction;
 using XcordHub.Features.Provisioning;
 using XcordHub.Features.Backups;
 using XcordHub.Features.Upgrades;
+using XcordHub.Features.Billing;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
@@ -61,7 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(sp => new SnowflakeIdGenerator(1)); // workerId 1 for hub
 
         // Encryption
-        AddEncryption(services, config);
+        AddEncryption(services, config, builder.Environment);
 
         // Captcha
         AddCaptcha(services, config);
@@ -100,6 +101,8 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<ScheduledRolloutService>();
         services.AddScoped<BackupExecutor>();
         services.AddHostedService<BackupBackgroundService>();
+        services.AddHostedService<UptimeTrackingService>();
+        services.AddHostedService<ReportUsageToStripeService>();
 
         // Metrics
         services.AddSingleton<GatewayMetrics>();
@@ -179,7 +182,7 @@ public static class ServiceCollectionExtensions
         services.Configure<ColdStorageOptions>(config.GetSection(ColdStorageOptions.SectionName));
     }
 
-    private static void AddEncryption(IServiceCollection services, IConfiguration config)
+    private static void AddEncryption(IServiceCollection services, IConfiguration config, IWebHostEnvironment environment)
     {
         services.AddSingleton<IKekProvider, FileKekProvider>();
 
@@ -229,6 +232,19 @@ public static class ServiceCollectionExtensions
                 throw new InvalidOperationException(
                     "Wrapped encryption key configured but no KEK is available. " +
                     "Provide the KEK via /run/secrets/xcord-kek or Encryption:Kek config.");
+            }
+
+            // In Production, refuse to start without KEK unless explicitly opted out
+            if (environment.IsProduction())
+            {
+                var allowPlaintext = config.GetValue<bool>("Encryption:AllowPlaintextDek", false);
+                if (!allowPlaintext)
+                {
+                    throw new InvalidOperationException(
+                        "Production environment requires a KEK (Key Encryption Key) for envelope encryption. " +
+                        "Provide a KEK via /run/secrets/xcord-kek or Encryption:Kek config. " +
+                        "To accept the risk of plaintext DEK storage, set Encryption:AllowPlaintextDek=true.");
+                }
             }
 
             resolvedEncryptionKey = encryptionKeyRaw
@@ -392,6 +408,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProvisioningStep, AllocateWorkerIdStep>();
         services.AddScoped<IProvisioningStep, CreateNetworkStep>();
         services.AddScoped<IProvisioningStep, ProvisionDatabaseStep>();
+        services.AddScoped<IProvisioningStep, ProvisionRedisAclStep>();
         services.AddScoped<IProvisioningStep, ProvisionMinioStep>();
         services.AddScoped<IProvisioningStep, StartApiContainerStep>();
         services.AddScoped<IProvisioningStep, ConfigureDnsAndProxyStep>();
@@ -409,6 +426,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDestructionStep, RemoveSecretStep>();
         services.AddScoped<IDestructionStep, RemoveNetworkStep>();
         services.AddScoped<IDestructionStep, RemoveMinioBucketStep>();
+        services.AddScoped<IDestructionStep, DropDatabaseStep>();
+        services.AddScoped<IDestructionStep, ReleaseRedisSlotStep>();
+        services.AddScoped<IDestructionStep, RemoveRedisAclStep>();
 
         // Destruction pipeline
         services.AddScoped<DestructionPipeline>();
@@ -701,6 +721,75 @@ public static class ServiceCollectionExtensions
                     Log.Error(ex, "Failed to ensure Stripe price {LookupKey}", lookupKey);
                 }
             }
+        }
+
+        // Ensure the Enterprise metered price (usage-based, per-minute via Billing Meter).
+        // This price is used for Enterprise instances that choose metered billing.
+        // Rate: 1 cent per minute ($0.01/min = $0.60/hr ~= $432/mo at 100% uptime).
+        // The price references a BillingMeter named "xcord_instance_uptime_minutes"
+        // which must be set up in the Stripe dashboard (metered billing requires a meter).
+        const string enterpriseMeteredLookupKey = "price_xcord_enterprise_metered";
+        try
+        {
+            var existingMetered = await priceService.ListAsync(new Stripe.PriceListOptions
+            {
+                LookupKeys = new List<string> { enterpriseMeteredLookupKey },
+                Limit = 1
+            });
+
+            if (existingMetered.Data.Count == 0)
+            {
+                // Attempt to look up the meter ID for "xcord_instance_uptime_minutes"
+                string? meterId = null;
+                try
+                {
+                    var meterService = new Stripe.Billing.MeterService();
+                    var meters = await meterService.ListAsync(new Stripe.Billing.MeterListOptions { Limit = 100 });
+                    meterId = meters.Data.FirstOrDefault(m => m.EventName == "xcord_instance_uptime_minutes")?.Id;
+                }
+                catch (Exception meterEx)
+                {
+                    Log.Warning(meterEx, "Could not retrieve Stripe meters - Enterprise metered price requires a billing meter to be configured manually");
+                }
+
+                if (meterId != null)
+                {
+                    var created = await priceService.CreateAsync(new Stripe.PriceCreateOptions
+                    {
+                        Product = productId,
+                        Currency = "usd",
+                        UnitAmount = 1, // 1 cent per unit (minute)
+                        Recurring = new Stripe.PriceRecurringOptions
+                        {
+                            Interval = "month",
+                            Meter = meterId,
+                            UsageType = "metered"
+                        },
+                        LookupKey = enterpriseMeteredLookupKey,
+                        TransferLookupKey = true,
+                        Nickname = "Enterprise Metered (per minute)",
+                        Metadata = new Dictionary<string, string>
+                        {
+                            ["tier"] = "Enterprise",
+                            ["billing_type"] = "metered",
+                            ["unit"] = "minute"
+                        }
+                    });
+                    Log.Information("Created Stripe metered price {LookupKey} -> {PriceId}",
+                        enterpriseMeteredLookupKey, created.Id);
+                }
+                else
+                {
+                    Log.Warning(
+                        "Stripe metered price {LookupKey} not created: configure a billing meter named " +
+                        "'xcord_instance_uptime_minutes' in the Stripe dashboard first",
+                        enterpriseMeteredLookupKey);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to ensure Stripe Enterprise metered price {LookupKey}", enterpriseMeteredLookupKey);
         }
 
         Log.Information("Stripe price verification completed");

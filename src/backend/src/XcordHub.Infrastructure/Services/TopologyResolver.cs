@@ -142,4 +142,19 @@ public sealed class TopologyResolver
         var ded = GetDedicatedHostByPlacement(placedInPool);
         return ded?.Docker.InstanceImage;
     }
+
+    /// <summary>
+    /// Returns the Docker overlay network name for the pool that the instance is placed in.
+    /// Returns null for dev/default placement (caller falls back to xcord-shared-net).
+    /// </summary>
+    public string? GetPoolNetworkName(string placedInPool)
+    {
+        var pool = GetPoolByName(placedInPool);
+        if (pool != null && !string.IsNullOrWhiteSpace(pool.Docker.PoolNetworkName))
+            return pool.Docker.PoolNetworkName;
+        var ded = GetDedicatedHostByPlacement(placedInPool);
+        if (ded != null && !string.IsNullOrWhiteSpace(ded.Docker.PoolNetworkName))
+            return ded.Docker.PoolNetworkName;
+        return null;
+    }
 }

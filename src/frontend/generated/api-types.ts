@@ -37,6 +37,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/health/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/upgrades/{id}/cancel": {
         parameters: {
             query?: never;
@@ -541,6 +574,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetInstanceRevenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hub/instances/{id}/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetInstanceUsage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1272,6 +1321,21 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        GetInstanceUsageResponse: {
+            instanceId: string;
+            domain: string;
+            tier: string;
+            isMeteredBilling: boolean;
+            /** Format: double */
+            totalUptimeMinutes: number;
+            /** Format: double */
+            totalUptimeHours: number;
+            /** Format: int32 */
+            uptimePercentage: number;
+            /** Format: int64 */
+            estimatedCostCents: number;
+            intervals: components["schemas"]["UptimeIntervalDto"][];
+        };
         GetInvoicesResponse: {
             invoices: components["schemas"]["InvoiceSummary"][];
         };
@@ -1759,6 +1823,16 @@ export interface components {
             startedAt: string;
             /** Format: date-time */
             completedAt: string | null;
+        };
+        UptimeIntervalDto: {
+            intervalId: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            endedAt: string | null;
+            /** Format: double */
+            durationMinutes: number;
+            isOpen: boolean;
         };
         Verify2FARequest: {
             code: string;
@@ -2630,6 +2704,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RevenueSummary"];
+                };
+            };
+        };
+    };
+    GetInstanceUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetInstanceUsageResponse"];
                 };
             };
         };

@@ -300,6 +300,15 @@ namespace XcordHub.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("RedisUsername")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<byte[]>("RedisPassword")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
                     b.Property<string>("DockerKekSecretId")
                         .IsRequired()
                         .HasMaxLength(255)

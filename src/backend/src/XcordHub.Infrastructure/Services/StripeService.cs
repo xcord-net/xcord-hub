@@ -177,4 +177,71 @@ public sealed class StripeService : IStripeService
             PdfUrl: i.InvoicePdf
         )).ToList();
     }
+
+    public async Task ReportUsageAsync(string subscriptionItemId, long minutesUptime, DateTimeOffset timestamp, CancellationToken ct = default)
+    {
+        // In Stripe SDK v50+, metered billing uses Billing Meter events.
+        // The subscriptionItemId here is used as a unique customer identifier for the meter event.
+        // The event name "xcord_instance_uptime_minutes" must match the meter configured in Stripe.
+        var service = new Stripe.Billing.MeterEventService();
+        await service.CreateAsync(new Stripe.Billing.MeterEventCreateOptions
+        {
+            EventName = "xcord_instance_uptime_minutes",
+            Payload = new Dictionary<string, string>
+            {
+                ["value"] = minutesUptime.ToString(),
+                ["stripe_customer_id"] = subscriptionItemId // This is actually the customer ID in meter context
+            },
+            Timestamp = timestamp.UtcDateTime
+        }, cancellationToken: ct);
+
+        _logger.LogInformation(
+            "Reported {Minutes} uptime minutes to Stripe for subscription item {SubscriptionItemId}",
+            minutesUptime, subscriptionItemId);
+    }
+
+    public async Task<CreateMeteredSubscriptionResult> CreateMeteredSubscriptionAsync(
+        string customerId, string meteredPriceId, string paymentMethodId,
+        int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+    {
+        // Attach payment method to customer
+        var pmService = new PaymentMethodService();
+        await pmService.AttachAsync(paymentMethodId, new PaymentMethodAttachOptions
+        {
+            Customer = customerId,
+        }, cancellationToken: ct);
+
+        // Set as default payment method
+        var customerService = new CustomerService();
+        await customerService.UpdateAsync(customerId, new CustomerUpdateOptions
+        {
+            InvoiceSettings = new CustomerInvoiceSettingsOptions
+            {
+                DefaultPaymentMethod = paymentMethodId,
+            }
+        }, cancellationToken: ct);
+
+        var subService = new SubscriptionService();
+        var sub = await subService.CreateAsync(new SubscriptionCreateOptions
+        {
+            Customer = customerId,
+            Items = new List<SubscriptionItemOptions>
+            {
+                new() { Price = meteredPriceId }
+            },
+            DefaultPaymentMethod = paymentMethodId,
+            TrialPeriodDays = trialDays > 0 ? trialDays : null,
+            Metadata = metadata ?? new Dictionary<string, string>(),
+        }, cancellationToken: ct);
+
+        // The subscription item ID is needed for usage reporting
+        var subItemId = sub.Items.Data.FirstOrDefault()?.Id
+            ?? throw new InvalidOperationException("Stripe subscription created without items");
+
+        _logger.LogInformation(
+            "Created metered Stripe subscription {SubscriptionId} (item {SubItemId}) for customer {CustomerId}",
+            sub.Id, subItemId, customerId);
+
+        return new CreateMeteredSubscriptionResult(sub.Id, subItemId, sub.LatestInvoiceId);
+    }
 }

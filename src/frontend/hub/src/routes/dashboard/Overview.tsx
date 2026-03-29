@@ -83,8 +83,9 @@ export default function Overview() {
       />
       <div class="p-8">
       <div class="flex items-center justify-between mb-8">
-        <h1 class="text-2xl font-bold text-xcord-text-primary">Overview</h1>
+        <h1 data-testid="overview-heading" class="text-2xl font-bold text-xcord-text-primary">Overview</h1>
         <A
+          data-testid="overview-create-instance-btn"
           href="/get-started"
           class="px-4 py-2 bg-xcord-brand hover:bg-xcord-brand-hover text-white rounded text-sm font-medium transition"
         >

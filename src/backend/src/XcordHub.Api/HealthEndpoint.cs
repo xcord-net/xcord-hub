@@ -9,8 +9,12 @@ public static class HealthEndpoint
 
     public static void MapHealthEndpoint(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/health", () => Results.Ok(new { status = "healthy", version = Version, timestamp = DateTimeOffset.UtcNow }))
+        app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
            .WithTags("Health")
            .AllowAnonymous();
+
+        app.MapGet("/health/detail", () => Results.Ok(new { status = "healthy", version = Version, timestamp = DateTimeOffset.UtcNow }))
+           .WithTags("Health")
+           .RequireAuthorization();
     }
 }

@@ -41,9 +41,9 @@ public sealed class NoopDockerService : IDockerService
         return Task.CompletedTask;
     }
 
-    public Task<string> StartContainerAsync(string instanceDomain, string configSecretId, string? kekSecretId = null, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
+    public Task<string> StartContainerAsync(string instanceDomain, string configSecretId, string? kekSecretId = null, ContainerResourceLimits? resourceLimits = null, string? poolNetworkName = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("NOOP: Would start container for {Domain} with limits {Limits}", instanceDomain, resourceLimits);
+        _logger.LogInformation("NOOP: Would start container for {Domain} with limits {Limits} on network {Network}", instanceDomain, resourceLimits, poolNetworkName ?? "xcord-shared-net");
         return Task.FromResult($"container_{instanceDomain}");
     }
 
@@ -59,7 +59,7 @@ public sealed class NoopDockerService : IDockerService
         return Task.FromResult(true);
     }
 
-    public Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, CancellationToken cancellationToken = default)
+    public Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, string? poolNetworkName = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("NOOP: Would run migrations for {Domain}", instanceDomain);
         return Task.CompletedTask;

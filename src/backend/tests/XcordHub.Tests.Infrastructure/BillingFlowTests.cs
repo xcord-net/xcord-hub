@@ -118,6 +118,12 @@ internal sealed class FakeStripeService : IStripeService
 
     public Task<CreateSubscriptionResult> CreateSubscriptionAsync(string customerId, string priceId, string paymentMethodId, int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
         => Task.FromResult(new CreateSubscriptionResult("sub_fake_123", "in_fake_123"));
+
+    public Task ReportUsageAsync(string subscriptionItemId, long minutesUptime, DateTimeOffset timestamp, CancellationToken ct = default)
+        => Task.CompletedTask;
+
+    public Task<CreateMeteredSubscriptionResult> CreateMeteredSubscriptionAsync(string customerId, string meteredPriceId, string paymentMethodId, int trialDays = 0, Dictionary<string, string>? metadata = null, CancellationToken ct = default)
+        => Task.FromResult(new CreateMeteredSubscriptionResult("sub_fake_metered", "si_fake_metered", null));
 }
 
 [CollectionDefinition("BillingFlow")]

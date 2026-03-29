@@ -14,11 +14,11 @@ public sealed class HttpDockerService : IDockerService
     private readonly string _instanceImage;
     private readonly string _instanceEnvironment;
 
-    // xcord-shared-net: services (postgres, redis, minio, livekit, mailpit, caddy)
-    // Instance services join xcord-shared-net so they can reach those services,
-    // but xcord-hub-infra-net (where docker-socket-proxy lives) is never attached
-    // to instance containers - preventing a compromised instance from reaching
-    // the Docker API.
+    // xcord-shared-net: dev/single-host network shared by all compose services.
+    // In production, each compute pool uses its own overlay network (xcord-pool-{name})
+    // so instances on different pools cannot reach each other directly.
+    // xcord-hub-infra-net (where docker-socket-proxy lives) is never attached to
+    // instance containers - preventing a compromised instance from reaching the Docker API.
     private const string SharedNetworkName = "xcord-shared-net";
 
     public HttpDockerService(IHttpClientFactory httpClientFactory, ILogger<HttpDockerService> logger, IOptions<DockerOptions> options, IHostEnvironment hostEnvironment)
@@ -229,7 +229,7 @@ public sealed class HttpDockerService : IDockerService
     /// <c>/proc/&lt;pid&gt;/environ</c>. Returns the service ID (stored as DockerContainerId
     /// for backward compatibility with the infrastructure record).
     /// </summary>
-    public async Task<string> StartContainerAsync(string instanceDomain, string configSecretId, string? kekSecretId = null, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default)
+    public async Task<string> StartContainerAsync(string instanceDomain, string configSecretId, string? kekSecretId = null, ContainerResourceLimits? resourceLimits = null, string? poolNetworkName = null, CancellationToken cancellationToken = default)
     {
         var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var serviceName = $"xcord-{subdomain}-api";
@@ -237,8 +237,11 @@ public sealed class HttpDockerService : IDockerService
 
         // Resolve network IDs for the service spec. Swarm services reference
         // networks by ID (not name) in the TaskTemplate.
+        // In production, use the pool-specific overlay network (xcord-pool-{name}) so instances
+        // on different pools are isolated. In dev, fall back to the shared network.
+        var infraNetworkName = !string.IsNullOrWhiteSpace(poolNetworkName) ? poolNetworkName : SharedNetworkName;
         var instanceNetworkId = await ResolveNetworkIdAsync(networkName, cancellationToken);
-        var sharedNetworkId = await ResolveNetworkIdAsync(SharedNetworkName, cancellationToken);
+        var infraNetworkId = await ResolveNetworkIdAsync(infraNetworkName, cancellationToken);
 
         // Build resource limits for the service task template
         var resources = new Dictionary<string, object>();
@@ -275,7 +278,7 @@ public sealed class HttpDockerService : IDockerService
                 ["Networks"] = new[]
                 {
                     new { Target = instanceNetworkId },
-                    new { Target = sharedNetworkId }
+                    new { Target = infraNetworkId }
                 },
                 ["Resources"] = resources.Count > 0 ? resources : new Dictionary<string, object>(),
                 ["RestartPolicy"] = new
@@ -384,7 +387,7 @@ public sealed class HttpDockerService : IDockerService
     /// The service is configured with <c>restart-condition: none</c> so it exits
     /// after the migration completes.
     /// </summary>
-    public async Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, CancellationToken cancellationToken = default)
+    public async Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, string? poolNetworkName = null, CancellationToken cancellationToken = default)
     {
         var subdomain = ValidationHelpers.ExtractSubdomain(instanceDomain);
         var serviceName = $"xcord-{subdomain}-migrations";
@@ -395,8 +398,11 @@ public sealed class HttpDockerService : IDockerService
 
         try
         {
+            // In production, use the pool-specific overlay network so migration containers
+            // are also isolated to their pool. Fall back to shared network in dev mode.
+            var infraNetworkName = !string.IsNullOrWhiteSpace(poolNetworkName) ? poolNetworkName : SharedNetworkName;
             var instanceNetworkId = await ResolveNetworkIdAsync(networkName, cancellationToken);
-            var sharedNetworkId = await ResolveNetworkIdAsync(SharedNetworkName, cancellationToken);
+            var infraNetworkId = await ResolveNetworkIdAsync(infraNetworkName, cancellationToken);
 
             // Build secret mounts: config secret + optional KEK secret (reused from provisioning)
             var secrets = BuildSecretMounts(configSecretId, $"xcord-{subdomain}.migrations-config", kekSecretId, $"xcord-{subdomain}-kek");
@@ -423,7 +429,7 @@ public sealed class HttpDockerService : IDockerService
                     ["Networks"] = new[]
                     {
                         new { Target = instanceNetworkId },
-                        new { Target = sharedNetworkId }
+                        new { Target = infraNetworkId }
                     },
                     ["RestartPolicy"] = new
                     {

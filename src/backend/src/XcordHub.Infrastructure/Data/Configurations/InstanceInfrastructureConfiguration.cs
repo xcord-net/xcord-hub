@@ -83,6 +83,16 @@ public sealed class InstanceInfrastructureConfiguration
             .IsRequired()
             .HasMaxLength(255);
 
+        builder.Property(x => x.RedisUsername)
+            .IsRequired()
+            .HasMaxLength(255);
+
+        // Redis password is sensitive - stored encrypted as bytea
+        builder.Property(x => x.RedisPassword)
+            .IsRequired()
+            .HasColumnType("bytea")
+            .HasConversion(_encryptedStringConverter);
+
         builder.Property(x => x.BootstrapTokenHash)
             .HasMaxLength(64);
 

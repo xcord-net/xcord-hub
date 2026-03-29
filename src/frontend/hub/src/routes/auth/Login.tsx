@@ -63,6 +63,7 @@ export default function Login() {
               </label>
               <input
                 id="hub-login-email"
+                data-testid="hub-login-email"
                 type="email"
                 value={email()}
                 onInput={(e) => setEmail(e.currentTarget.value)}
@@ -77,13 +78,14 @@ export default function Login() {
               </label>
               <input
                 id="hub-login-password"
+                data-testid="hub-login-password"
                 type="password"
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
                 class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
                 required
               />
-              <A href="/forgot-password" class="text-xs text-xcord-text-link hover:underline mt-1 inline-block">
+              <A data-testid="hub-login-forgot-password" href="/forgot-password" class="text-xs text-xcord-text-link hover:underline mt-1 inline-block">
                 Forgot your password?
               </A>
             </div>
@@ -110,7 +112,7 @@ export default function Login() {
           </Show>
 
           <Show when={auth.error}>
-            <div class="text-sm text-xcord-red">{auth.error}</div>
+            <div data-testid="hub-login-error" class="text-sm text-xcord-red">{auth.error}</div>
           </Show>
 
           <button
@@ -140,7 +142,7 @@ export default function Login() {
         <Show when={!needs2FA()}>
           <p class="text-sm text-xcord-text-muted mt-4">
             Need an account?{' '}
-            <A href="/register" class="text-xcord-text-link hover:underline">Register</A>
+            <A data-testid="hub-login-register-link" href="/register" class="text-xcord-text-link hover:underline">Register</A>
           </p>
         </Show>
       </div>

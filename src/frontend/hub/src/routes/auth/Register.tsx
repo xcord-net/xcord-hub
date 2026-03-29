@@ -70,6 +70,7 @@ export default function Register() {
             <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Email</label>
             <input
               id="hub-reg-email"
+              data-testid="hub-reg-email"
               type="email"
               value={email()}
               onInput={(e) => setEmail(e.currentTarget.value)}
@@ -82,6 +83,7 @@ export default function Register() {
             <label for="hub-reg-username" class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Username</label>
             <input
               id="hub-reg-username"
+              data-testid="hub-reg-username"
               type="text"
               value={username()}
               onInput={(e) => setUsername(e.currentTarget.value)}
@@ -106,6 +108,7 @@ export default function Register() {
             <label for="hub-reg-password" class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Password</label>
             <input
               id="hub-reg-password"
+              data-testid="hub-reg-password"
               type="password"
               value={password()}
               onInput={(e) => setPassword(e.currentTarget.value)}
@@ -172,11 +175,12 @@ export default function Register() {
           <Captcha onSolved={(id, ans) => { setCaptchaId(id); setCaptchaAnswer(ans); }} />
 
           <Show when={displayError()}>
-            <div class="text-sm text-xcord-red">{displayError()}</div>
+            <div data-testid="hub-reg-error" class="text-sm text-xcord-red">{displayError()}</div>
           </Show>
 
           <button
             type="submit"
+            data-testid="hub-reg-submit"
             disabled={loading()}
             class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
           >
@@ -186,7 +190,7 @@ export default function Register() {
 
         <p class="text-sm text-xcord-text-muted mt-4">
           Already have an account?{' '}
-          <A href="/login" class="text-xcord-text-link hover:underline">Log In</A>
+          <A data-testid="hub-reg-login-link" href="/login" class="text-xcord-text-link hover:underline">Log In</A>
         </p>
       </div>
     </div>

@@ -43,6 +43,9 @@ public sealed class HubDbContext : DbContext
     public DbSet<BackupPolicy> BackupPolicies => Set<BackupPolicy>();
     public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();
 
+    // Uptime tracking
+    public DbSet<UptimeInterval> UptimeIntervals => Set<UptimeInterval>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

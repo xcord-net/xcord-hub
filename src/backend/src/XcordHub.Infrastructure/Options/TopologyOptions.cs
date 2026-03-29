@@ -75,6 +75,12 @@ public sealed class PoolDockerConfig
 {
     public string SocketProxyUrl { get; set; } = string.Empty;
     public string InstanceImage { get; set; } = "ghcr.io/xcord/fed:latest";
+    /// <summary>
+    /// The Docker overlay network that instance containers for this pool join.
+    /// Set to "xcord-pool-{poolName}" in production topologies (matches what xcord-topo creates).
+    /// Leave empty to fall back to xcord-shared-net (dev/single-host mode).
+    /// </summary>
+    public string PoolNetworkName { get; set; } = string.Empty;
 }
 
 public sealed class PoolCaddyConfig

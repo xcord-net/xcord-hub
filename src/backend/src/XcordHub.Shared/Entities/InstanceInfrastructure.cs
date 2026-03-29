@@ -17,6 +17,8 @@ public sealed class InstanceInfrastructure
     public string LiveKitSecretKey { get; set; } = string.Empty;
     public string DockerKekSecretId { get; set; } = string.Empty;
     public string DatabaseUsername { get; set; } = string.Empty;
+    public string RedisUsername { get; set; } = string.Empty;
+    public string RedisPassword { get; set; } = string.Empty;
     public string? BootstrapTokenHash { get; set; }
     public string PlacedInPool { get; set; } = "default";
     public string PlacedInDataPool { get; set; } = string.Empty;

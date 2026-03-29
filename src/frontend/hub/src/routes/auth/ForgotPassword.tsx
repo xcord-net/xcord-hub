@@ -62,6 +62,7 @@ export default function ForgotPassword() {
               </label>
               <input
                 id="forgot-email"
+                data-testid="forgot-password-email"
                 type="email"
                 value={email()}
                 onInput={(e) => setEmail(e.currentTarget.value)}

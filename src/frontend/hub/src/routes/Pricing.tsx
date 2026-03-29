@@ -211,10 +211,10 @@ export default function Pricing() {
         </p>
 
         {/* Tier cards - hidden until features check completes to prevent CTA flash */}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-6" style={{ opacity: featuresLoaded() ? 1 : 0, transition: 'opacity 0.15s' }}>
+        <div data-testid="pricing-tier-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-6" style={{ opacity: featuresLoaded() ? 1 : 0, transition: 'opacity 0.15s' }}>
           <For each={tiers}>
             {(tier) => (
-              <div class="bg-xcord-landing-surface border border-xcord-landing-border rounded-xl p-6 flex flex-col text-left">
+              <div data-testid={`pricing-tier-${tier.name.toLowerCase()}`} class="bg-xcord-landing-surface border border-xcord-landing-border rounded-xl p-6 flex flex-col text-left">
 
                 <h3 class="text-lg font-semibold text-white">{tier.name}</h3>
 
@@ -259,6 +259,7 @@ export default function Pricing() {
                 {/* CTA */}
                 <Show when={tierCta(tier) === 'get-started'}>
                   <A
+                    data-testid={`pricing-cta-${tier.name.toLowerCase()}`}
                     href={tier.isFree ? '/get-started' : `/get-started?tier=${tier.name}`}
                     class="block text-center py-2.5 rounded-lg font-medium transition bg-xcord-brand hover:bg-xcord-brand-hover text-white"
                   >
@@ -268,6 +269,7 @@ export default function Pricing() {
 
                 <Show when={tierCta(tier) === 'contact'}>
                   <button
+                    data-testid={`pricing-cta-${tier.name.toLowerCase()}`}
                     onClick={() => setShowContact(true)}
                     class="w-full block text-center py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
                   >
@@ -280,6 +282,7 @@ export default function Pricing() {
                     when={notifyCardKey() === tier.name}
                     fallback={
                       <button
+                        data-testid={`pricing-cta-${tier.name.toLowerCase()}`}
                         onClick={() => {
                           setNotifyCardKey(tier.name);
                           setNotifyStatus('idle');

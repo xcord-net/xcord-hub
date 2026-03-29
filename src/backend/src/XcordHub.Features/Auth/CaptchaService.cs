@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using StackExchange.Redis;
 
 namespace XcordHub.Features.Auth;
@@ -12,12 +13,10 @@ public interface ICaptchaService
 
 public sealed class CaptchaService(IConnectionMultiplexer redis) : ICaptchaService
 {
-    private static readonly Random Rng = new();
-
     public async Task<CaptchaChallenge> GenerateAsync()
     {
-        var a = Rng.Next(1, 50);
-        var b = Rng.Next(1, 50);
+        var a = RandomNumberGenerator.GetInt32(1, 50);
+        var b = RandomNumberGenerator.GetInt32(1, 50);
         var answer = (a + b).ToString();
         var question = $"{a} + {b}";
         var id = Guid.NewGuid().ToString("N");

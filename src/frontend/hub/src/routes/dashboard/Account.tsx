@@ -111,7 +111,7 @@ export default function Account() {
         noindex
       />
       <div class="p-8 max-w-xl">
-      <h1 class="text-2xl font-bold text-xcord-text-primary mb-8">Account</h1>
+      <h1 data-testid="account-heading" class="text-2xl font-bold text-xcord-text-primary mb-8">Account</h1>
 
       {/* Profile */}
       <div class="bg-xcord-bg-secondary rounded-lg p-6 mb-6">
