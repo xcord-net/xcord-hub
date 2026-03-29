@@ -17,7 +17,8 @@ public sealed class SuspendInstanceHandler(
     HubDbContext dbContext,
     IDockerService dockerService,
     IInstanceNotifier instanceNotifier,
-    ILogger<SuspendInstanceHandler> logger)
+    ILogger<SuspendInstanceHandler> logger,
+    TimeSpan? shutdownGracePeriod = null)
     : IRequestHandler<SuspendInstanceCommand, Result<bool>>
 {
     public async Task<Result<bool>> Handle(SuspendInstanceCommand request, CancellationToken cancellationToken)
@@ -63,7 +64,9 @@ public sealed class SuspendInstanceHandler(
                 cancellationToken);
 
             // Grace period: give the instance time to broadcast the notice to clients.
-            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            var grace = shutdownGracePeriod ?? TimeSpan.FromSeconds(5);
+            if (grace > TimeSpan.Zero)
+                await Task.Delay(grace, cancellationToken);
 
             // Stop the container
             await dockerService.StopContainerAsync(

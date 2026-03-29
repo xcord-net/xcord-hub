@@ -238,7 +238,7 @@ public sealed class LifecycleTests
         var notifierSpy = new SpyInstanceNotifier(callLog);
         var dockerSpy = new SpyDockerService(callLog);
 
-        var handler = new SuspendInstanceHandler(_dbContext, dockerSpy, notifierSpy, NullLogger<SuspendInstanceHandler>.Instance);
+        var handler = new SuspendInstanceHandler(_dbContext, dockerSpy, notifierSpy, NullLogger<SuspendInstanceHandler>.Instance, shutdownGracePeriod: TimeSpan.Zero);
         var command = new SuspendInstanceCommand(instance.Id, owner.Id);
 
         var result = await handler.Handle(command, CancellationToken.None);
