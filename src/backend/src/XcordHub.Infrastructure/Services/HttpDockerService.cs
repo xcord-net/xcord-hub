@@ -54,6 +54,20 @@ public sealed class HttpDockerService : IDockerService
         _logger.LogInformation("Creating Docker overlay network {NetworkName} for instance {Domain}", networkName, instanceDomain);
 
         var response = await _httpClient.PostAsJsonAsync("/networks/create", payload, cancellationToken);
+
+        // 409 = network already exists (e.g. from a previous provisioning attempt) - look it up
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            _logger.LogInformation("Network {NetworkName} already exists, looking up ID", networkName);
+            var inspectResponse = await _httpClient.GetAsync($"/networks/{networkName}", cancellationToken);
+            inspectResponse.EnsureSuccessStatusCode();
+            var inspectResult = await inspectResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            var existingId = inspectResult.GetProperty("Id").GetString()
+                ?? throw new InvalidOperationException($"Could not resolve existing network ID for {networkName}");
+            _logger.LogInformation("Resolved existing network {NetworkId} for instance {Domain}", existingId, instanceDomain);
+            return existingId;
+        }
+
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<DockerNetworkCreateResponse>(cancellationToken);
@@ -293,15 +307,14 @@ public sealed class HttpDockerService : IDockerService
 
     /// <summary>
     /// Verifies that the Swarm service has at least one running task.
-    /// Polls for up to 60 seconds because Swarm task scheduling adds latency
-    /// compared to starting a plain container.
+    /// Polls for up to 15 seconds for the Swarm task to reach running state.
     /// The <paramref name="containerId"/> here is actually the service ID
     /// (stored in <c>Infrastructure.DockerContainerId</c>).
     /// </summary>
     public async Task<bool> VerifyContainerRunningAsync(string containerId, CancellationToken cancellationToken = default)
     {
-        const int maxWaitMs = 60_000;
-        const int pollIntervalMs = 3_000;
+        const int maxWaitMs = 15_000;
+        const int pollIntervalMs = 1_000;
         var serviceId = containerId;
         var elapsed = 0;
 
@@ -358,6 +371,12 @@ public sealed class HttpDockerService : IDockerService
 
         _logger.LogWarning("Service {ServiceId} did not reach running state within {MaxWait}s", serviceId, maxWaitMs / 1000);
         return false;
+    }
+
+    public async Task<bool> VerifyServiceExistsAsync(string serviceId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"/services/{serviceId}", cancellationToken);
+        return response.IsSuccessStatusCode;
     }
 
     /// <summary>

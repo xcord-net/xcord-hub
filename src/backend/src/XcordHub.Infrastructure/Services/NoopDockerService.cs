@@ -53,6 +53,12 @@ public sealed class NoopDockerService : IDockerService
         return Task.FromResult(true);
     }
 
+    public Task<bool> VerifyServiceExistsAsync(string serviceId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("NOOP: Would verify service {ServiceId} exists", serviceId);
+        return Task.FromResult(true);
+    }
+
     public Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("NOOP: Would run migrations for {Domain}", instanceDomain);

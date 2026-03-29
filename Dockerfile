@@ -1,5 +1,6 @@
 # ===== Stage 1: Build Hub SPA =====
 FROM node:24-alpine AS build-hub-spa
+RUN npm install -g npm@latest
 WORKDIR /app
 ARG VERSION=0.0.0-dev
 ENV VITE_APP_VERSION=$VERSION
@@ -20,6 +21,7 @@ RUN if [ -f package.json ]; then \
 
 # ===== Stage 2: Build Admin SPA =====
 FROM node:24-alpine AS build-admin-spa
+RUN npm install -g npm@latest
 WORKDIR /app
 ARG VERSION=0.0.0-dev
 ENV VITE_APP_VERSION=$VERSION

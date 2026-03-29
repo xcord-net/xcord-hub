@@ -68,14 +68,18 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             checkCmd.Parameters.AddWithValue("name", dbName);
             var exists = await checkCmd.ExecuteScalarAsync(cancellationToken);
 
-            if (exists == null)
+            if (exists != null)
             {
-                // CREATE DATABASE cannot run inside a transaction
-                await using var createDbCmd = new NpgsqlCommand(
-                    $"CREATE DATABASE \"{dbName}\"", conn);
-                await createDbCmd.ExecuteNonQueryAsync(cancellationToken);
-                _logger.LogInformation("Created database {Database} for instance {Domain}", dbName, instance.Domain);
+                return Error.Failure("DATABASE_ALREADY_EXISTS",
+                    $"Database '{dbName}' already exists. A previous instance was not properly destroyed. " +
+                    "Use the hub API to destroy the stale instance before re-provisioning.");
             }
+
+            // CREATE DATABASE cannot run inside a transaction
+            await using var createDbCmd = new NpgsqlCommand(
+                $"CREATE DATABASE \"{dbName}\"", conn);
+            await createDbCmd.ExecuteNonQueryAsync(cancellationToken);
+            _logger.LogInformation("Created database {Database} for instance {Domain}", dbName, instance.Domain);
 
             // Create per-instance PG user (idempotent - skip if exists)
             await using var checkUserCmd = new NpgsqlCommand(
@@ -83,13 +87,10 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             checkUserCmd.Parameters.AddWithValue("name", dbUsername);
             var userExists = await checkUserCmd.ExecuteScalarAsync(cancellationToken);
 
+            var dbPassword = infra.DatabasePassword;
+
             if (userExists == null)
             {
-                // Use the already-generated DatabasePassword from GenerateSecretsStep.
-                // The password is stored encrypted in the hub DB - we decrypt it here
-                // to pass to CREATE USER (PG requires the plaintext password).
-                var dbPassword = infra.DatabasePassword;
-
                 // CREATE USER with LOGIN and restricted connection privileges
                 await using var createUserCmd = new NpgsqlCommand(
                     $"CREATE USER \"{dbUsername}\" WITH PASSWORD '{EscapeSqlString(dbPassword)}'", conn);
@@ -100,6 +101,15 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
                 await grantConnectCmd.ExecuteNonQueryAsync(cancellationToken);
 
                 _logger.LogInformation("Created PG user {Username} for instance {Domain}", dbUsername, instance.Domain);
+            }
+            else
+            {
+                // User exists from a previous provisioning - update password to match new secrets
+                await using var alterCmd = new NpgsqlCommand(
+                    $"ALTER USER \"{dbUsername}\" WITH PASSWORD '{EscapeSqlString(dbPassword)}'", conn);
+                await alterCmd.ExecuteNonQueryAsync(cancellationToken);
+
+                _logger.LogInformation("Updated password for existing PG user {Username}", dbUsername);
             }
 
             // Connect to the instance database to grant schema privileges

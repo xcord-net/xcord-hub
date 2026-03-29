@@ -79,6 +79,7 @@ public sealed class LifecycleTests
         public Task<string> CreateRawSecretAsync(string secretName, string data, CancellationToken cancellationToken = default) => Task.FromResult("raw_secret_spy");
         public Task<string> StartContainerAsync(string instanceDomain, string configSecretId, string? kekSecretId = null, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default) => Task.FromResult("ctr_spy");
         public Task<bool> VerifyContainerRunningAsync(string containerId, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> VerifyServiceExistsAsync(string serviceId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<bool> VerifyMigrationsCompleteAsync(string instanceDomain, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task UpdateServiceImageAsync(string serviceId, string newImage, CancellationToken cancellationToken = default)

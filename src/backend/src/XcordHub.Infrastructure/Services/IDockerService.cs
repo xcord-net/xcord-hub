@@ -11,6 +11,7 @@ public interface IDockerService
     Task RemoveSecretAsync(string secretId, CancellationToken cancellationToken = default);
     Task<string> StartContainerAsync(string instanceDomain, string configSecretId, string? kekSecretId = null, ContainerResourceLimits? resourceLimits = null, CancellationToken cancellationToken = default);
     Task<bool> VerifyContainerRunningAsync(string containerId, CancellationToken cancellationToken = default);
+    Task<bool> VerifyServiceExistsAsync(string serviceId, CancellationToken cancellationToken = default);
     Task RunMigrationContainerAsync(string instanceDomain, string configJson, string? kekSecretId = null, CancellationToken cancellationToken = default);
     Task<bool> VerifyMigrationsCompleteAsync(string instanceDomain, CancellationToken cancellationToken = default);
     Task UpdateServiceImageAsync(string serviceId, string newImage, CancellationToken cancellationToken = default);

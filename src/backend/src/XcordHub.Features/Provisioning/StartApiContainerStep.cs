@@ -161,8 +161,12 @@ public sealed class StartApiContainerStep : IProvisioningStep
 
         try
         {
-            var isRunning = await _dockerService.VerifyContainerRunningAsync(infrastructure.DockerContainerId, cancellationToken);
-            return isRunning ? true : Error.Failure("CONTAINER_NOT_RUNNING", "Container is not running");
+            // Verify the Swarm service exists (not that it's healthy - that's checked
+            // by the caller after the full pipeline completes). Waiting for the Swarm
+            // task to reach "running" state blocks on the container healthcheck which
+            // adds 10-30s of unnecessary delay to provisioning.
+            var serviceExists = await _dockerService.VerifyServiceExistsAsync(infrastructure.DockerContainerId, cancellationToken);
+            return serviceExists ? true : Error.Failure("SERVICE_NOT_FOUND", "Swarm service not found");
         }
         catch (Exception ex)
         {

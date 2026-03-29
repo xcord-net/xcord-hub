@@ -36,9 +36,8 @@ public sealed class AllocateWorkerIdStep : IProvisioningStep
             return true;
         }
 
-        // Find the next available worker ID
+        // Find the next available worker ID (exclude ALL existing rows, including tombstoned)
         var allocatedWorkerIds = (await _dbContext.Set<WorkerIdRegistry>()
-            .Where(w => !w.IsTombstoned)
             .Select(w => w.WorkerId)
             .ToListAsync(cancellationToken))
             .ToHashSet();
