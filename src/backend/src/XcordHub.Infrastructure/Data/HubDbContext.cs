@@ -46,6 +46,10 @@ public sealed class HubDbContext : DbContext
     // Uptime tracking
     public DbSet<UptimeInterval> UptimeIntervals => Set<UptimeInterval>();
 
+    // Server lists (header bar)
+    public DbSet<ServerList> ServerLists => Set<ServerList>();
+    public DbSet<ServerListEntry> ServerListEntries => Set<ServerListEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

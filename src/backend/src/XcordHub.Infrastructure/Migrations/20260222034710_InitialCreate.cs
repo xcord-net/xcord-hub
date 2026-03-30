@@ -464,6 +464,41 @@ namespace XcordHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "server_lists",
+                columns: table => new
+                {
+                    HubKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_server_lists", x => x.HubKey);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "server_list_entries",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HubKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    ServerUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    ServerName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    ServerIconUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
+                    AddedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_server_list_entries", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_server_list_entries_server_lists_HubKey",
+                        column: x => x.HubKey,
+                        principalTable: "server_lists",
+                        principalColumn: "HubKey",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "worker_id_registry",
                 columns: table => new
                 {
@@ -629,6 +664,12 @@ namespace XcordHub.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_server_list_entries_HubKey_ServerUrl",
+                table: "server_list_entries",
+                columns: new[] { "HubKey", "ServerUrl" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_worker_id_registry_is_tombstoned",
                 table: "worker_id_registry",
                 column: "is_tombstoned");
@@ -642,6 +683,12 @@ namespace XcordHub.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "server_list_entries");
+
+            migrationBuilder.DropTable(
+                name: "server_lists");
+
             migrationBuilder.DropTable(
                 name: "contact_submissions");
 

@@ -599,6 +599,62 @@ namespace XcordHub.Infrastructure.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.ServerList", b =>
+                {
+                    b.Property<string>("HubKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("HubKey");
+
+                    b.ToTable("server_lists", (string)null);
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.ServerListEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("AddedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<string>("HubKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ServerIconUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("ServerName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ServerUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HubKey", "ServerUrl")
+                        .IsUnique();
+
+                    b.ToTable("server_list_entries", (string)null);
+                });
+
             modelBuilder.Entity("XcordHub.Entities.WorkerIdRegistry", b =>
                 {
                     b.Property<int>("WorkerId")
@@ -729,6 +785,17 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Navigation("HubUser");
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.ServerListEntry", b =>
+                {
+                    b.HasOne("XcordHub.Entities.ServerList", "ServerList")
+                        .WithMany("Entries")
+                        .HasForeignKey("HubKey")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServerList");
+                });
+
             modelBuilder.Entity("XcordHub.Entities.WorkerIdRegistry", b =>
                 {
                     b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
@@ -746,6 +813,11 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Navigation("PasswordResetTokens");
 
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.ServerList", b =>
+                {
+                    b.Navigation("Entries");
                 });
 
             modelBuilder.Entity("XcordHub.Entities.ManagedInstance", b =>
