@@ -839,6 +839,35 @@
         }
       }
     },
+    "/api/v1/header": {
+      "get": {
+        "tags": [
+          "Header"
+        ],
+        "operationId": "GetHeader",
+        "parameters": [
+          {
+            "name": "serverUrl",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hubKey",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/federation/versions": {
       "get": {
         "tags": [
@@ -4764,6 +4793,9 @@
     },
     {
       "name": "Instances"
+    },
+    {
+      "name": "Header"
     },
     {
       "name": "Federation"
