@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -20,10 +22,22 @@ public sealed class GetHeaderHandler : IEndpoint
             string? hubKey,
             CancellationToken ct) =>
         {
+            // Validate serverUrl is a real HTTP(S) URL (prevents SSRF to internal services)
+            if (!string.IsNullOrEmpty(serverUrl) && !IsValidHttpsUrl(serverUrl))
+                return Results.BadRequest("serverUrl must be an HTTP or HTTPS URL");
+
+            // Validate hubKey format if provided (base64url, max 64 chars)
+            if (!string.IsNullOrEmpty(hubKey) && !HubKeyPattern.IsMatch(hubKey))
+                return Results.BadRequest("invalid hubKey format");
+
             // Resolve hubKey: param > cookie > generate
             var key = hubKey;
             if (string.IsNullOrEmpty(key))
-                key = httpContext.Request.Cookies["xcord_hub_key"];
+            {
+                var cookieKey = httpContext.Request.Cookies["xcord_hub_key"];
+                if (!string.IsNullOrEmpty(cookieKey) && HubKeyPattern.IsMatch(cookieKey))
+                    key = cookieKey;
+            }
 
             var isNewKey = false;
             if (string.IsNullOrEmpty(key))
@@ -97,7 +111,12 @@ public sealed class GetHeaderHandler : IEndpoint
             using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
             var resp = await client.GetFromJsonAsync<InstanceInfoResponse>(
                 $"{serverUrl}/api/v1/instance/info", ct);
-            return (resp?.Name ?? serverUrl, resp?.IconUrl);
+            var name = resp?.Name ?? serverUrl;
+            // Only accept HTTP(S) icon URLs
+            var icon = resp?.IconUrl;
+            if (!string.IsNullOrEmpty(icon) && !IsValidHttpsUrl(icon))
+                icon = null;
+            return (name, icon);
         }
         catch
         {
@@ -107,6 +126,21 @@ public sealed class GetHeaderHandler : IEndpoint
     }
 
     private sealed record InstanceInfoResponse(string Name, string? IconUrl);
+
+    private static readonly Regex HubKeyPattern = new(@"^[A-Za-z0-9_\-]{1,64}$", RegexOptions.Compiled);
+
+    private static bool IsValidHttpsUrl(string url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+    }
+
+    private static string HtmlEncode(string? value) =>
+        HtmlEncoder.Default.Encode(value ?? "");
+
+    private static string JsStringEscape(string value) =>
+        value.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "\\\"")
+             .Replace("\n", "\\n").Replace("\r", "\\r").Replace("<", "\\x3c");
 
     private static string RenderHeader(
         ICollection<ServerListEntry> entries,
@@ -118,12 +152,15 @@ public sealed class GetHeaderHandler : IEndpoint
         {
             var isCurrent = string.Equals(e.ServerUrl, currentServerUrl, StringComparison.OrdinalIgnoreCase);
             var activeClass = isCurrent ? " active" : "";
-            var initial = string.IsNullOrEmpty(e.ServerName) ? "?" : e.ServerName[..1].ToUpper();
-            var iconHtml = !string.IsNullOrEmpty(e.ServerIconUrl)
-                ? $"<img src=\"{e.ServerIconUrl}\" alt=\"{e.ServerName}\" />"
+            var safeName = HtmlEncode(e.ServerName);
+            var safeUrl = HtmlEncode(e.ServerUrl);
+            var jsUrl = JsStringEscape(e.ServerUrl);
+            var initial = string.IsNullOrEmpty(e.ServerName) ? "?" : HtmlEncode(e.ServerName[..1].ToUpper());
+            var iconHtml = !string.IsNullOrEmpty(e.ServerIconUrl) && IsValidHttpsUrl(e.ServerIconUrl)
+                ? $"<img src=\"{HtmlEncode(e.ServerIconUrl)}\" alt=\"{safeName}\" />"
                 : $"<span class=\"initial\">{initial}</span>";
             return $"""
-                <button class="server-btn{activeClass}" title="{e.ServerName}" onclick="navigateTo('{e.ServerUrl}')">
+                <button class="server-btn{activeClass}" title="{safeName}" onclick="navigateTo('{jsUrl}')">
                     {iconHtml}
                 </button>
             """;
@@ -165,7 +202,7 @@ public sealed class GetHeaderHandler : IEndpoint
                 <button class="add-btn" id="addBtn" onclick="toggleAdd()">+</button>
             </div>
             <script>
-                var hubKey = '{{hubKey}}';
+                var hubKey = '{{JsStringEscape(hubKey)}}';
                 var isNewKey = {{(isNewKey ? "true" : "false")}};
                 if (isNewKey) { window.parent.postMessage({ type: 'xcord_hub_key', hubKey: hubKey }, '*'); }
                 function navigateTo(url) { window.parent.location.href = url; }
