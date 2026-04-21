@@ -29,7 +29,13 @@ public static class TierDefaults
                 MaxMemoryMb = 256,
                 MaxRateLimit = 30,
                 MaxVoiceConcurrency = 5,
-                MaxVideoConcurrency = 3
+                MaxVideoConcurrency = 3,
+                MaxConcurrentBroadcasts = 0,
+                MaxStageSize = 0,
+                MaxStreambotsPerChannel = 0,
+                BroadcastMaxBitrateKbps = 0,
+                BroadcastMaxResolutionWidth = 0,
+                BroadcastMaxResolutionHeight = 0
             },
             InstanceTier.Basic => new ResourceLimits
             {
@@ -40,7 +46,13 @@ public static class TierDefaults
                 MaxMemoryMb = 512,
                 MaxRateLimit = 60,
                 MaxVoiceConcurrency = 15,
-                MaxVideoConcurrency = 10
+                MaxVideoConcurrency = 10,
+                MaxConcurrentBroadcasts = 2,
+                MaxStageSize = 8,
+                MaxStreambotsPerChannel = 2,
+                BroadcastMaxBitrateKbps = 2500,
+                BroadcastMaxResolutionWidth = 1280,
+                BroadcastMaxResolutionHeight = 720
             },
             InstanceTier.Pro => new ResourceLimits
             {
@@ -51,7 +63,13 @@ public static class TierDefaults
                 MaxMemoryMb = 1536,
                 MaxRateLimit = 200,
                 MaxVoiceConcurrency = 60,
-                MaxVideoConcurrency = 40
+                MaxVideoConcurrency = 40,
+                MaxConcurrentBroadcasts = 8,
+                MaxStageSize = 16,
+                MaxStreambotsPerChannel = 5,
+                BroadcastMaxBitrateKbps = 4000,
+                BroadcastMaxResolutionWidth = 1920,
+                BroadcastMaxResolutionHeight = 1080
             },
             InstanceTier.Enterprise => new ResourceLimits
             {
@@ -62,7 +80,13 @@ public static class TierDefaults
                 MaxMemoryMb = 2048,
                 MaxRateLimit = 500,
                 MaxVoiceConcurrency = 100,
-                MaxVideoConcurrency = 50
+                MaxVideoConcurrency = 50,
+                MaxConcurrentBroadcasts = 20,
+                MaxStageSize = 32,
+                MaxStreambotsPerChannel = 10,
+                BroadcastMaxBitrateKbps = 8000,
+                BroadcastMaxResolutionWidth = 1920,
+                BroadcastMaxResolutionHeight = 1080
             },
             _ => throw new ArgumentOutOfRangeException(nameof(tier), tier, "Unknown instance tier")
         };
@@ -86,7 +110,8 @@ public static class TierDefaults
             CanUseHdVideo = mediaEnabled,
             CanUseSimulcast = mediaEnabled,
             CanUseRecording = mediaEnabled && tier >= InstanceTier.Pro,
-            CanUseMemberTiers = tier >= InstanceTier.Pro
+            CanUseMemberTiers = tier >= InstanceTier.Pro,
+            CanBroadcast = mediaEnabled && tier >= InstanceTier.Basic
         };
     }
 
