@@ -112,6 +112,9 @@ services:
     command: --config /etc/livekit.yaml
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - xcord-shared-net
     ports:
@@ -124,6 +127,55 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+
+  # LiveKit Egress: renders web pages in headless Chrome and publishes them
+  # as HLS/RTMP/file. Coordinates with livekit-server via Redis. Shared across
+  # all hub-provisioned instances - each instance's broadcasts land in its own
+  # per-tenant MinIO bucket (or the shared `broadcasts` bucket, depending on
+  # the instance's storage configuration).
+  livekit-egress:
+    image: livekit/egress:v1.8
+    restart: unless-stopped
+    depends_on:
+      livekit:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - xcord-shared-net
+    environment:
+      EGRESS_CONFIG_BODY: |
+        api_key: ${LIVEKIT_API_KEY:-devkey}
+        api_secret: ${LIVEKIT_API_SECRET:-devsecretdevsecretdevsecretdevsecret}
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+        insecure: true
+        health_port: 7780
+        debug_handler_port: 7779
+    # Egress needs a large shm size for Chrome
+    shm_size: 1gb
+    # Egress needs /tmp access for Chrome scratch space
+    tmpfs:
+      - /tmp
+
+  # MinIO bucket bootstrap: ensures the shared `broadcasts` bucket exists for
+  # HLS output from livekit-egress. Per-instance buckets are still provisioned
+  # dynamically by the hub's ProvisionMinioStep when each tenant is created.
+  minio-bootstrap:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - xcord-shared-net
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} &&
+      mc mb --ignore-existing local/broadcasts &&
+      echo 'MinIO buckets provisioned'
+      "
+    restart: "no"
 
 networks:
   xcord-shared-net:

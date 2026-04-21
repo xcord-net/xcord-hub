@@ -1,12 +1,28 @@
 port: 7880
+bind_addresses:
+  - "0.0.0.0"
+
 rtc:
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: false
+  tcp_port: 7881
+
+# Redis is used to coordinate with the livekit-egress service.
+# Egress reads room info from Redis and publishes status updates there.
 redis:
   address: redis:6379
+
 keys:
   # IMPORTANT: Replace these with secure random keys in production
   devkey: REPLACE_WITH_SECURE_LIVEKIT_API_SECRET
+
+room:
+  auto_create: true
+  max_participants: 100
+  empty_timeout: 300
+  departure_timeout: 20
+
 logging:
   level: info
+  sample: false
