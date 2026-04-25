@@ -50,6 +50,9 @@ public sealed class HubDbContext : DbContext
     public DbSet<ServerList> ServerLists => Set<ServerList>();
     public DbSet<ServerListEntry> ServerListEntries => Set<ServerListEntry>();
 
+    // System-wide admin config (singleton)
+    public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

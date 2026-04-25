@@ -7,9 +7,10 @@ import { InstanceList } from './components/InstanceList';
 import { InstanceDetail } from './components/InstanceDetail';
 import { ProvisionForm } from './components/ProvisionForm';
 import { MailingListPage } from './components/MailingListPage';
+import { SystemConfigPage } from './components/SystemConfigPage';
 import { SetupWizard } from './components/SetupWizard';
 
-type Page = 'login' | 'instances' | 'instance-detail' | 'provision' | 'mailing-list' | 'setup';
+type Page = 'login' | 'instances' | 'instance-detail' | 'provision' | 'mailing-list' | 'settings' | 'setup';
 
 export function App() {
   const auth = useAuth();
@@ -24,6 +25,7 @@ export function App() {
       'instance-detail': 'Instance Details - Xcord Admin',
       'provision': 'New Instance - Xcord Admin',
       'mailing-list': 'Mailing List - Xcord Admin',
+      'settings': 'Settings - Xcord Admin',
       'setup': 'Setup - Xcord Admin',
     };
     document.title = titles[currentPage()] ?? 'Xcord Admin';
@@ -57,6 +59,8 @@ export function App() {
       setCurrentPage('instances');
     } else if (page === 'mailing-list') {
       setCurrentPage('mailing-list');
+    } else if (page === 'settings') {
+      setCurrentPage('settings');
     }
   };
 
@@ -98,7 +102,12 @@ export function App() {
               fallback={<Login />}
             >
               <Layout
-                currentPage={currentPage() === 'mailing-list' ? 'mailing-list' : currentPage() === 'instance-detail' ? 'instance-detail' : 'instances'}
+                currentPage={
+                  currentPage() === 'mailing-list' ? 'mailing-list'
+                  : currentPage() === 'settings' ? 'settings'
+                  : currentPage() === 'instance-detail' ? 'instance-detail'
+                  : 'instances'
+                }
                 onNavigate={handleNavigate}
               >
                 <Show when={currentPage() === 'instances'}>
@@ -124,6 +133,10 @@ export function App() {
 
                 <Show when={currentPage() === 'mailing-list'}>
                   <MailingListPage />
+                </Show>
+
+                <Show when={currentPage() === 'settings'}>
+                  <SystemConfigPage />
                 </Show>
               </Layout>
             </Show>

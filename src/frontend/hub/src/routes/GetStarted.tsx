@@ -57,7 +57,11 @@ export default function GetStarted() {
 
   // Features
   const [paymentsEnabled, setPaymentsEnabled] = createSignal(false);
+  const [paidServersDisabled, setPaidServersDisabled] = createSignal(false);
   const [stripePublishableKey, setStripePublishableKey] = createSignal('');
+
+  // Paid tier creation is gated by both Stripe being configured AND admin not disabling it
+  const paidTierAvailable = () => paymentsEnabled() && !paidServersDisabled();
 
   // Step 1 - Instance config
   const [subdomain, setSubdomain] = createSignal('');
@@ -92,7 +96,7 @@ export default function GetStarted() {
   const [notifyMessage, setNotifyMessage] = createSignal('');
 
   // Derived: is the selected tier a paid tier?
-  const isPaidTier = () => (selectedTier() !== 'Free' || mediaEnabled()) && paymentsEnabled();
+  const isPaidTier = () => (selectedTier() !== 'Free' || mediaEnabled()) && paidTierAvailable();
 
   // Total wizard steps depending on auth state and tier
   const totalSteps = () => {
@@ -112,6 +116,7 @@ export default function GetStarted() {
       if (featRes.ok) {
         const feat = await featRes.json();
         setPaymentsEnabled(feat.paymentsEnabled);
+        setPaidServersDisabled(!!feat.paidServersDisabled);
         if (feat.stripePublishableKey) {
           setStripePublishableKey(feat.stripePublishableKey);
         }
@@ -504,7 +509,7 @@ export default function GetStarted() {
                       <div class="font-semibold">Free</div>
                       <div class="text-xs text-xcord-text-muted mt-1">Up to 10 users</div>
                     </button>
-                    <Show when={paymentsEnabled()} fallback={
+                    <Show when={paidTierAvailable()} fallback={
                       <button data-testid="get-started-plan-basic-notify" type="button" onClick={() => { setNotifyTier('Basic'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
                         <div class="font-semibold">Basic</div>
                         <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
@@ -517,7 +522,7 @@ export default function GetStarted() {
                         <div class="text-xs text-xcord-brand mt-1">$60/mo</div>
                       </button>
                     </Show>
-                    <Show when={paymentsEnabled()} fallback={
+                    <Show when={paidTierAvailable()} fallback={
                       <button data-testid="get-started-plan-pro-notify" type="button" onClick={() => { setNotifyTier('Pro'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
                         <div class="font-semibold">Pro</div>
                         <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
@@ -539,7 +544,7 @@ export default function GetStarted() {
 
                   <div class="flex items-center gap-3 mb-3">
                     <span class="text-sm text-xcord-text-primary">Voice & video</span>
-                    <Show when={paymentsEnabled()} fallback={
+                    <Show when={paidTierAvailable()} fallback={
                       <button type="button" onClick={() => { setNotifyTier('Voice & Video'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} class="text-xs text-xcord-brand hover:underline">Notify me</button>
                     }>
                       <button type="button" onClick={() => setMediaEnabled(!mediaEnabled())} class={`relative w-10 h-5 rounded-full transition ${mediaEnabled() ? 'bg-xcord-brand' : 'bg-xcord-bg-accent'}`}>

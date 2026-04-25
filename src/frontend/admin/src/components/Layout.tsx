@@ -4,7 +4,7 @@ import Logo from './Logo';
 
 interface LayoutProps {
   children: JSX.Element;
-  currentPage: 'instances' | 'instance-detail' | 'mailing-list';
+  currentPage: 'instances' | 'instance-detail' | 'mailing-list' | 'settings';
   onNavigate: (page: string) => void;
 }
 
@@ -56,6 +56,17 @@ export function Layout(props: LayoutProps) {
                 }`}
               >
                 Mailing List
+              </button>
+              <button
+                data-testid="nav-settings"
+                onClick={() => props.onNavigate('settings')}
+                class={`w-full text-left px-3 py-2 rounded ${
+                  props.currentPage === 'settings'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'hover:bg-gray-100'
+                }`}
+              >
+                Settings
               </button>
             </nav>
           </aside>

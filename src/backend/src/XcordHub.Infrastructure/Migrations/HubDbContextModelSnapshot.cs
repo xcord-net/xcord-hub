@@ -979,6 +979,22 @@ namespace XcordHub.Infrastructure.Migrations
                     b.ToTable("server_list_entries", (string)null);
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.SystemConfig", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("PaidServersDisabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("system_config", (string)null);
+                });
+
             modelBuilder.Entity("XcordHub.Entities.UpgradeEvent", b =>
                 {
                     b.Property<long>("Id")

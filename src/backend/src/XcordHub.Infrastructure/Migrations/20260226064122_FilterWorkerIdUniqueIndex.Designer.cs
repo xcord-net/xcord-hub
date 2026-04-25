@@ -633,6 +633,22 @@ namespace XcordHub.Infrastructure.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.SystemConfig", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("PaidServersDisabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("system_config", (string)null);
+                });
+
             modelBuilder.Entity("XcordHub.Entities.WorkerIdRegistry", b =>
                 {
                     b.Property<int>("WorkerId")

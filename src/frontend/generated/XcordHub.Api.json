@@ -2134,6 +2134,54 @@
         }
       }
     },
+    "/api/v1/admin/system-config": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminGetSystemConfig",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSystemConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminUpdateSystemConfig",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminSystemConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSystemConfigResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/health": {
       "get": {
         "tags": [
@@ -2359,6 +2407,22 @@
           "pageSize": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "AdminSystemConfigResponse": {
+        "required": [
+          "paidServersDisabled",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "paidServersDisabled": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -2889,7 +2953,8 @@
       "GetFeaturesResponse": {
         "required": [
           "paymentsEnabled",
-          "stripePublishableKey"
+          "stripePublishableKey",
+          "paidServersDisabled"
         ],
         "type": "object",
         "properties": {
@@ -2899,6 +2964,9 @@
           "stripePublishableKey": {
             "type": "string",
             "nullable": true
+          },
+          "paidServersDisabled": {
+            "type": "boolean"
           }
         }
       },
@@ -4278,6 +4346,17 @@
           },
           "instanceId": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateAdminSystemConfigRequest": {
+        "required": [
+          "paidServersDisabled"
+        ],
+        "type": "object",
+        "properties": {
+          "paidServersDisabled": {
+            "type": "boolean"
           }
         }
       },

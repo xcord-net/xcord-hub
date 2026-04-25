@@ -106,7 +106,10 @@ export default function Pricing() {
   const [openFaq, setOpenFaq] = createSignal<number | null>(null);
   const [showContact, setShowContact] = createSignal(false);
   const [paymentsEnabled, setPaymentsEnabled] = createSignal(false);
+  const [paidServersDisabled, setPaidServersDisabled] = createSignal(false);
   const [featuresLoaded, setFeaturesLoaded] = createSignal(false);
+
+  const paidTierAvailable = () => paymentsEnabled() && !paidServersDisabled();
   const [notifyCardKey, setNotifyCardKey] = createSignal<string | null>(null);
   const [notifyEmail, setNotifyEmail] = createSignal('');
   const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -148,6 +151,7 @@ export default function Pricing() {
       if (res.ok) {
         const data = await res.json();
         setPaymentsEnabled(data.paymentsEnabled);
+        setPaidServersDisabled(!!data.paidServersDisabled);
       }
     } catch { /* default to false */ }
     setFeaturesLoaded(true);
@@ -158,9 +162,10 @@ export default function Pricing() {
   });
 
   const tierCta = (tier: Tier) => {
-    if (tier.cta === 'get-started' || tier.cta === 'contact') return tier.cta;
-    // 'notify' tiers become 'get-started' when payments are enabled
-    return paymentsEnabled() ? 'get-started' : 'notify';
+    if (tier.cta === 'contact') return tier.cta;
+    // Free tier always 'get-started'; paid tiers require both payments configured AND admin not disabling
+    if (tier.cta === 'get-started' && tier.isFree) return tier.cta;
+    return paidTierAvailable() ? 'get-started' : 'notify';
   };
 
   async function handleNotify(e: Event) {

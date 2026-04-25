@@ -132,6 +132,9 @@ public static class ServiceCollectionExtensions
         // Instance creation service
         services.AddScoped<InstanceCreationService>();
 
+        // System config service (admin-toggleable runtime settings)
+        services.AddScoped<ISystemConfigService, SystemConfigService>();
+
         // Request handlers
         services.AddRequestHandlers(typeof(FeaturesAssemblyMarker).Assembly);
         services.AddScoped<RefreshTokenHandler>();

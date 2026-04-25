@@ -678,6 +678,19 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "IX_worker_id_registry_managed_instance_id",
                 table: "worker_id_registry",
                 column: "managed_instance_id");
+
+            migrationBuilder.CreateTable(
+                name: "system_config",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    PaidServersDisabled = table.Column<bool>(type: "boolean", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_system_config", x => x.Id);
+                });
         }
 
         /// <inheritdoc />
@@ -688,6 +701,9 @@ namespace XcordHub.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "server_lists");
+
+            migrationBuilder.DropTable(
+                name: "system_config");
 
             migrationBuilder.DropTable(
                 name: "contact_submissions");

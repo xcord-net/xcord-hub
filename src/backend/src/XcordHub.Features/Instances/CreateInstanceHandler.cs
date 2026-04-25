@@ -33,6 +33,7 @@ public sealed class CreateInstanceHandler(
     ICurrentUserService currentUserService,
     IProvisioningQueue provisioningQueue,
     InstanceCreationService instanceCreationService,
+    ISystemConfigService systemConfigService,
     IOptions<StripeOptions> stripeOptions)
     : IRequestHandler<CreateInstanceCommand, Result<CreateInstanceResponse>>,
       IValidatable<CreateInstanceCommand>
@@ -66,6 +67,14 @@ public sealed class CreateInstanceHandler(
         var userIdResult = currentUserService.GetCurrentUserId();
         if (userIdResult.IsFailure) return userIdResult.Error!;
         var userId = userIdResult.Value;
+
+        var requestsPaidFeatures = request.Tier != InstanceTier.Free || request.MediaEnabled;
+        if (requestsPaidFeatures)
+        {
+            var systemConfig = await systemConfigService.GetAsync(cancellationToken);
+            if (systemConfig.PaidServersDisabled)
+                return Error.Validation("PAID_SERVERS_DISABLED", "Creation of new paid servers is currently disabled.");
+        }
 
         // Generate admin password if not provided
         var adminPassword = !string.IsNullOrWhiteSpace(request.AdminPassword)
