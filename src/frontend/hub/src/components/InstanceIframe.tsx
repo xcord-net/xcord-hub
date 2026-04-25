@@ -1,4 +1,5 @@
-import { createEffect } from 'solid-js';
+import { createEffect, onMount, onCleanup } from 'solid-js';
+import { unreadStore } from '../stores/unread.store';
 
 interface InstanceIframeProps {
   url: string;
@@ -7,6 +8,9 @@ interface InstanceIframeProps {
 
 export default function InstanceIframe(props: InstanceIframeProps) {
   let iframeRef: HTMLIFrameElement | undefined;
+
+  onMount(() => unreadStore.addTrustedInstance(props.url));
+  onCleanup(() => unreadStore.removeTrustedInstance(props.url));
 
   // When the iframe transitions from visible to hidden, notify the instance
   // so it can leave the active conversation / voice channel cleanly.
@@ -30,6 +34,7 @@ export default function InstanceIframe(props: InstanceIframeProps) {
         display: props.visible ? 'block' : 'none',
       }}
       title="Instance"
+      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
     />
   );
 }

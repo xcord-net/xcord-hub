@@ -50,7 +50,7 @@ public sealed class GetHeaderHandler : IEndpoint
             // Set/refresh cookie on hub domain
             httpContext.Response.Cookies.Append("xcord_hub_key", key, new CookieOptions
             {
-                HttpOnly = false,
+                HttpOnly = true,
                 SameSite = SameSiteMode.None,
                 Secure = true,
                 MaxAge = TimeSpan.FromDays(365 * 5),
@@ -91,7 +91,8 @@ public sealed class GetHeaderHandler : IEndpoint
                 }
             }
 
-            var html = RenderHeader(serverList.Entries, serverUrl?.TrimEnd('/'), key, isNewKey);
+            var parentOrigin = TryGetOrigin(serverUrl);
+            var html = RenderHeader(serverList.Entries, serverUrl?.TrimEnd('/'), key, isNewKey, parentOrigin);
             return Results.Content(html, "text/html");
         })
         .AllowAnonymous()
@@ -104,15 +105,10 @@ public sealed class GetHeaderHandler : IEndpoint
     {
         try
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-            };
-            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
             var resp = await client.GetFromJsonAsync<InstanceInfoResponse>(
                 $"{serverUrl}/api/v1/instance/info", ct);
             var name = resp?.Name ?? serverUrl;
-            // Only accept HTTP(S) icon URLs
             var icon = resp?.IconUrl;
             if (!string.IsNullOrEmpty(icon) && !IsValidHttpsUrl(icon))
                 icon = null;
@@ -135,6 +131,17 @@ public sealed class GetHeaderHandler : IEndpoint
             && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
     }
 
+    private static string? TryGetOrigin(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return null;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
+        if (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) return null;
+        var defaultPort = uri.Scheme == Uri.UriSchemeHttps ? 443 : 80;
+        return uri.IsDefaultPort || uri.Port == defaultPort
+            ? $"{uri.Scheme}://{uri.Host}"
+            : $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+    }
+
     private static string HtmlEncode(string? value) =>
         HtmlEncoder.Default.Encode(value ?? "");
 
@@ -146,7 +153,8 @@ public sealed class GetHeaderHandler : IEndpoint
         ICollection<ServerListEntry> entries,
         string? currentServerUrl,
         string hubKey,
-        bool isNewKey)
+        bool isNewKey,
+        string? parentOrigin)
     {
         var serverButtons = string.Join("\n", entries.Select(e =>
         {
@@ -204,7 +212,9 @@ public sealed class GetHeaderHandler : IEndpoint
             <script>
                 var hubKey = '{{JsStringEscape(hubKey)}}';
                 var isNewKey = {{(isNewKey ? "true" : "false")}};
-                if (isNewKey) { window.parent.postMessage({ type: 'xcord_hub_key', hubKey: hubKey }, '*'); }
+                {{(parentOrigin is null
+                    ? ""
+                    : $"if (isNewKey) {{ window.parent.postMessage({{ type: 'xcord_hub_key', hubKey: hubKey }}, '{JsStringEscape(parentOrigin)}'); }}")}}
                 function navigateTo(url) { window.parent.location.href = url; }
                 function toggleAdd() {
                     var wrap = document.getElementById('addWrap');

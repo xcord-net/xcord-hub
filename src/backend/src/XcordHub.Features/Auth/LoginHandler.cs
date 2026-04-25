@@ -32,7 +32,7 @@ public sealed class LoginHandler(
     : IRequestHandler<LoginRequest, Result<LoginResponse>>, IValidatable<LoginRequest>
 {
     private const int MaxFailedAttempts = 5;
-    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
     public Error? Validate(LoginRequest request)
     {
