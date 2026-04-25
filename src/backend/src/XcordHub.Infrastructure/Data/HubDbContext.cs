@@ -53,6 +53,12 @@ public sealed class HubDbContext : DbContext
     // System-wide admin config (singleton)
     public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
 
+    // System-level settings (RSA keys, etc.)
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+
+    // Versioned, KEK-wrapped DEKs for transparent multi-key decryption / rotation.
+    public DbSet<EncryptedDataKey> EncryptedDataKeys => Set<EncryptedDataKey>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

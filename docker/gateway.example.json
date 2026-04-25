@@ -9,7 +9,7 @@
   "jwt": {
     "issuer": "https://hub.xcord.local",
     "audience": "xcord-hub",
-    "signingKey": "REPLACE_WITH_SECURE_KEY_AT_LEAST_32_CHARACTERS_LONG_FOR_HS256"
+    "accessTokenExpirationMinutes": 15
   },
   "storage": {
     "endpoint": "minio:9000",

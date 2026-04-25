@@ -7,6 +7,7 @@ using XcordHub.Features.Auth;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
+using XcordHub.Tests.Helpers;
 using XcordHub.Tests.Infrastructure.Fixtures;
 using Xunit;
 
@@ -51,7 +52,7 @@ public sealed class UserRegistrationServiceTests
             db,
             new NoOpCaptchaService(),
             new AesEncryptionService(TestEncryptionKey),
-            new JwtService("test-issuer", "test-audience", "test-secret-key-must-be-at-least-32-characters-long!", 60),
+            JwtTestHelper.CreateJwtService(db, TestEncryptionKey),
             new SnowflakeIdGenerator(249),
             Options.Create(new AuthOptions { BcryptWorkFactor = 4 }));
 

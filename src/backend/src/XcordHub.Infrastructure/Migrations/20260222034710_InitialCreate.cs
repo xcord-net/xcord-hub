@@ -691,6 +691,41 @@ namespace XcordHub.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_system_config", x => x.Id);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "system_settings",
+                columns: table => new
+                {
+                    Key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Value = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_system_settings", x => x.Key);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "encrypted_data_keys",
+                columns: table => new
+                {
+                    Version = table.Column<int>(type: "integer", nullable: false),
+                    WrappedKey = table.Column<byte[]>(type: "bytea", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_encrypted_data_keys", x => x.Version);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_encrypted_data_keys_IsActive_Unique",
+                table: "encrypted_data_keys",
+                column: "IsActive",
+                unique: true,
+                filter: "\"IsActive\" = true");
         }
 
         /// <inheritdoc />
@@ -704,6 +739,9 @@ namespace XcordHub.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "system_config");
+
+            migrationBuilder.DropTable(
+                name: "system_settings");
 
             migrationBuilder.DropTable(
                 name: "contact_submissions");

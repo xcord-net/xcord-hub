@@ -18,8 +18,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
 
     public string StepName => "StartApiContainer";
 
-    private readonly string _stripeSecretKey;
-    private readonly string _stripeWebhookSecret;
     private readonly string _testSeedKey;
 
     public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IEncryptionService encryptionService, IConfiguration configuration, TopologyResolver resolver)
@@ -30,8 +28,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
         _hubConnectionString = configuration.GetSection("Database:ConnectionString").Value
             ?? throw new InvalidOperationException("Database:ConnectionString not configured");
         _resolver = resolver;
-        _stripeSecretKey = configuration.GetSection("Stripe:SecretKey").Value ?? "";
-        _stripeWebhookSecret = configuration.GetSection("Stripe:WebhookSecret").Value ?? "";
         _testSeedKey = configuration.GetSection("TestSeed:Key").Value ?? "";
     }
 
@@ -111,7 +107,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 redisConnStr, instance.Infrastructure.RedisUsername, instance.Infrastructure.RedisPassword,
                 storageEndpoint, livekitHost,
                 featureFlags, limits,
-                _stripeSecretKey, _stripeWebhookSecret,
                 _testSeedKey,
                 ownerEmail, ownerUsername, ownerDisplayName, adminPasswordHash);
 
@@ -194,8 +189,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
         string livekitHost,
         FeatureFlags? featureFlags = null,
         ResourceLimits? resourceLimits = null,
-        string stripeSecretKey = "",
-        string stripeWebhookSecret = "",
         string testSeedKey = "",
         string adminEmail = "",
         string adminUsername = "",
@@ -305,8 +298,12 @@ public sealed class StartApiContainerStep : IProvisioningStep
             },
             memberBilling = new
             {
-                stripeSecretKey = stripeSecretKey,
-                stripeWebhookSecret = stripeWebhookSecret
+                // Self-hosted instances configure their own Stripe credentials post-deploy
+                // (or via a future per-instance admin UI). The hub's own Stripe key is
+                // intentionally NOT propagated here so that compromise of any one instance
+                // cannot exfiltrate the hub's payment-processor key.
+                stripeSecretKey = "",
+                stripeWebhookSecret = "",
             },
             testSeed = new
             {

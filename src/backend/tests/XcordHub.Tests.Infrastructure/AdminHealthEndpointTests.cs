@@ -39,12 +39,7 @@ public sealed class AdminHealthEndpointTests
 
     private HttpClient CreateAdminClient()
     {
-        var jwtService = new JwtService(
-            AdminEndpointFixture.TestJwtIssuer,
-            AdminEndpointFixture.TestJwtAudience,
-            AdminEndpointFixture.TestJwtSecretKey,
-            60);
-        var token = jwtService.GenerateAccessToken(3_000_000_001L, isAdmin: true);
+        var token = _fixture.IssueToken(3_000_000_001L, isAdmin: true);
         var client = _fixture.Factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;
@@ -52,12 +47,7 @@ public sealed class AdminHealthEndpointTests
 
     private HttpClient CreateUserClient()
     {
-        var jwtService = new JwtService(
-            AdminEndpointFixture.TestJwtIssuer,
-            AdminEndpointFixture.TestJwtAudience,
-            AdminEndpointFixture.TestJwtSecretKey,
-            60);
-        var token = jwtService.GenerateAccessToken(3_000_000_002L, isAdmin: false);
+        var token = _fixture.IssueToken(3_000_000_002L, isAdmin: false);
         var client = _fixture.Factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;

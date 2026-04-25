@@ -6,6 +6,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 using XcordHub.Entities;
@@ -29,7 +30,6 @@ public sealed class InstanceEndpointFixture : IAsyncLifetime
 
     public const string TestJwtIssuer = "xcord-hub-instep-test";
     public const string TestJwtAudience = "xcord-hub-instep-clients";
-    public const string TestJwtSecretKey = "instep-test-secret-key-with-minimum-256-bits-for-hmacsha256!!";
     public const string TestEncryptionKey = "instep-encryption-key-with-256-bits-minimum-length-required!!";
 
     public string ConnectionString { get; private set; } = string.Empty;
@@ -61,8 +61,7 @@ public sealed class InstanceEndpointFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Redis__ChannelPrefix", "instep-test");
         Environment.SetEnvironmentVariable("Jwt__Issuer", TestJwtIssuer);
         Environment.SetEnvironmentVariable("Jwt__Audience", TestJwtAudience);
-        Environment.SetEnvironmentVariable("Jwt__SecretKey", TestJwtSecretKey);
-        Environment.SetEnvironmentVariable("Jwt__ExpirationMinutes", "60");
+        Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", "60");
         Environment.SetEnvironmentVariable("Encryption__Key", TestEncryptionKey);
         Environment.SetEnvironmentVariable("Docker__UseReal", "false");
         Environment.SetEnvironmentVariable("Caddy__UseReal", "false");
@@ -88,8 +87,7 @@ public sealed class InstanceEndpointFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Redis__ChannelPrefix", null);
         Environment.SetEnvironmentVariable("Jwt__Issuer", null);
         Environment.SetEnvironmentVariable("Jwt__Audience", null);
-        Environment.SetEnvironmentVariable("Jwt__SecretKey", null);
-        Environment.SetEnvironmentVariable("Jwt__ExpirationMinutes", null);
+        Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", null);
         Environment.SetEnvironmentVariable("Encryption__Key", null);
         Environment.SetEnvironmentVariable("Docker__UseReal", null);
         Environment.SetEnvironmentVariable("Caddy__UseReal", null);
@@ -100,6 +98,17 @@ public sealed class InstanceEndpointFixture : IAsyncLifetime
 
         if (_postgres is not null)
             await _postgres.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Issues a JWT bearer token for the specified user via the running app's
+    /// JwtService (signed with the hub's RS256 private key).
+    /// </summary>
+    public string IssueToken(long userId, bool isAdmin)
+    {
+        using var scope = _factory!.Services.CreateScope();
+        var jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
+        return jwtService.GenerateAccessToken(userId, isAdmin);
     }
 }
 
@@ -139,12 +148,7 @@ public sealed class InstanceEndpointTests
 
     private HttpClient CreateUserClient(long userId)
     {
-        var jwtService = new JwtService(
-            InstanceEndpointFixture.TestJwtIssuer,
-            InstanceEndpointFixture.TestJwtAudience,
-            InstanceEndpointFixture.TestJwtSecretKey,
-            60);
-        var token = jwtService.GenerateAccessToken(userId, isAdmin: false);
+        var token = _fixture.IssueToken(userId, isAdmin: false);
         var client = _fixture.Factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;

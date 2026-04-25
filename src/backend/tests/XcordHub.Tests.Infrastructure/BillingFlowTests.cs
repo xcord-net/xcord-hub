@@ -21,7 +21,6 @@ public sealed class BillingFlowFixture : IAsyncLifetime
     private RedisContainer? _redis;
     private WebApplicationFactory<Program>? _factory;
 
-    private const string JwtSecretKey = "billing-flow-test-secret-key-minimum-256-bits-for-hmac!!!!";
     private const string EncryptionKey = "billing-flow-encryption-key-256-bits-minimum-length-req!!!!";
     private const string StripeSecretKey = "sk_test_fake_billing_flow_test_key";
 
@@ -49,8 +48,7 @@ public sealed class BillingFlowFixture : IAsyncLifetime
             ["Redis__ChannelPrefix"] = "billing-test",
             ["Jwt__Issuer"] = "billing-test",
             ["Jwt__Audience"] = "billing-test",
-            ["Jwt__SecretKey"] = JwtSecretKey,
-            ["Jwt__ExpirationMinutes"] = "60",
+            ["Jwt__AccessTokenExpirationMinutes"] = "60",
             ["Encryption__Key"] = EncryptionKey,
             ["Docker__UseReal"] = "false",
             ["Caddy__UseReal"] = "false",
@@ -82,7 +80,7 @@ public sealed class BillingFlowFixture : IAsyncLifetime
         var keys = new[]
         {
             "Database__ConnectionString", "Redis__ConnectionString", "Redis__ChannelPrefix",
-            "Jwt__Issuer", "Jwt__Audience", "Jwt__SecretKey", "Jwt__ExpirationMinutes",
+            "Jwt__Issuer", "Jwt__Audience", "Jwt__AccessTokenExpirationMinutes",
             "Encryption__Key", "Docker__UseReal", "Caddy__UseReal", "Dns__Provider",
             "Stripe__SecretKey", "Stripe__PublishableKey", "Captcha__Enabled"
         };

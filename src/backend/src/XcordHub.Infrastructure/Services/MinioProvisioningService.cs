@@ -49,7 +49,10 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         // 1. Create the bucket (idempotent)
         await EnsureBucketExistsAsync(bucketName, cancellationToken);
 
-        // 2. Create IAM user and bucket-scoped policy via Admin API
+        // 2. Apply explicit deny-anonymous bucket policy (defense in depth on top of IAM).
+        await ApplyDenyAnonymousBucketPolicyAsync(bucketName, cancellationToken);
+
+        // 3. Create IAM user and bucket-scoped policy via Admin API
         await ProvisionAdminResourcesAsync(bucketName, accessKey, secretKey, cancellationToken);
 
         _logger.LogInformation("MinIO bucket {Bucket} provisioned for user {AccessKey}", bucketName, accessKey);
@@ -173,6 +176,26 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         else
         {
             _logger.LogDebug("MinIO bucket {Bucket} already exists", bucketName);
+        }
+    }
+
+    private async Task ApplyDenyAnonymousBucketPolicyAsync(string bucketName, CancellationToken cancellationToken)
+    {
+        var policy = BuildDenyAnonymousBucketPolicy(bucketName);
+        try
+        {
+            var args = new SetPolicyArgs()
+                .WithBucket(bucketName)
+                .WithPolicy(policy);
+            await _rootClient.SetPolicyAsync(args, cancellationToken);
+            _logger.LogInformation("Applied deny-anonymous bucket policy to {Bucket}", bucketName);
+        }
+        catch (Exception ex)
+        {
+            // If the SDK/server rejects the policy, fail provisioning - do not silently leave
+            // the bucket without an explicit anonymous-deny policy.
+            _logger.LogError(ex, "Failed to apply deny-anonymous bucket policy to {Bucket}", bucketName);
+            throw;
         }
     }
 
@@ -413,6 +436,42 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
                     {
                         $"arn:aws:s3:::{bucketName}",
                         $"arn:aws:s3:::{bucketName}/*"
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(policy);
+    }
+
+    /// <summary>
+    /// Bucket-level policy that explicitly denies any action by anonymous principals.
+    /// Authenticated IAM users are unaffected (their access is granted by their canned policy).
+    /// </summary>
+    private static string BuildDenyAnonymousBucketPolicy(string bucketName)
+    {
+        var policy = new
+        {
+            Version = "2012-10-17",
+            Statement = new[]
+            {
+                new
+                {
+                    Sid = "DenyAnonymousAccess",
+                    Effect = "Deny",
+                    Principal = new { AWS = new[] { "*" } },
+                    Action = new[] { "s3:*" },
+                    Resource = new[]
+                    {
+                        $"arn:aws:s3:::{bucketName}",
+                        $"arn:aws:s3:::{bucketName}/*"
+                    },
+                    Condition = new
+                    {
+                        StringEquals = new Dictionary<string, string>
+                        {
+                            ["aws:PrincipalType"] = "Anonymous"
+                        }
                     }
                 }
             }

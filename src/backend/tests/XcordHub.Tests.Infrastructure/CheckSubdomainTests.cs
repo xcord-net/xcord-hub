@@ -2,6 +2,7 @@ using System.Net;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
 using XcordHub.Infrastructure.Services;
@@ -14,7 +15,6 @@ public sealed class CheckSubdomainFixture : IAsyncLifetime
     private RedisContainer? _redis;
     private WebApplicationFactory<Program>? _factory;
 
-    private const string JwtSecretKey = "check-subdomain-test-secret-key-minimum-256-bits-for-hmac!!";
     private const string EncryptionKey = "check-subdomain-encryption-key-256-bits-minimum-length-req!!";
 
     public WebApplicationFactory<Program> Factory => _factory!;
@@ -41,8 +41,7 @@ public sealed class CheckSubdomainFixture : IAsyncLifetime
             ["Redis__ChannelPrefix"] = "checksubdomain-test",
             ["Jwt__Issuer"] = "checksubdomain-test",
             ["Jwt__Audience"] = "checksubdomain-test",
-            ["Jwt__SecretKey"] = JwtSecretKey,
-            ["Jwt__ExpirationMinutes"] = "60",
+            ["Jwt__AccessTokenExpirationMinutes"] = "60",
             ["Encryption__Key"] = EncryptionKey,
             ["Docker__UseReal"] = "false",
             ["Caddy__UseReal"] = "false",
@@ -63,7 +62,7 @@ public sealed class CheckSubdomainFixture : IAsyncLifetime
 
         var keys = new[] {
             "Database__ConnectionString", "Redis__ConnectionString", "Redis__ChannelPrefix",
-            "Jwt__Issuer", "Jwt__Audience", "Jwt__SecretKey", "Jwt__ExpirationMinutes",
+            "Jwt__Issuer", "Jwt__Audience", "Jwt__AccessTokenExpirationMinutes",
             "Encryption__Key", "Docker__UseReal", "Caddy__UseReal", "Dns__Provider"
         };
         foreach (var key in keys)
@@ -77,7 +76,8 @@ public sealed class CheckSubdomainFixture : IAsyncLifetime
 
     public HttpClient CreateUserClient(long userId = 3_000_000_001L)
     {
-        var jwtService = new JwtService("checksubdomain-test", "checksubdomain-test", JwtSecretKey, 60);
+        using var scope = _factory!.Services.CreateScope();
+        var jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
         var token = jwtService.GenerateAccessToken(userId, isAdmin: false);
         var client = _factory!.CreateClient();
         client.DefaultRequestHeaders.Authorization =

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 
 namespace XcordHub.Infrastructure.Services;
 
@@ -12,7 +13,14 @@ public static class KeyWrappingService
     private const byte VersionWrapped = 0x02;
     private const int NonceSize = 12;
     private const int TagSize = 16;
-    private static readonly byte[] HkdfInfo = "xcord-hub-dek-wrapping"u8.ToArray();
+
+    // Stable, non-secret per-deployment HKDF salt for the extract step.
+    // Provides cryptographic domain separation so a leaked KEK in another context
+    // cannot produce identical wrapping keys here. Must remain stable: changing it
+    // invalidates all wrapped DEKs (only relevant pre-release; we have no migration shim).
+    private static readonly byte[] HkdfSalt =
+        SHA256.HashData(Encoding.UTF8.GetBytes("xcord-hub-hkdf-salt-v1"));
+    private static readonly byte[] HkdfInfo = "xcord:hub:dek-wrap:v1"u8.ToArray();
 
     /// <summary>
     /// Wraps (encrypts) a DEK using the provided KEK.
@@ -98,8 +106,9 @@ public static class KeyWrappingService
     {
         return HKDF.DeriveKey(
             HashAlgorithmName.SHA256,
-            kek,
+            ikm: kek,
             outputLength: 32,
+            salt: HkdfSalt,
             info: HkdfInfo);
     }
 }

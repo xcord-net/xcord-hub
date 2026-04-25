@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Serilog;
 using XcordHub.Api;
 using XcordHub.Features;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Services;
 
 // Pre-warm the thread pool to handle concurrent CPU-bound work (e.g. BCrypt)
 // without starvation. Default min threads is too low for burst auth traffic.
@@ -29,9 +32,46 @@ var app = builder.Build();
 // Apply database schema and seed admin (skip during OpenAPI spec generation)
 if (!app.Environment.IsEnvironment("OpenApiGen"))
 {
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
-    await dbContext.Database.MigrateAsync();
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<HubDbContext>();
+        await dbContext.Database.MigrateAsync();
+
+        // Reconcile the in-memory encryption keyring with the encrypted_data_keys
+        // table. This must run before any handler touches encrypted columns so the
+        // active version reflects whatever rotations have been applied to date.
+        var kekProvider = scope.ServiceProvider.GetRequiredService<IKekProvider>();
+        var keyHolder = scope.ServiceProvider.GetRequiredService<EncryptionKeyHolder>();
+        await EncryptionKeyringBootstrap.ReconcileAsync(dbContext, kekProvider, keyHolder);
+
+        // Ensure RSA key pair exists in the database, then load the public key
+        // into the singleton so JwtBearer validation succeeds on the first request.
+        var jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
+        await jwtService.EnsureRsaKeyPairAsync();
+        Log.Information("RSA key pair verified for hub JWT signing");
+
+        var rsaKeySingleton = scope.ServiceProvider.GetRequiredService<RsaKeySingleton>();
+        var publicKeySetting = await dbContext.SystemSettings
+            .FirstOrDefaultAsync(s => s.Key == JwtService.RsaPublicKeySettingKey);
+        if (publicKeySetting == null)
+        {
+            throw new InvalidOperationException(
+                "RSA public key missing after EnsureRsaKeyPairAsync - bootstrap is corrupted.");
+        }
+        rsaKeySingleton.LoadPublicKey(publicKeySetting.Value);
+        Log.Information("RSA public key loaded for JWT validation");
+    }
+
+    // Wire the loaded public key into the JwtBearer middleware so token validation
+    // uses the same key the hub signs with.
+    var rsaKey = app.Services.GetRequiredService<RsaKeySingleton>();
+    var jwtBearerOptions = app.Services.GetRequiredService<IOptionsMonitor<JwtBearerOptions>>();
+    var currentOptions = jwtBearerOptions.Get(JwtBearerDefaults.AuthenticationScheme);
+    if (currentOptions != null)
+    {
+        currentOptions.TokenValidationParameters.IssuerSigningKey = rsaKey.GetPublicKey();
+    }
+
     await app.SeedAdminAsync();
     await app.EnsureStripePricesAsync();
 }
@@ -78,6 +118,7 @@ app.Use(async (context, next) =>
 app.UseRouting();
 
 app.UseAuthentication();
+app.UseCsrfHeader();
 app.UseAuthorization();
 
 app.UseCrawlerPrerendered();

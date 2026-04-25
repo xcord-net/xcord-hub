@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +11,9 @@ using Testcontainers.Redis;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 using Xunit;
+
+// Note: JWT signing is RS256 - the hub generates an RSA key pair on first boot.
+// Tests issue tokens via the running app's DI scope, not by hand-constructing JwtService.
 
 namespace XcordHub.Tests.Infrastructure.Fixtures;
 
@@ -29,7 +31,6 @@ public sealed class WebApiTestFixture : IAsyncLifetime
 
     public const string TestJwtIssuer = "xcord-hub-test";
     public const string TestJwtAudience = "xcord-hub-test-clients";
-    public const string TestJwtSecretKey = "test-secret-key-with-minimum-256-bits-for-hmacsha256-abc";
     public const string TestEncryptionKey = "test-encryption-key-with-256-bits-minimum-length-required-here";
 
     private string _postgresConnectionString = string.Empty;
@@ -78,8 +79,7 @@ public sealed class WebApiTestFixture : IAsyncLifetime
                         ["Redis:ChannelPrefix"] = "webapi-test",
                         ["Jwt:Issuer"] = TestJwtIssuer,
                         ["Jwt:Audience"] = TestJwtAudience,
-                        ["Jwt:SecretKey"] = TestJwtSecretKey,
-                        ["Jwt:ExpirationMinutes"] = "60",
+                        ["Jwt:AccessTokenExpirationMinutes"] = "60",
                         ["Encryption:Key"] = TestEncryptionKey,
                         ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
                         ["Docker:UseReal"] = "false",
@@ -112,13 +112,24 @@ public sealed class WebApiTestFixture : IAsyncLifetime
     }
 
     /// <summary>
+    /// Issues a JWT bearer token for the specified user via the running app's
+    /// JwtService (so it is signed with the hub's RS256 private key).
+    /// </summary>
+    public string IssueToken(long userId, bool isAdmin)
+    {
+        EnsureEnabled();
+        using var scope = _factory!.Services.CreateScope();
+        var jwtService = scope.ServiceProvider.GetRequiredService<IJwtService>();
+        return jwtService.GenerateAccessToken(userId, isAdmin);
+    }
+
+    /// <summary>
     /// Creates an HttpClient with an admin JWT bearer token.
     /// </summary>
     public HttpClient CreateAdminClient(long userId = 1_000_000_001L)
     {
         EnsureEnabled();
-        var jwtService = new JwtService(TestJwtIssuer, TestJwtAudience, TestJwtSecretKey, 60);
-        var token = jwtService.GenerateAccessToken(userId, isAdmin: true);
+        var token = IssueToken(userId, isAdmin: true);
         var client = _factory!.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;
@@ -130,8 +141,7 @@ public sealed class WebApiTestFixture : IAsyncLifetime
     public HttpClient CreateUserClient(long userId = 2_000_000_001L)
     {
         EnsureEnabled();
-        var jwtService = new JwtService(TestJwtIssuer, TestJwtAudience, TestJwtSecretKey, 60);
-        var token = jwtService.GenerateAccessToken(userId, isAdmin: false);
+        var token = IssueToken(userId, isAdmin: false);
         var client = _factory!.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return client;

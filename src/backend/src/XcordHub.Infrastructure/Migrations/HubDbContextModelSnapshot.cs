@@ -995,6 +995,53 @@ namespace XcordHub.Infrastructure.Migrations
                     b.ToTable("system_config", (string)null);
                 });
 
+            modelBuilder.Entity("XcordHub.Entities.SystemSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("system_settings", (string)null);
+                });
+
+            modelBuilder.Entity("XcordHub.Entities.EncryptedDataKey", b =>
+                {
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<byte[]>("WrappedKey")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.HasKey("Version");
+
+                    b.HasIndex("IsActive")
+                        .IsUnique()
+                        .HasDatabaseName("IX_encrypted_data_keys_IsActive_Unique")
+                        .HasFilter("\"IsActive\" = true");
+
+                    b.ToTable("encrypted_data_keys", (string)null);
+                });
+
             modelBuilder.Entity("XcordHub.Entities.UpgradeEvent", b =>
                 {
                     b.Property<long>("Id")

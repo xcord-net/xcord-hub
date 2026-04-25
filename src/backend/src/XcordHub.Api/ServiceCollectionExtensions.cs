@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using BCrypt.Net;
@@ -254,7 +253,19 @@ public static class ServiceCollectionExtensions
                 ?? throw new InvalidOperationException("Encryption key not configured");
             Log.Warning("Hub encryption key loaded WITHOUT envelope encryption - configure a KEK for production use");
         }
-        services.AddSingleton<IEncryptionService>(new AesEncryptionService(resolvedEncryptionKey));
+        // Register the key holder seeded with the bootstrap key as version 1.
+        // BootstrapEncryptionKeyringAsync (called from Program.cs after MigrateAsync)
+        // will reconcile this with the encrypted_data_keys table: either backfilling
+        // version 1 from this seed, or replacing it with whatever the table already
+        // contains (including any rotations that have happened since this process
+        // last ran).
+        var keyHolder = new EncryptionKeyHolder();
+        keyHolder.SetKey(resolvedEncryptionKey);
+        services.AddSingleton(keyHolder);
+        services.AddSingleton<IEncryptionService>(sp =>
+            new AesEncryptionService(sp.GetRequiredService<EncryptionKeyHolder>()));
+        services.AddScoped<IKeyRotationService, KeyRotationService>();
+        services.AddSingleton<ICursorService, CursorService>();
     }
 
     private static void AddCaptcha(IServiceCollection services, IConfiguration config)
@@ -277,14 +288,19 @@ public static class ServiceCollectionExtensions
 
     private static void AddJwt(IServiceCollection services, IConfiguration config)
     {
-        var jwtSecretKey = config.GetSection("Jwt:SecretKey").Value
-            ?? throw new InvalidOperationException("JWT secret key not configured");
-        var jwtIssuer = config.GetSection("Jwt:Issuer").Value
+        // Verify required JWT options are configured at startup (fail-fast)
+        _ = config.GetSection("Jwt:Issuer").Value
             ?? throw new InvalidOperationException("JWT issuer not configured");
-        var jwtAudience = config.GetSection("Jwt:Audience").Value
+        _ = config.GetSection("Jwt:Audience").Value
             ?? throw new InvalidOperationException("JWT audience not configured");
-        var jwtExpirationMinutes = config.GetValue<int>("Jwt:ExpirationMinutes", 15);
-        services.AddSingleton<IJwtService>(new JwtService(jwtIssuer, jwtAudience, jwtSecretKey, jwtExpirationMinutes));
+
+        // RsaKeySingleton holds the loaded public key for JWT validation.
+        // Populated by BootstrapService at startup after the key pair is ensured to exist.
+        services.AddSingleton<RsaKeySingleton>();
+
+        // JwtService is scoped because it depends on the scoped HubDbContext
+        // (private key is loaded from the SystemSettings table on demand).
+        services.AddScoped<IJwtService, JwtService>();
     }
 
     private static void AddHttpClients(IServiceCollection services, IConfiguration config)
@@ -517,14 +533,14 @@ public static class ServiceCollectionExtensions
                     var allOrigins = corsOrigins.Concat(MobileOrigins).ToArray();
                     policy.WithOrigins(allOrigins)
                         .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
-                        .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin")
+                        .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "X-Xcord-Request")
                         .AllowCredentials();
                 }
                 else
                 {
                     policy.AllowAnyOrigin()
                         .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
-                        .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin");
+                        .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "X-Xcord-Request");
                 }
             });
         });
@@ -532,8 +548,6 @@ public static class ServiceCollectionExtensions
 
     private static void AddAuth(IServiceCollection services, IConfiguration config)
     {
-        var jwtSecretKey = config.GetSection("Jwt:SecretKey").Value
-            ?? throw new InvalidOperationException("JWT secret key not configured");
         var jwtIssuer = config.GetSection("Jwt:Issuer").Value
             ?? throw new InvalidOperationException("JWT issuer not configured");
         var jwtAudience = config.GetSection("Jwt:Audience").Value
@@ -542,7 +556,10 @@ public static class ServiceCollectionExtensions
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                var key = Encoding.UTF8.GetBytes(jwtSecretKey);
+                // Note: IssuerSigningKey is populated by BootstrapService after the
+                // RsaKeySingleton has loaded the public key from the database.
+                // SignatureValidator below also uses the singleton at request time so
+                // validation works even before BootstrapService finishes (e.g. in tests).
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -551,7 +568,7 @@ public static class ServiceCollectionExtensions
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtIssuer,
                     ValidAudience = jwtAudience,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 },
                     ClockSkew = TimeSpan.Zero
                 };
             })

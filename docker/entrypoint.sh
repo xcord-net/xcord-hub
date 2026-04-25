@@ -21,7 +21,7 @@ if [ -f "$CONFIG_PATH" ]; then
         Jwt: {
             Issuer: .jwt.issuer,
             Audience: .jwt.audience,
-            SecretKey: .jwt.signingKey
+            AccessTokenExpirationMinutes: (.jwt.accessTokenExpirationMinutes // 15)
         },
         Storage: {
             Endpoint: .storage.endpoint,

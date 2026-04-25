@@ -19,6 +19,13 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
     }
 
+    // CSRF defense: custom header browsers will not send on cross-origin
+    // form submissions. Required by the backend for cookie-authenticated
+    // state-changing requests (POST/PUT/PATCH/DELETE).
+    if (method !== 'GET' && method !== 'HEAD') {
+      headers['X-Xcord-Request'] = '1';
+    }
+
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers,
@@ -74,6 +81,7 @@ class ApiClient {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/refresh`, {
         method: 'POST',
+        headers: { 'X-Xcord-Request': '1' },
         credentials: 'include',
       });
 
