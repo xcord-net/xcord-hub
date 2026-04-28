@@ -1,0 +1,286 @@
+{
+  "version": "0.1.65",
+  "features": [
+    {
+      "summary": "per-component test infrastructure for hub + admin frontends",
+      "commit": "182f4d4"
+    },
+    {
+      "summary": "admin toggle to disable creation of new paid servers",
+      "commit": "80b8011"
+    },
+    {
+      "summary": "add broadcast tier flags (CanBroadcast, MaxConcurrentBroadcasts, etc.)",
+      "commit": "e9fb3f3"
+    },
+    {
+      "summary": "add GET /api/v1/header endpoint for hub header bar",
+      "commit": "a213c57"
+    },
+    {
+      "summary": "add ServerList entity, EF configuration, and migration for hub header bar",
+      "commit": "f89a848"
+    },
+    {
+      "summary": "30-day trial period on paid subscriptions",
+      "commit": "8aad430"
+    },
+    {
+      "summary": "auto-create Stripe prices on startup, resolve by lookup key",
+      "commit": "f9087e7"
+    },
+    {
+      "summary": "production-identical stack, SetupIntent billing, TLS everywhere",
+      "commit": "c22a6e9"
+    },
+    {
+      "summary": "rewrite landing page copy, add server popover, fix check-subdomain auth",
+      "commit": "26bcff6"
+    },
+    {
+      "summary": "add SEO prerendering, structured data, and keyword optimization",
+      "commit": "cd97da9"
+    },
+    {
+      "summary": "add get-started wizard with config-first flow and payments gating",
+      "commit": "3d70515"
+    },
+    {
+      "summary": "integrate Version tab and version indicators into hub admin UI",
+      "commit": "4536d64"
+    },
+    {
+      "summary": "add FleetUpgrade dialog and RolloutStatus banner components",
+      "commit": "1d3af31"
+    },
+    {
+      "summary": "add VersionTab component for hub admin instance detail",
+      "commit": "b2819e9"
+    },
+    {
+      "summary": "add version and rollout methods to hub admin instance store",
+      "commit": "5871ba8"
+    },
+    {
+      "summary": "add version and rollout types to hub admin frontend",
+      "commit": "4100d16"
+    },
+    {
+      "summary": "add ScheduledRolloutService for deferred rollout execution",
+      "commit": "0011498"
+    },
+    {
+      "summary": "add pause and resume rollout endpoints",
+      "commit": "440a3f8"
+    },
+    {
+      "summary": "add batch concurrency and failure threshold to rollout execution",
+      "commit": "6c443c1"
+    },
+    {
+      "summary": "add federation batch-upgrades toggle and upgrade-history endpoints",
+      "commit": "4879b1f"
+    },
+    {
+      "summary": "add POST /api/v1/federation/request-upgrade callback endpoint",
+      "commit": "234fb1a"
+    },
+    {
+      "summary": "add GET /api/v1/federation/versions endpoint",
+      "commit": "8d922e3"
+    },
+    {
+      "summary": "add federation token authentication scheme and policy",
+      "commit": "ae58bc9"
+    },
+    {
+      "summary": "replace UpgradePolicy with BatchUpgradesEnabled, add batch rollout fields",
+      "commit": "451ac7e"
+    },
+    {
+      "summary": "add dev-only test seed endpoint and provisioning improvements",
+      "commit": "9cc2630"
+    },
+    {
+      "summary": "add data-testid attributes and admin UI improvements",
+      "commit": "1a1f662"
+    },
+    {
+      "summary": "add CanUseMemberTiers to FeatureFlags and TierDefaults",
+      "commit": "2592570"
+    },
+    {
+      "summary": "add enterprise contact form replacing mailto links",
+      "commit": "fbe8f6b"
+    },
+    {
+      "summary": "restrict Billing PlanEditor to free tier during beta",
+      "commit": "7325c8c"
+    },
+    {
+      "summary": "restrict CreateInstance to free tier with notify-me for paid options",
+      "commit": "3f750d0"
+    },
+    {
+      "summary": "enforce one free instance per user in ProvisionInstanceHandler",
+      "commit": "25fc3aa"
+    },
+    {
+      "summary": "add beta gate to ChangePlanHandler - reject paid tier upgrades and media",
+      "commit": "6257c8d"
+    },
+    {
+      "summary": "add beta gate to CreateInstanceHandler - reject paid tiers and media",
+      "commit": "3b9ee46"
+    },
+    {
+      "summary": "restructure pricing to named tiers with per-user media add-on",
+      "commit": "af54809"
+    }
+  ],
+  "fixes": [
+    {
+      "summary": "extend Dockerfile HEALTHCHECK start-period to 60s",
+      "commit": "2041d93"
+    },
+    {
+      "summary": "bump npm transitive deps to clear Dependabot vulns + vitest 4",
+      "commit": "6678c3c"
+    },
+    {
+      "summary": "complete security audit remediation (round 2)",
+      "commit": "b0e02db"
+    },
+    {
+      "summary": "security audit hardening (CSP, login lockout, postMessage origin)",
+      "commit": "2fe46ba"
+    },
+    {
+      "summary": "sanitize all user-controlled values in hub header rendering",
+      "commit": "a5b70b3"
+    },
+    {
+      "summary": "hub health endpoint, billing, provisioning improvements",
+      "commit": "6fbc91a"
+    },
+    {
+      "summary": "provisioning resilience and speed improvements",
+      "commit": "96d4f81"
+    },
+    {
+      "summary": "node 24 docker build, suspend handler fix, infra test config",
+      "commit": "feb32ce"
+    },
+    {
+      "summary": "suppress health check log spam (Serilog Debug level)",
+      "commit": "b2f79a6"
+    },
+    {
+      "summary": "health check uses Docker service DNS, CSP allows Google Pay, remove instance limit",
+      "commit": "3283568"
+    },
+    {
+      "summary": "resolve startup warnings and add instance detail endpoints",
+      "commit": "ee41a08"
+    },
+    {
+      "summary": "remove outbox config from instance provisioning",
+      "commit": "4004548"
+    },
+    {
+      "summary": "set devMode=false in provisioned instance email config",
+      "commit": "3dc0513"
+    },
+    {
+      "summary": "add ISoftDeletable to BackupRecord and ManagedInstance entities",
+      "commit": "525f3a9"
+    },
+    {
+      "summary": "include canUseMemberTiers in provisioned instance config",
+      "commit": "e8ada5b"
+    },
+    {
+      "summary": "update mailing list valid tiers to match current pricing structure",
+      "commit": "c94e80a"
+    },
+    {
+      "summary": "dashboard UI bugs, backup service optimization, and form improvements",
+      "commit": "4f692de"
+    }
+  ],
+  "other": [
+    {
+      "summary": "re-arm fetch stub on teardown + tsconfig skipLibCheck for hub/admin",
+      "commit": "6f42f74",
+      "type": "test"
+    },
+    {
+      "summary": "add livekit-egress to hub-provisioned instance templates",
+      "commit": "1514d1a",
+      "type": "chore"
+    },
+    {
+      "summary": "remove appsettings.Development.json from tracking",
+      "commit": "42fd7c5",
+      "type": "chore"
+    },
+    {
+      "summary": "rewrite hub frontend copy for clarity and accuracy",
+      "commit": "a5487e2",
+      "type": "style"
+    },
+    {
+      "summary": "extract PollingBackgroundService and simplify handlers",
+      "commit": "007fece",
+      "type": "refactor"
+    },
+    {
+      "summary": "share single Postgres container across infrastructure tests",
+      "commit": "2c62bf8",
+      "type": "perf"
+    },
+    {
+      "summary": "update xcord-common submodule (remove tracked build artifacts)",
+      "commit": "fd7a937",
+      "type": "chore"
+    },
+    {
+      "summary": "update package-lock.json version and xcord-common submodule",
+      "commit": "e719ca4",
+      "type": "chore"
+    },
+    {
+      "summary": "add ChangePlanHandler beta gate and mailing list tier validation tests",
+      "commit": "0ddf166",
+      "type": "test"
+    },
+    {
+      "summary": "add integration tests for beta gate and free instance limit",
+      "commit": "e47e1e1",
+      "type": "test"
+    },
+    {
+      "summary": "update xcord-common submodule",
+      "commit": "30095d6",
+      "type": "chore"
+    },
+    {
+      "summary": "add recursive submodule checkout for xcord-common",
+      "commit": "99557a7",
+      "type": "ci"
+    },
+    {
+      "summary": "replace duplicated types with Xcord.Common shared library",
+      "commit": "c433ffc",
+      "type": "refactor"
+    },
+    {
+      "summary": "replace em-dashes with hyphens across codebase",
+      "commit": "30b91d8",
+      "type": "style"
+    }
+  ],
+  "breakingChanges": [],
+  "migrationNotes": "",
+  "knownIssues": ""
+}
