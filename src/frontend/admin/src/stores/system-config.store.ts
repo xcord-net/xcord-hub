@@ -41,5 +41,11 @@ export function useSystemConfig() {
         store.setIsSaving(false);
       }
     },
+
+    reset(): void {
+      store.setConfig(null);
+      store.setIsLoading(false);
+      store.setIsSaving(false);
+    },
   };
 }

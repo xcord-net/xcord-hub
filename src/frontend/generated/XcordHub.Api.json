@@ -454,11 +454,10 @@
             }
           },
           {
-            "name": "before",
+            "name": "cursor",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             }
           }
         ],
@@ -1770,6 +1769,26 @@
         }
       }
     },
+    "/api/v1/.well-known/jwks.json": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "Jwks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JwksResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -2195,6 +2214,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AggregatedHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/keys/rotate": {
+      "post": {
+        "tags": [
+          "Admin",
+          "Security"
+        ],
+        "operationId": "RotateDataKey",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RotateDataKeyResponse"
                 }
               }
             }
@@ -3487,6 +3527,51 @@
           }
         }
       },
+      "JwksKey": {
+        "required": [
+          "kty",
+          "use",
+          "alg",
+          "kid",
+          "n",
+          "e"
+        ],
+        "type": "object",
+        "properties": {
+          "kty": {
+            "type": "string"
+          },
+          "use": {
+            "type": "string"
+          },
+          "alg": {
+            "type": "string"
+          },
+          "kid": {
+            "type": "string"
+          },
+          "n": {
+            "type": "string"
+          },
+          "e": {
+            "type": "string"
+          }
+        }
+      },
+      "JwksResponse": {
+        "required": [
+          "keys"
+        ],
+        "type": "object",
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JwksKey"
+            }
+          }
+        }
+      },
       "ListBackupRecordsResponse": {
         "required": [
           "backups",
@@ -3527,6 +3612,11 @@
             "items": {
               "$ref": "#/components/schemas/InstanceSummary"
             }
+          },
+          "nextCursor": {
+            "type": "string",
+            "default": null,
+            "nullable": true
           }
         }
       },
@@ -4139,6 +4229,18 @@
             "nullable": true
           },
           "revenueSharePercent": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RotateDataKeyResponse": {
+        "required": [
+          "newVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "newVersion": {
             "type": "integer",
             "format": "int32"
           }
@@ -4896,6 +4998,9 @@
     },
     {
       "name": "Setup"
+    },
+    {
+      "name": "Security"
     }
   ]
 }

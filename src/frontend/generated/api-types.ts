@@ -374,6 +374,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/header": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetHeader"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federation/versions": {
         parameters: {
             query?: never;
@@ -838,6 +854,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/.well-known/jwks.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Jwks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1046,6 +1078,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/system-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AdminGetSystemConfig"];
+        put: operations["AdminUpdateSystemConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/health": {
         parameters: {
             query?: never;
@@ -1056,6 +1104,22 @@ export interface paths {
         get: operations["GetAggregatedHealth"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/keys/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RotateDataKey"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1138,6 +1202,11 @@ export interface components {
             page: number;
             /** Format: int32 */
             pageSize: number;
+        };
+        AdminSystemConfigResponse: {
+            paidServersDisabled: boolean;
+            /** Format: date-time */
+            updatedAt: string;
         };
         AggregatedHealthResponse: {
             overallStatus: string;
@@ -1291,6 +1360,7 @@ export interface components {
         GetFeaturesResponse: {
             paymentsEnabled: boolean;
             stripePublishableKey: string | null;
+            paidServersDisabled: boolean;
         };
         GetFederationVersionsResponse: {
             versions: components["schemas"]["FederationVersionItem"][];
@@ -1439,6 +1509,17 @@ export interface components {
             createdAt: string;
             pdfUrl: string | null;
         };
+        JwksKey: {
+            kty: string;
+            use: string;
+            alg: string;
+            kid: string;
+            n: string;
+            e: string;
+        };
+        JwksResponse: {
+            keys: components["schemas"]["JwksKey"][];
+        };
         ListBackupRecordsResponse: {
             backups: components["schemas"]["BackupRecordItem"][];
             /** Format: int32 */
@@ -1450,6 +1531,8 @@ export interface components {
         };
         ListInstancesResponse: {
             instances: components["schemas"]["InstanceSummary"][];
+            /** @default null */
+            nextCursor: string | null;
         };
         ListInstancesResponse2: {
             instances: components["schemas"]["InstancePreview"][];
@@ -1631,6 +1714,10 @@ export interface components {
             /** Format: int32 */
             revenueSharePercent: number;
         };
+        RotateDataKeyResponse: {
+            /** Format: int32 */
+            newVersion: number;
+        };
         SetupRequest: {
             username: string;
             email: string;
@@ -1701,6 +1788,9 @@ export interface components {
             message: string;
             backupId: string;
             instanceId: string;
+        };
+        UpdateAdminSystemConfigRequest: {
+            paidServersDisabled: boolean;
         };
         UpdateBackupPolicyRequest: {
             enabled: boolean;
@@ -2134,7 +2224,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
-                before?: number;
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -2414,6 +2504,27 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UpgradeInstanceResponse"];
                 };
+            };
+        };
+    };
+    GetHeader: {
+        parameters: {
+            query?: {
+                serverUrl?: string;
+                hubKey?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -3093,6 +3204,26 @@ export interface operations {
             };
         };
     };
+    Jwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JwksResponse"];
+                };
+            };
+        };
+    };
     Login: {
         parameters: {
             query?: never;
@@ -3387,6 +3518,50 @@ export interface operations {
             };
         };
     };
+    AdminGetSystemConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSystemConfigResponse"];
+                };
+            };
+        };
+    };
+    AdminUpdateSystemConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAdminSystemConfigRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSystemConfigResponse"];
+                };
+            };
+        };
+    };
     GetAggregatedHealth: {
         parameters: {
             query?: never;
@@ -3403,6 +3578,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AggregatedHealthResponse"];
+                };
+            };
+        };
+    };
+    RotateDataKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RotateDataKeyResponse"];
                 };
             };
         };

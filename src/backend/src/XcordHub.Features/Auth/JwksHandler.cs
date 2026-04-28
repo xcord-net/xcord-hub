@@ -21,7 +21,7 @@ public sealed record JwksKey(
 
 public sealed record JwksResponse(IReadOnlyList<JwksKey> Keys);
 
-public sealed class JwksEndpoint : IEndpoint
+public sealed class JwksHandler : IEndpoint
 {
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {

@@ -110,6 +110,7 @@ public sealed class BillingTierInstanceTests
             currentUserService,
             NoOpProvisioningQueue(),
             creationService,
+            new SystemConfigService(dbContext),
             Options.Create(new StripeOptions()));
     }
 

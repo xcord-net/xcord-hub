@@ -117,5 +117,13 @@ export function useAuth() {
         store.setIsLoading(false);
       }
     },
+
+    reset(): void {
+      store.setUserId(null);
+      store.setUsername(null);
+      store.setIsAuthenticated(false);
+      store.setIsAdmin(false);
+      store.setIsLoading(true);
+    },
   };
 }

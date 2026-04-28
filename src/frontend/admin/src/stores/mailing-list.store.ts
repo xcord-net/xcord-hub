@@ -58,5 +58,13 @@ export function useMailingList() {
         store.setIsLoading(false);
       }
     },
+
+    reset(): void {
+      store.setEntries([]);
+      store.setTotal(0);
+      store.setPage(1);
+      store.setTierFilter(null);
+      store.setIsLoading(false);
+    },
   };
 }

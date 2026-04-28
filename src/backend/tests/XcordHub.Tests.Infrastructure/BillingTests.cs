@@ -128,6 +128,7 @@ public sealed class BillingTests
             StubUser(userId),
             new NoOpProvisioningQueue(),
             creationService,
+            new SystemConfigService(dbContext),
             NoStripeOptions());
 
         // Subdomain must be lowercase alphanumeric with hyphens only (no underscores).

@@ -65,6 +65,11 @@ export const unreadStore = {
       trustedOrigins.delete(origin);
     }
   },
+
+  reset(): void {
+    setUnreadCounts({});
+    trustedOrigins.clear();
+  },
 };
 
 window.addEventListener('message', (event) => {

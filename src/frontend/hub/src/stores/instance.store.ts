@@ -108,4 +108,9 @@ export const instanceStore = {
       throw error;
     }
   },
+
+  reset(): void {
+    setConnectedInstances([]);
+    setSelectedInstanceUrl(null);
+  },
 };

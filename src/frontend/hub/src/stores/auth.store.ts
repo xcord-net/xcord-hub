@@ -229,6 +229,12 @@ export function useAuth() {
     changePassword,
     deleteAccount,
     clearError: () => setError(null),
+    reset(): void {
+      setUser(null);
+      setToken(null);
+      setIsLoading(true);
+      setError(null);
+    },
   };
 }
 

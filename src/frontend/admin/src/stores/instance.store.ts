@@ -224,5 +224,17 @@ export function useInstances() {
       store.setSelectedInstance(null);
       store.setLogs([]);
     },
+
+    reset(): void {
+      store.setInstances([]);
+      store.setSelectedInstance(null);
+      store.setLogs([]);
+      store.setTotal(0);
+      store.setPage(1);
+      store.setStatusFilter(null);
+      store.setIsLoading(false);
+      store.setAvailableVersions([]);
+      store.setActiveRollouts([]);
+    },
   };
 }
