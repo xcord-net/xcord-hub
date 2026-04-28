@@ -18,16 +18,17 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   });
 }
 
+const unmockedFetch = async (): Promise<Response> => {
+  throw new Error('fetch was called without being mocked - stub it with mockFetch() in your test');
+};
+
 // Reset fetch + cleanup mounted DOM between tests so component tests are isolated.
+// Re-arm fetch with the throwing implementation so any in-flight requests that
+// resolve AFTER teardown still reject loudly rather than returning undefined.
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
-  if (typeof globalThis.fetch === 'function' && 'mockReset' in globalThis.fetch) {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockReset();
-  }
+  globalThis.fetch = vi.fn(unmockedFetch) as typeof globalThis.fetch;
 });
 
-// Default fetch stub - tests should override per-suite via vi.stubGlobal('fetch', ...).
-globalThis.fetch = vi.fn(async () => {
-  throw new Error('fetch was called without being mocked - stub it with mockFetch() in your test');
-}) as typeof globalThis.fetch;
+globalThis.fetch = vi.fn(unmockedFetch) as typeof globalThis.fetch;

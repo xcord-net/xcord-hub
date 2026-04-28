@@ -69,9 +69,9 @@ describe('Login', () => {
   });
 
   it('disables Sign In button while loading', async () => {
-    let resolve!: (v: unknown) => void;
+    let resolve!: (v: { status: number; body: object }) => void;
     mockFetch({
-      'POST /api/v1/auth/login': () => new Promise(r => { resolve = r; }) as Promise<{ status: number; body: object }>,
+      'POST /api/v1/auth/login': () => new Promise<{ status: number; body: object }>(r => { resolve = r; }),
     });
     const { container, getByText } = render(() => <Login />);
     fill(container);
