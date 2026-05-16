@@ -17,7 +17,7 @@ public sealed class DestructionPipeline(
         {
             try
             {
-                await step.ExecuteAsync(instance, infrastructure, cancellationToken);
+                await step.ExecuteAsync(instance, infrastructure, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

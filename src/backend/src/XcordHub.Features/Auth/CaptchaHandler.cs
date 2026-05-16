@@ -13,7 +13,7 @@ public sealed class CaptchaHandler(ICaptchaService captchaService)
 {
     public async Task<Result<CaptchaResponse>> Handle(GetCaptchaQuery request, CancellationToken cancellationToken)
     {
-        var challenge = await captchaService.GenerateAsync();
+        var challenge = await captchaService.GenerateAsync().ConfigureAwait(false);
         return new CaptchaResponse(challenge.Id, challenge.Question);
     }
 
@@ -23,7 +23,7 @@ public sealed class CaptchaHandler(ICaptchaService captchaService)
             CaptchaHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new GetCaptchaQuery(), ct);
+            return await handler.ExecuteAsync(new GetCaptchaQuery(), ct).ConfigureAwait(false);
         })
         .AllowAnonymous()
         .Produces<CaptchaResponse>(200)

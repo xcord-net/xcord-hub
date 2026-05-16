@@ -85,7 +85,7 @@ public sealed class ChangePlanHandler(
         if (options.IsConfigured && priceCents > 0)
         {
             // Ensure Stripe customer exists for this user
-            var user = await dbContext.HubUsers.FindAsync([userId], cancellationToken);
+            var user = await dbContext.HubUsers.FindAsync([userId], cancellationToken).ConfigureAwait(false);
             if (user == null)
                 return Error.NotFound("USER_NOT_FOUND", "User not found");
 
@@ -95,12 +95,12 @@ public sealed class ChangePlanHandler(
             {
                 user.StripeCustomerId = await stripeService.EnsureCustomerAsync(
                     userId, email, user.DisplayName, cancellationToken);
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
 
             // Resolve Stripe Price ID from lookup key
             var lookupKey = BuildStripePriceId(request.TargetTier, request.MediaEnabled);
-            var priceId = await stripeService.ResolvePriceIdByLookupKeyAsync(lookupKey, cancellationToken);
+            var priceId = await stripeService.ResolvePriceIdByLookupKeyAsync(lookupKey, cancellationToken).ConfigureAwait(false);
             if (priceId == null)
                 return Error.Failure("STRIPE_PRICE_NOT_FOUND", $"Stripe price not found for {lookupKey}");
 
@@ -135,7 +135,7 @@ public sealed class ChangePlanHandler(
             instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new ChangePlanResponse(
             Tier: request.TargetTier.ToString(),
@@ -162,7 +162,7 @@ public sealed class ChangePlanHandler(
             CancellationToken ct) =>
         {
             var cmd = command with { InstanceId = instanceId };
-            return await handler.ExecuteAsync(cmd, ct);
+            return await handler.ExecuteAsync(cmd, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<ChangePlanResponse>(200)

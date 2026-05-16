@@ -31,7 +31,7 @@ public sealed class MinioSigV4Handler : DelegatingHandler
         // Read body for content hash
         byte[] bodyBytes = [];
         if (request.Content != null)
-            bodyBytes = await request.Content.ReadAsByteArrayAsync(cancellationToken);
+            bodyBytes = await request.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
 
         var contentHash = HexHash(bodyBytes);
 
@@ -85,7 +85,7 @@ public sealed class MinioSigV4Handler : DelegatingHandler
                 request.Content.Headers.ContentType = contentType;
         }
 
-        return await base.SendAsync(request, cancellationToken);
+        return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
     private static List<string> BuildSignedHeaders(HttpRequestMessage request)

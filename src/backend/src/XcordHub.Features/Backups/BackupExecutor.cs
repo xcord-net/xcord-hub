@@ -34,7 +34,7 @@ public sealed class BackupExecutor
         };
 
         _dbContext.BackupRecords.Add(record);
-        await _dbContext.SaveChangesAsync(ct);
+        await _dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
         try
         {
@@ -46,25 +46,25 @@ public sealed class BackupExecutor
                 record.Status = BackupStatus.Failed;
                 record.ErrorMessage = "Instance infrastructure not found";
                 record.CompletedAt = DateTimeOffset.UtcNow;
-                await _dbContext.SaveChangesAsync(ct);
+                await _dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
                 return;
             }
 
             long totalSize = 0;
 
             if (kind is BackupKind.Database or BackupKind.Full)
-                totalSize += await BackupDatabaseAsync(instance, infra, record, ct);
+                totalSize += await BackupDatabaseAsync(instance, infra, record, ct).ConfigureAwait(false);
 
             if (kind is BackupKind.Redis or BackupKind.Full)
-                totalSize += await BackupRedisAsync(instance, infra, record, ct);
+                totalSize += await BackupRedisAsync(instance, infra, record, ct).ConfigureAwait(false);
 
             if (kind is BackupKind.Files or BackupKind.Full)
-                totalSize += await BackupFilesAsync(instance, infra, record, ct);
+                totalSize += await BackupFilesAsync(instance, infra, record, ct).ConfigureAwait(false);
 
             record.Status = BackupStatus.Completed;
             record.SizeBytes = totalSize;
             record.CompletedAt = DateTimeOffset.UtcNow;
-            await _dbContext.SaveChangesAsync(ct);
+            await _dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
             _logger.LogInformation("Backup completed for {Domain} ({Kind}, {Size} bytes)",
                 instance.Domain, kind, totalSize);
@@ -75,7 +75,7 @@ public sealed class BackupExecutor
             record.Status = BackupStatus.Failed;
             record.ErrorMessage = ex.Message.Length > 2000 ? ex.Message[..2000] : ex.Message;
             record.CompletedAt = DateTimeOffset.UtcNow;
-            await _dbContext.SaveChangesAsync(ct);
+            await _dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
         }
     }
 
@@ -98,7 +98,7 @@ public sealed class BackupExecutor
         });
 
         using var stream = new MemoryStream(meta);
-        await _coldStorageService.UploadAsync(key, stream, ct);
+        await _coldStorageService.UploadAsync(key, stream, ct).ConfigureAwait(false);
 
         _logger.LogInformation("Database metadata recorded for {Domain} ({Database})",
             instance.Domain, infra.DatabaseName);
@@ -124,7 +124,7 @@ public sealed class BackupExecutor
         });
 
         using var stream = new MemoryStream(meta);
-        await _coldStorageService.UploadAsync(key, stream, ct);
+        await _coldStorageService.UploadAsync(key, stream, ct).ConfigureAwait(false);
 
         _logger.LogInformation("Redis metadata recorded for {Domain} (db {RedisDb})",
             instance.Domain, infra.RedisDb);
@@ -153,7 +153,7 @@ public sealed class BackupExecutor
         });
 
         using var stream = new MemoryStream(manifest);
-        await _coldStorageService.UploadAsync(key, stream, ct);
+        await _coldStorageService.UploadAsync(key, stream, ct).ConfigureAwait(false);
 
         _logger.LogInformation("Files manifest recorded for {Domain} (bucket {Bucket})",
             instance.Domain, bucketName);

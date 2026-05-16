@@ -36,7 +36,7 @@ public abstract class PollingBackgroundService(
         {
             try
             {
-                await ProcessAsync(stoppingToken);
+                await ProcessAsync(stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -49,7 +49,7 @@ public abstract class PollingBackgroundService(
 
             try
             {
-                await Task.Delay(Interval, stoppingToken);
+                await Task.Delay(Interval, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

@@ -22,7 +22,7 @@ public sealed class CaptchaService(IConnectionMultiplexer redis) : ICaptchaServi
         var id = Guid.NewGuid().ToString("N");
 
         var db = redis.GetDatabase();
-        await db.StringSetAsync($"captcha:{id}", answer, TimeSpan.FromMinutes(5));
+        await db.StringSetAsync($"captcha:{id}", answer, TimeSpan.FromMinutes(5)).ConfigureAwait(false);
 
         return new CaptchaChallenge(id, question);
     }
@@ -36,7 +36,7 @@ public sealed class CaptchaService(IConnectionMultiplexer redis) : ICaptchaServi
         var key = $"captcha:{captchaId}";
 
         // Fetch and delete atomically
-        var stored = await db.StringGetDeleteAsync(key);
+        var stored = await db.StringGetDeleteAsync(key).ConfigureAwait(false);
         if (stored.IsNullOrEmpty)
             return false;
 

@@ -92,7 +92,7 @@ public sealed class ListInstancesHandler(
                 Limit: limit ?? 25,
                 Cursor: cursor
             );
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<ListInstancesResponse>(200)

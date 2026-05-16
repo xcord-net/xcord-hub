@@ -81,7 +81,7 @@ public sealed class RegisterHandler(
         dbContext.LoginAttempts.Add(
             LoginAttemptRecorder.Create(snowflakeGenerator, httpContextAccessor, request.Email, null, reg.User.Id));
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new RegisterResponse(reg.User.Id.ToString(), reg.User.Username, reg.User.DisplayName, request.Email, reg.AccessToken, reg.RefreshToken);
     }

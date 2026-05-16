@@ -54,7 +54,7 @@ public sealed class Verify2FAHandler(HubDbContext dbContext)
 
         // Enable 2FA
         user.TwoFactorEnabled = true;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -74,7 +74,7 @@ public sealed class Verify2FAHandler(HubDbContext dbContext)
             }
 
             var command = new Verify2FACommand(userId, request.Code);
-            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent());
+            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent()).ConfigureAwait(false);
             return result;
         })
         .RequireAuthorization(Policies.User)

@@ -52,7 +52,7 @@ public sealed class DestroyInstanceHandler(
             // Cleanup resources in reverse order of provisioning
             if (instance.Infrastructure != null)
             {
-                await destructionPipeline.RunAsync(instance, instance.Infrastructure, cancellationToken);
+                await destructionPipeline.RunAsync(instance, instance.Infrastructure, cancellationToken).ConfigureAwait(false);
             }
             else
             {
@@ -60,13 +60,13 @@ public sealed class DestroyInstanceHandler(
             }
 
             // Tombstone the worker ID (never reuse)
-            await TombstoneWorkerIdAsync(instance.SnowflakeWorkerId, cancellationToken);
+            await TombstoneWorkerIdAsync(instance.SnowflakeWorkerId, cancellationToken).ConfigureAwait(false);
 
             // Mark instance as destroyed (soft delete) - optimistic concurrency via xmin ensures
             // only one concurrent destroy wins; the other gets DbUpdateConcurrencyException → 409.
             instance.Status = InstanceStatus.Destroyed;
             instance.SoftDelete();
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation(
                 "Instance {InstanceId} ({Domain}) destroyed successfully",
@@ -102,7 +102,7 @@ public sealed class DestroyInstanceHandler(
         {
             workerIdRecord.IsTombstoned = true;
             workerIdRecord.ReleasedAt = DateTimeOffset.UtcNow;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Tombstoned worker ID {WorkerId}", workerId);
         }
@@ -123,7 +123,7 @@ public sealed class DestroyInstanceHandler(
             }
 
             var command = new DestroyInstanceCommand(instanceId, userId);
-            var result = await handler.Handle(command, ct);
+            var result = await handler.Handle(command, ct).ConfigureAwait(false);
 
             return result.Match(
                 success => Results.Ok(new SuccessResponse(true)),

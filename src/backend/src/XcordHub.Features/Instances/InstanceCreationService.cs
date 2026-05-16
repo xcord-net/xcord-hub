@@ -60,7 +60,7 @@ public sealed class InstanceCreationService(
             return Error.Conflict("SUBDOMAIN_TAKEN", "This subdomain is already taken");
         }
 
-        var user = await db.HubUsers.FindAsync([userId], ct);
+        var user = await db.HubUsers.FindAsync([userId], ct).ConfigureAwait(false);
 
         if (user == null)
         {
@@ -102,7 +102,7 @@ public sealed class InstanceCreationService(
         // Create config with tier defaults and hashed admin password - offloaded to thread pool to avoid starvation
         var resourceLimits = TierDefaults.GetResourceLimits(tier);
         var featureFlags = TierDefaults.GetFeatureFlags(tier, mediaEnabled);
-        var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(adminPassword, _authOptions.BcryptWorkFactor));
+        var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(adminPassword, _authOptions.BcryptWorkFactor)).ConfigureAwait(false);
 
         var config = new InstanceConfig
         {

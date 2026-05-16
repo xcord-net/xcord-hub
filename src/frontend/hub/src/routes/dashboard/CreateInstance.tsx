@@ -5,6 +5,7 @@ import Captcha from '../../components/Captcha';
 import PasswordStrength from '../../components/PasswordStrength';
 import ContactModal from '../../components/ContactModal';
 import PageMeta from '../../components/PageMeta';
+import { api } from '../../api/client';
 
 type Tier = 'Free' | 'Basic' | 'Pro' | 'Enterprise';
 
@@ -62,11 +63,8 @@ export default function CreateInstance() {
 
   onMount(async () => {
     try {
-      const featuresRes = await fetch('/api/v1/hub/features');
-      if (featuresRes.ok) {
-        const data = await featuresRes.json();
-        setPaymentsEnabled(data.paymentsEnabled ?? false);
-      }
+      const data = await api.get<{ paymentsEnabled?: boolean }>('/api/v1/hub/features');
+      setPaymentsEnabled(data.paymentsEnabled ?? false);
     } catch {
       // If we can't check, allow form to show - backend will enforce
     }
@@ -112,17 +110,9 @@ export default function CreateInstance() {
       setSubdomainStatus('checking');
       checkTimer = setTimeout(async () => {
         try {
-          const token = localStorage.getItem('xcord_hub_token');
-          const response = await fetch(`/api/v1/hub/check-subdomain?subdomain=${encodeURIComponent(clean)}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setSubdomainStatus(data.available ? 'available' : 'taken');
-            setSubdomainReason(data.reason ?? '');
-          } else {
-            setSubdomainStatus('idle');
-          }
+          const data = await api.get<{ available: boolean; reason?: string }>(`/api/v1/hub/check-subdomain?subdomain=${encodeURIComponent(clean)}`);
+          setSubdomainStatus(data.available ? 'available' : 'taken');
+          setSubdomainReason(data.reason ?? '');
         } catch {
           setSubdomainStatus('idle');
         }
@@ -168,28 +158,19 @@ export default function CreateInstance() {
     if (!tier) return;
     setNotifyStatus('loading');
     try {
-      const res = await fetch('/api/v1/mailing-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: notifyEmail(), tier }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setNotifyStatus('error');
-        setNotifyMessage(data.message ?? 'Something went wrong.');
-      } else {
-        setNotifyStatus('success');
-        setNotifyMessage(data.message);
-        setTimeout(() => {
-          setNotifyTier(null);
-          setNotifyEmail('');
-          setNotifyStatus('idle');
-          setNotifyMessage('');
-        }, 3000);
-      }
-    } catch {
+      const data = await api.post<{ message: string }>('/api/v1/mailing-list', { email: notifyEmail(), tier });
+      setNotifyStatus('success');
+      setNotifyMessage(data.message);
+      setTimeout(() => {
+        setNotifyTier(null);
+        setNotifyEmail('');
+        setNotifyStatus('idle');
+        setNotifyMessage('');
+      }, 3000);
+    } catch (err: unknown) {
       setNotifyStatus('error');
-      setNotifyMessage('Network error. Please try again.');
+      const msg = (err as { message?: string } | null)?.message;
+      setNotifyMessage(msg ?? 'Network error. Please try again.');
     }
   };
 

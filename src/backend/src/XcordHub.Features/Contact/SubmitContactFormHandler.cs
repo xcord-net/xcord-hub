@@ -63,10 +63,10 @@ public sealed class SubmitContactFormHandler(
         };
 
         dbContext.ContactSubmissions.Add(submission);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         var emailBody = BuildNotificationEmailBody(submission);
-        await emailService.SendAsync("sales@xcord.net", "New Enterprise Contact Form Submission", emailBody);
+        await emailService.SendAsync("sales@xcord.net", "New Enterprise Contact Form Submission", emailBody, cancellationToken).ConfigureAwait(false);
 
         return new SubmitContactFormResponse("Your message has been submitted. Our team will be in touch shortly.");
     }
@@ -78,7 +78,7 @@ public sealed class SubmitContactFormHandler(
             SubmitContactFormHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(request, ct);
+            return await handler.ExecuteAsync(request, ct).ConfigureAwait(false);
         })
         .AllowAnonymous()
         .RequireRateLimiting("contact-form")

@@ -102,7 +102,7 @@ public static class EncryptionKeyringBootstrap
             IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow
         });
-        await db.SaveChangesAsync(cancellationToken);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         Log.Information("Hub encryption keyring initialized at version 1 (envelope-encrypted)");
     }

@@ -27,7 +27,7 @@ public sealed class RotateDataKeyHandler(
     {
         try
         {
-            var newVersion = await rotationService.RotateDataKeyAsync(cancellationToken);
+            var newVersion = await rotationService.RotateDataKeyAsync(cancellationToken).ConfigureAwait(false);
             logger.LogInformation("Hub DEK rotation completed; new active version is {Version}", newVersion);
             return new RotateDataKeyResponse(newVersion);
         }

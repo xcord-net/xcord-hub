@@ -23,9 +23,13 @@ public sealed class DockerSecretIdempotencyTests : IAsyncLifetime
 
     public Task InitializeAsync()
     {
-        // Connect directly to Docker socket via the dev proxy on localhost:2375
-        // or fall back to the Unix socket
-        var dockerUrl = Environment.GetEnvironmentVariable("DOCKER_HOST") ?? "http://localhost:2375";
+        // Resolve the Docker API endpoint from the standard DOCKER_HOST env var
+        // (testcontainers / Docker CLI both honor it). When unset, fall back to
+        // the dev stack's socket proxy on the project's dev domain. We never
+        // hardcode "localhost" because the dev stack uses xcord-dev.net.
+        var dockerUrl = Environment.GetEnvironmentVariable("DOCKER_HOST")
+            ?? Environment.GetEnvironmentVariable("XCORD_TEST_DOCKER_URL")
+            ?? "http://xcord-dev.net:2375";
 
         var handler = new SocketsHttpHandler();
         _rawClient = new HttpClient(handler) { BaseAddress = new Uri(dockerUrl) };

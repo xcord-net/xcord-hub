@@ -8,7 +8,7 @@ public sealed class SystemConfigService(HubDbContext db) : ISystemConfigService
 {
     public async Task<SystemConfig> GetAsync(CancellationToken ct = default)
     {
-        var config = await db.SystemConfigs.FirstOrDefaultAsync(c => c.Id == SystemConfig.SingletonId, ct);
+        var config = await db.SystemConfigs.FirstOrDefaultAsync(c => c.Id == SystemConfig.SingletonId, ct).ConfigureAwait(false);
         if (config != null) return config;
 
         config = new SystemConfig
@@ -18,16 +18,16 @@ public sealed class SystemConfigService(HubDbContext db) : ISystemConfigService
             UpdatedAt = DateTimeOffset.UtcNow
         };
         db.SystemConfigs.Add(config);
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return config;
     }
 
     public async Task<SystemConfig> SetPaidServersDisabledAsync(bool disabled, CancellationToken ct = default)
     {
-        var config = await GetAsync(ct);
+        var config = await GetAsync(ct).ConfigureAwait(false);
         config.PaidServersDisabled = disabled;
         config.UpdatedAt = DateTimeOffset.UtcNow;
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return config;
     }
 }

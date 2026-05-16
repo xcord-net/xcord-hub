@@ -36,7 +36,7 @@ public sealed class ResolvePlacementStep : IProvisioningStep
         {
             instance.Infrastructure.PlacedInPool = "default";
             instance.Infrastructure.PlacementRegion = "";
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
 
@@ -49,7 +49,7 @@ public sealed class ResolvePlacementStep : IProvisioningStep
             {
                 instance.Infrastructure.PlacedInPool = $"dedicated:{dedHost.Id}";
                 instance.Infrastructure.PlacementRegion = "";
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 return true;
             }
         }
@@ -85,7 +85,7 @@ public sealed class ResolvePlacementStep : IProvisioningStep
             instance.Infrastructure.PlacedInDataPool = dataPool.Name;
 
         instance.Infrastructure.PlacementRegion = "";
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 

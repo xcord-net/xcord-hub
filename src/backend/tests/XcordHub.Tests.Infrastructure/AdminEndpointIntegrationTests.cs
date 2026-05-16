@@ -61,7 +61,7 @@ public sealed class AdminEndpointFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Redis__ChannelPrefix", "adminep-test");
         Environment.SetEnvironmentVariable("Jwt__Issuer", TestJwtIssuer);
         Environment.SetEnvironmentVariable("Jwt__Audience", TestJwtAudience);
-        Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", "60");
+        Environment.SetEnvironmentVariable("Auth__JwtAccessTokenMinutes", "60");
         Environment.SetEnvironmentVariable("Encryption__Key", TestEncryptionKey);
         Environment.SetEnvironmentVariable("Docker__UseReal", "false");
         Environment.SetEnvironmentVariable("Caddy__UseReal", "false");
@@ -87,7 +87,7 @@ public sealed class AdminEndpointFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Redis__ChannelPrefix", null);
         Environment.SetEnvironmentVariable("Jwt__Issuer", null);
         Environment.SetEnvironmentVariable("Jwt__Audience", null);
-        Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", null);
+        Environment.SetEnvironmentVariable("Auth__JwtAccessTokenMinutes", null);
         Environment.SetEnvironmentVariable("Encryption__Key", null);
         Environment.SetEnvironmentVariable("Docker__UseReal", null);
         Environment.SetEnvironmentVariable("Caddy__UseReal", null);

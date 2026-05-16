@@ -34,7 +34,7 @@ public sealed class CancelUpgradeHandler(HubDbContext dbContext)
         rollout.Status = RolloutStatus.Cancelled;
         rollout.CompletedAt = DateTimeOffset.UtcNow;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new CancelUpgradeResponse(
             rollout.Id.ToString(),
@@ -50,7 +50,7 @@ public sealed class CancelUpgradeHandler(HubDbContext dbContext)
             CancelUpgradeHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new CancelUpgradeCommand(id), ct);
+            return await handler.ExecuteAsync(new CancelUpgradeCommand(id), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<CancelUpgradeResponse>(200)

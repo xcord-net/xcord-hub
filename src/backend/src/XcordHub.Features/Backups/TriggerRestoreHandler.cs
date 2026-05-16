@@ -48,7 +48,7 @@ public sealed class TriggerRestoreHandler(HubDbContext dbContext)
             CancellationToken ct) =>
         {
             var command = new TriggerRestoreCommand(id, backupId);
-            return await handler.ExecuteAsync(command, ct, result => Results.Accepted(value: result));
+            return await handler.ExecuteAsync(command, ct, result => Results.Accepted(value: result)).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<TriggerRestoreResponse>(202)

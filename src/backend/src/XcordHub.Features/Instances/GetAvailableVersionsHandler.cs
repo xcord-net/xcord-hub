@@ -67,7 +67,7 @@ public sealed class GetAvailableVersionsHandler(HubDbContext dbContext)
                 return Results.Unauthorized();
 
             var query = new GetAvailableVersionsQuery(instanceId, userId);
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<GetAvailableVersionsResponse>(200)

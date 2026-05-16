@@ -63,7 +63,7 @@ public sealed class AllocateWorkerIdStep : IProvisioningStep
 
         instance.SnowflakeWorkerId = availableWorkerId;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
     }

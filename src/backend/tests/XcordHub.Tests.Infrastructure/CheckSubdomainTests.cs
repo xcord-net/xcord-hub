@@ -41,7 +41,7 @@ public sealed class CheckSubdomainFixture : IAsyncLifetime
             ["Redis__ChannelPrefix"] = "checksubdomain-test",
             ["Jwt__Issuer"] = "checksubdomain-test",
             ["Jwt__Audience"] = "checksubdomain-test",
-            ["Jwt__AccessTokenExpirationMinutes"] = "60",
+            ["Auth__JwtAccessTokenMinutes"] = "60",
             ["Encryption__Key"] = EncryptionKey,
             ["Docker__UseReal"] = "false",
             ["Caddy__UseReal"] = "false",
@@ -62,7 +62,7 @@ public sealed class CheckSubdomainFixture : IAsyncLifetime
 
         var keys = new[] {
             "Database__ConnectionString", "Redis__ConnectionString", "Redis__ChannelPrefix",
-            "Jwt__Issuer", "Jwt__Audience", "Jwt__AccessTokenExpirationMinutes",
+            "Jwt__Issuer", "Jwt__Audience", "Auth__JwtAccessTokenMinutes",
             "Encryption__Key", "Docker__UseReal", "Caddy__UseReal", "Dns__Provider"
         };
         foreach (var key in keys)

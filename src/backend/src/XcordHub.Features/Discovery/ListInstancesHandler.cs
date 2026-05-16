@@ -51,7 +51,7 @@ public sealed class ListInstancesHandler(HubDbContext dbContext)
         }
 
         // Get total count before pagination
-        var totalCount = await query.CountAsync(cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
         // Apply sorting
         query = request.SortBy?.ToLower() switch
@@ -108,7 +108,7 @@ public sealed class ListInstancesHandler(HubDbContext dbContext)
             CancellationToken ct) =>
         {
             var query = new ListInstancesQuery(search, sortBy, page, pageSize);
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .AllowAnonymous()
         .Produces<ListInstancesResponse>(200)

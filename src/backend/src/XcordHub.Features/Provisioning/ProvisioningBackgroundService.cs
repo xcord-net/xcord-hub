@@ -25,20 +25,20 @@ public sealed class ProvisioningBackgroundService : BackgroundService
         _logger.LogInformation("Provisioning background service started");
 
         // On startup, resume any pending instances
-        await ResumePendingInstances(stoppingToken);
+        await ResumePendingInstances(stoppingToken).ConfigureAwait(false);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await ProcessNextInstance(stoppingToken);
+                await ProcessNextInstance(stoppingToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing provisioning queue");
             }
 
-            await Task.Delay(PollInterval, stoppingToken);
+            await Task.Delay(PollInterval, stoppingToken).ConfigureAwait(false);
         }
 
         _logger.LogInformation("Provisioning background service stopped");
@@ -51,7 +51,7 @@ public sealed class ProvisioningBackgroundService : BackgroundService
             using var scope = _serviceProvider.CreateScope();
             var queue = scope.ServiceProvider.GetRequiredService<IProvisioningQueue>();
 
-            var pendingInstances = await queue.GetPendingInstancesAsync(cancellationToken);
+            var pendingInstances = await queue.GetPendingInstancesAsync(cancellationToken).ConfigureAwait(false);
 
             if (pendingInstances.Count > 0)
             {
@@ -60,7 +60,7 @@ public sealed class ProvisioningBackgroundService : BackgroundService
                 foreach (var instanceId in pendingInstances)
                 {
                     _logger.LogInformation("Resuming provisioning for instance {InstanceId}", instanceId);
-                    await ProcessInstance(instanceId, cancellationToken);
+                    await ProcessInstance(instanceId, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -75,12 +75,12 @@ public sealed class ProvisioningBackgroundService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var queue = scope.ServiceProvider.GetRequiredService<IProvisioningQueue>();
 
-        var instanceId = await queue.DequeueAsync(cancellationToken);
+        var instanceId = await queue.DequeueAsync(cancellationToken).ConfigureAwait(false);
 
         if (instanceId.HasValue)
         {
             _logger.LogInformation("Dequeued instance {InstanceId} for provisioning", instanceId.Value);
-            await ProcessInstance(instanceId.Value, cancellationToken);
+            await ProcessInstance(instanceId.Value, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -91,7 +91,7 @@ public sealed class ProvisioningBackgroundService : BackgroundService
             using var scope = _serviceProvider.CreateScope();
             var pipeline = scope.ServiceProvider.GetRequiredService<ProvisioningPipeline>();
 
-            var result = await pipeline.RunAsync(instanceId, cancellationToken);
+            var result = await pipeline.RunAsync(instanceId, cancellationToken).ConfigureAwait(false);
 
             if (result.IsSuccess)
             {

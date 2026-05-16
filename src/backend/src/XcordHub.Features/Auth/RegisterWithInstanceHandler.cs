@@ -151,11 +151,11 @@ public sealed class RegisterWithInstanceHandler(
             LoginAttemptRecorder.Create(snowflakeGenerator, httpContextAccessor, request.Email, null, reg.User.Id));
 
         // 4. Single atomic save
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // 5. Enqueue provisioning (after save - EnqueueAsync calls its own SaveChangesAsync)
         // Payment was already collected via the payment intent in the wizard step 2
-        await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken);
+        await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken).ConfigureAwait(false);
 
         return new RegisterWithInstanceInternalResponse(
             reg.User.Id.ToString(),

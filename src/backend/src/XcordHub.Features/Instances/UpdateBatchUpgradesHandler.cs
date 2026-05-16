@@ -36,7 +36,7 @@ public sealed class UpdateBatchUpgradesHandler(HubDbContext dbContext)
         instance.Config.BatchUpgradesEnabled = request.Enabled;
         instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new UpdateBatchUpgradesResponse(instance.Config.BatchUpgradesEnabled);
     }
@@ -55,7 +55,7 @@ public sealed class UpdateBatchUpgradesHandler(HubDbContext dbContext)
                 return Results.Unauthorized();
 
             var command = new UpdateBatchUpgradesCommand(instanceId, userId, request.Enabled);
-            return await handler.ExecuteAsync(command, ct);
+            return await handler.ExecuteAsync(command, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<UpdateBatchUpgradesResponse>(200)

@@ -1,5 +1,5 @@
 # ===== Stage 1: Build Hub SPA =====
-FROM node:24-alpine AS build-hub-spa
+FROM node:24.11.1-alpine3.22 AS build-hub-spa
 RUN npm install -g npm@latest
 WORKDIR /app
 ARG VERSION=0.0.0-dev
@@ -20,7 +20,7 @@ RUN if [ -f package.json ]; then \
     fi
 
 # ===== Stage 2: Build Admin SPA =====
-FROM node:24-alpine AS build-admin-spa
+FROM node:24.11.1-alpine3.22 AS build-admin-spa
 RUN npm install -g npm@latest
 WORKDIR /app
 ARG VERSION=0.0.0-dev
@@ -55,17 +55,21 @@ COPY src/backend/src/XcordHub.Shared/XcordHub.Shared.csproj src/backend/src/Xcor
 COPY xcord-common/src/Xcord.Common/Xcord.Common.csproj xcord-common/src/Xcord.Common/
 
 # Restore dependencies
-RUN dotnet restore src/backend/src/XcordHub.Api/XcordHub.Api.csproj
+RUN dotnet restore src/backend/src/XcordHub.Api/XcordHub.Api.csproj -r linux-musl-x64 -p:PublishReadyToRun=true
 
 # Copy full source
 COPY xcord-common/ xcord-common/
 COPY src/backend/ src/backend/
 
 # Publish
+# RID + ReadyToRun match xcord-fed/Dockerfile for cold-start parity - see kanban #120
 RUN dotnet publish src/backend/src/XcordHub.Api/XcordHub.Api.csproj \
     -c Release \
     -o /app/publish \
     -p:Version=$VERSION \
+    -r linux-musl-x64 \
+    -p:PublishReadyToRun=true \
+    --self-contained false \
     --no-restore
 
 # ===== Stage 4: Runtime =====

@@ -14,7 +14,7 @@ public sealed class UpgradeQueue : IUpgradeQueue
             InstanceUpgrade = new InstanceUpgradeRequest(instanceId, targetImage, rolloutId)
         };
 
-        await _channel.Writer.WriteAsync(item, cancellationToken);
+        await _channel.Writer.WriteAsync(item, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask EnqueueRolloutAsync(long rolloutId, bool force = false, CancellationToken cancellationToken = default)
@@ -24,11 +24,11 @@ public sealed class UpgradeQueue : IUpgradeQueue
             Rollout = new RolloutRequest(rolloutId, force)
         };
 
-        await _channel.Writer.WriteAsync(item, cancellationToken);
+        await _channel.Writer.WriteAsync(item, cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask<UpgradeWorkItem> DequeueAsync(CancellationToken cancellationToken)
     {
-        return await _channel.Reader.ReadAsync(cancellationToken);
+        return await _channel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
     }
 }

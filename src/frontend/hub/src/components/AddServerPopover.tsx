@@ -15,6 +15,14 @@ export default function AddServerPopover(props: AddServerPopoverProps) {
   let popoverRef: HTMLDivElement | undefined;
   let inputRef: HTMLInputElement | undefined;
   let debounceTimer: ReturnType<typeof setTimeout>;
+  let searchController: AbortController | undefined;
+
+  // Abort any in-flight search and clear the debounce timer when the
+  // component unmounts so stale results never overwrite fresh state.
+  onCleanup(() => {
+    clearTimeout(debounceTimer);
+    searchController?.abort();
+  });
 
   // Focus input when popover opens
   createEffect(() => {
@@ -59,6 +67,11 @@ export default function AddServerPopover(props: AddServerPopoverProps) {
     setError('');
     clearTimeout(debounceTimer);
 
+    // A new keystroke invalidates any in-flight search; abort it so a slow
+    // older response can't clobber state set by a later, faster one.
+    searchController?.abort();
+    searchController = undefined;
+
     if (value.trim().length < 2) {
       setResults([]);
       setSearching(false);
@@ -67,9 +80,25 @@ export default function AddServerPopover(props: AddServerPopoverProps) {
 
     setSearching(true);
     debounceTimer = setTimeout(async () => {
-      const found = await instanceStore.searchInstances(value.trim());
-      setResults(found);
-      setSearching(false);
+      const controller = new AbortController();
+      searchController = controller;
+      try {
+        const found = await instanceStore.searchInstances(value.trim(), controller.signal);
+        // Ignore stale responses: only commit if this is still the active controller.
+        if (searchController !== controller) return;
+        setResults(found);
+        setSearching(false);
+      } catch (err) {
+        // Aborts are expected when typing quickly; just drop them silently.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        if (searchController !== controller) return;
+        setResults([]);
+        setSearching(false);
+      } finally {
+        if (searchController === controller) {
+          searchController = undefined;
+        }
+      }
     }, 300);
   };
 

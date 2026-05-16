@@ -68,9 +68,9 @@ public sealed class ChangePasswordHandler(HubDbContext dbContext, IOptions<AuthO
         }
 
         // Hash new password - offloaded to thread pool to avoid starvation
-        user.PasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.NewPassword, _authOptions.BcryptWorkFactor));
+        user.PasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.NewPassword, _authOptions.BcryptWorkFactor)).ConfigureAwait(false);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -95,7 +95,7 @@ public sealed class ChangePasswordHandler(HubDbContext dbContext, IOptions<AuthO
                 request.NewPassword
             );
 
-            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent());
+            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent()).ConfigureAwait(false);
             return result;
         })
         .RequireAuthorization(Policies.User)

@@ -11,6 +11,6 @@ public sealed class RemoveNetworkStep(IDockerService dockerService, ILogger<Remo
     public async Task ExecuteAsync(ManagedInstance instance, InstanceInfrastructure infrastructure, CancellationToken cancellationToken)
     {
         logger.LogInformation("Removing network for {Domain}", instance.Domain);
-        await dockerService.RemoveNetworkAsync(instance.Domain, cancellationToken);
+        await dockerService.RemoveNetworkAsync(instance.Domain, cancellationToken).ConfigureAwait(false);
     }
 }

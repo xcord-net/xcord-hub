@@ -41,7 +41,7 @@ public sealed class ConfigureBackupPolicyStep : IProvisioningStep
         };
 
         _dbContext.BackupPolicies.Add(policy);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 

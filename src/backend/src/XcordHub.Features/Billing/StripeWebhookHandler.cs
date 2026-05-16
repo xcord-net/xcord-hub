@@ -26,7 +26,7 @@ public sealed class StripeWebhookHandler(
             return Results.StatusCode(503);
         }
 
-        var json = await new StreamReader(httpContext.Request.Body).ReadToEndAsync(ct);
+        var json = await new StreamReader(httpContext.Request.Body).ReadToEndAsync(ct).ConfigureAwait(false);
         Event stripeEvent;
 
         try
@@ -46,23 +46,23 @@ public sealed class StripeWebhookHandler(
         switch (stripeEvent.Type)
         {
             case EventTypes.CheckoutSessionCompleted:
-                await HandleCheckoutCompleted(stripeEvent, ct);
+                await HandleCheckoutCompleted(stripeEvent, ct).ConfigureAwait(false);
                 break;
 
             case EventTypes.InvoicePaid:
-                await HandleInvoicePaid(stripeEvent, ct);
+                await HandleInvoicePaid(stripeEvent, ct).ConfigureAwait(false);
                 break;
 
             case EventTypes.InvoicePaymentFailed:
-                await HandlePaymentFailed(stripeEvent, ct);
+                await HandlePaymentFailed(stripeEvent, ct).ConfigureAwait(false);
                 break;
 
             case EventTypes.CustomerSubscriptionUpdated:
-                await HandleSubscriptionUpdated(stripeEvent, ct);
+                await HandleSubscriptionUpdated(stripeEvent, ct).ConfigureAwait(false);
                 break;
 
             case EventTypes.CustomerSubscriptionDeleted:
-                await HandleSubscriptionDeleted(stripeEvent, ct);
+                await HandleSubscriptionDeleted(stripeEvent, ct).ConfigureAwait(false);
                 break;
 
             default:
@@ -98,7 +98,7 @@ public sealed class StripeWebhookHandler(
         billing.StripeSubscriptionId = session.SubscriptionId;
         billing.BillingStatus = BillingStatus.Active;
 
-        await dbContext.SaveChangesAsync(ct);
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
         logger.LogInformation("Checkout completed for instance {InstanceId}, subscription {SubscriptionId}",
             instanceId, session.SubscriptionId);
@@ -119,7 +119,7 @@ public sealed class StripeWebhookHandler(
         billing.CurrentPeriodEnd = invoice!.PeriodEnd;
         billing.NextBillingDate = invoice.PeriodEnd;
 
-        await dbContext.SaveChangesAsync(ct);
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation("Invoice paid for subscription {SubscriptionId}", subscriptionId);
     }
 
@@ -136,7 +136,7 @@ public sealed class StripeWebhookHandler(
 
         billing.BillingStatus = BillingStatus.PastDue;
 
-        await dbContext.SaveChangesAsync(ct);
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogWarning("Payment failed for subscription {SubscriptionId}, status set to PastDue",
             subscriptionId);
     }
@@ -156,7 +156,7 @@ public sealed class StripeWebhookHandler(
             billing.StripePriceId = subscription.Items.Data[0].Price.Id;
         }
 
-        await dbContext.SaveChangesAsync(ct);
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation("Subscription {SubscriptionId} updated", subscription.Id);
     }
 
@@ -190,7 +190,7 @@ public sealed class StripeWebhookHandler(
             billing.ManagedInstance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
-        await dbContext.SaveChangesAsync(ct);
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation("Subscription {SubscriptionId} deleted, instance downgraded to free tier",
             subscription.Id);
     }
@@ -202,7 +202,7 @@ public sealed class StripeWebhookHandler(
             HttpContext httpContext,
             CancellationToken ct) =>
         {
-            return await handler.HandleAsync(httpContext, ct);
+            return await handler.HandleAsync(httpContext, ct).ConfigureAwait(false);
         })
         .WithName("StripeWebhook")
         .WithTags("Billing");

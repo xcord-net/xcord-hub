@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Xcord.Exceptions;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 using XcordHub;
@@ -31,10 +32,19 @@ public sealed class CreateNetworkStep : IProvisioningStep
 
         try
         {
-            var networkId = await _dockerService.CreateNetworkAsync(instance.Domain, cancellationToken);
+            var networkId = await _dockerService.CreateNetworkAsync(instance.Domain, cancellationToken).ConfigureAwait(false);
             instance.Infrastructure.DockerNetworkId = networkId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return true;
+        }
+        catch (ProvisioningFailedException ex)
+        {
+            return Error.Failure("NETWORK_CREATION_FAILED",
+                $"Failed to create network ({ex.ErrorCode}, resource={ex.Resource}): {ex.Message}");
+        }
+        catch (HttpRequestException ex)
+        {
+            return Error.Failure("NETWORK_CREATION_FAILED", $"Docker API call failed: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -59,8 +69,17 @@ public sealed class CreateNetworkStep : IProvisioningStep
 
         try
         {
-            var exists = await _dockerService.VerifyNetworkAsync(infrastructure.DockerNetworkId, cancellationToken);
+            var exists = await _dockerService.VerifyNetworkAsync(infrastructure.DockerNetworkId, cancellationToken).ConfigureAwait(false);
             return exists ? true : Error.Failure("NETWORK_VERIFY_FAILED", "Network verification failed");
+        }
+        catch (NetworkVerificationException ex)
+        {
+            return Error.Failure("NETWORK_VERIFY_ERROR",
+                $"Network verification error (network={ex.NetworkId}): {ex.Message}");
+        }
+        catch (HttpRequestException ex)
+        {
+            return Error.Failure("NETWORK_VERIFY_ERROR", $"Docker API call failed: {ex.Message}");
         }
         catch (Exception ex)
         {

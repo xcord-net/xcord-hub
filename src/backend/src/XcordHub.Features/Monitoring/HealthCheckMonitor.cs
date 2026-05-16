@@ -55,7 +55,7 @@ public sealed class HealthCheckMonitor(
                     ConsecutiveFailures = 0
                 };
                 dbContext.InstanceHealths.Add(instance.Health);
-                await dbContext.SaveChangesAsync(ct);
+                await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
             }
 
             await CheckInstanceHealthAsync(
@@ -173,7 +173,7 @@ public sealed class HealthCheckMonitor(
                     cancellationToken);
             }
 
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -189,7 +189,7 @@ public sealed class HealthCheckMonitor(
             // Record failed health check
             _metrics.RecordHealthCheck(success: false);
 
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -212,11 +212,11 @@ public sealed class HealthCheckMonitor(
             try
             {
                 // Stop and start container
-                await dockerService.StopContainerAsync(infrastructure.DockerContainerId, cancellationToken);
+                await dockerService.StopContainerAsync(infrastructure.DockerContainerId, cancellationToken).ConfigureAwait(false);
 
                 // Container restart is handled by Docker restart policy
                 // Wait a moment for restart
-                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
 
                 Logger.LogInformation(
                     "Initiated restart for instance {InstanceId} ({Domain})",

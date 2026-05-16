@@ -60,7 +60,7 @@ public sealed class CancelInstanceBillingHandler(
         if (stripeOptions.Value.IsConfigured &&
             !string.IsNullOrWhiteSpace(instance.Billing.StripeSubscriptionId))
         {
-            await stripeService.CancelSubscriptionAsync(instance.Billing.StripeSubscriptionId, cancellationToken);
+            await stripeService.CancelSubscriptionAsync(instance.Billing.StripeSubscriptionId, cancellationToken).ConfigureAwait(false);
         }
 
         instance.Billing.Tier = InstanceTier.Free;
@@ -81,7 +81,7 @@ public sealed class CancelInstanceBillingHandler(
             instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
             "Instance {InstanceId} billing cancelled, downgraded to Free tier",
@@ -100,7 +100,7 @@ public sealed class CancelInstanceBillingHandler(
             CancelInstanceBillingHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new CancelInstanceBillingCommand(instanceId), ct);
+            return await handler.ExecuteAsync(new CancelInstanceBillingCommand(instanceId), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<CancelInstanceBillingResponse>(200)

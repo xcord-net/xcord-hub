@@ -113,7 +113,7 @@ public sealed class AdminGetInstanceHandler(HubDbContext dbContext)
             CancellationToken ct) =>
         {
             var query = new AdminGetInstanceQuery(id);
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<AdminGetInstanceResponse>(200)

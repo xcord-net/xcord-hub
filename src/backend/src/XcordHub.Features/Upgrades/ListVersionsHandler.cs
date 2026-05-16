@@ -50,7 +50,7 @@ public sealed class ListVersionsHandler(HubDbContext dbContext)
             ListVersionsHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new ListVersionsQuery(), ct);
+            return await handler.ExecuteAsync(new ListVersionsQuery(), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<ListVersionsResponse>(200)

@@ -346,41 +346,6 @@ namespace XcordHub.Infrastructure.Migrations
                     b.ToTable("instance_infrastructure", (string)null);
                 });
 
-            modelBuilder.Entity("XcordHub.Entities.InstanceRevenueConfig", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DefaultRevenueSharePercent")
-                        .HasColumnType("integer");
-
-                    b.Property<long>("ManagedInstanceId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("MinPlatformCutPercent")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("StripeConnectedAccountId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ManagedInstanceId")
-                        .IsUnique();
-
-                    b.ToTable("instance_revenue_configs", (string)null);
-                });
-
             modelBuilder.Entity("XcordHub.Entities.MailingListEntry", b =>
                 {
                     b.Property<long>("Id")
@@ -513,53 +478,6 @@ namespace XcordHub.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("password_reset_tokens", (string)null);
-                });
-
-            modelBuilder.Entity("XcordHub.Entities.PlatformRevenue", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<int>("AmountCents")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)");
-
-                    b.Property<long>("ManagedInstanceId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("OwnerPayoutCents")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("PeriodEnd")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("PeriodStart")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("PlatformFeeCents")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("StripeTransferId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ManagedInstanceId");
-
-                    b.HasIndex("ManagedInstanceId", "PeriodStart", "PeriodEnd");
-
-                    b.ToTable("platform_revenues", (string)null);
                 });
 
             modelBuilder.Entity("XcordHub.Entities.ProvisioningEvent", b =>
@@ -735,17 +653,6 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Navigation("ManagedInstance");
                 });
 
-            modelBuilder.Entity("XcordHub.Entities.InstanceRevenueConfig", b =>
-                {
-                    b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
-                        .WithMany()
-                        .HasForeignKey("ManagedInstanceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ManagedInstance");
-                });
-
             modelBuilder.Entity("XcordHub.Entities.ManagedInstance", b =>
                 {
                     b.HasOne("XcordHub.Entities.HubUser", "Owner")
@@ -766,17 +673,6 @@ namespace XcordHub.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("HubUser");
-                });
-
-            modelBuilder.Entity("XcordHub.Entities.PlatformRevenue", b =>
-                {
-                    b.HasOne("XcordHub.Entities.ManagedInstance", "ManagedInstance")
-                        .WithMany()
-                        .HasForeignKey("ManagedInstanceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ManagedInstance");
                 });
 
             modelBuilder.Entity("XcordHub.Entities.ProvisioningEvent", b =>

@@ -41,7 +41,7 @@ public sealed class UptimeTrackingService(
             if (instance.Health == null || instance.Billing == null)
                 continue;
 
-            await TrackInstanceUptimeAsync(instance, dbContext, ct);
+            await TrackInstanceUptimeAsync(instance, dbContext, ct).ConfigureAwait(false);
         }
     }
 
@@ -73,7 +73,7 @@ public sealed class UptimeTrackingService(
                     CreatedAt = now
                 };
                 dbContext.UptimeIntervals.Add(newInterval);
-                await dbContext.SaveChangesAsync(ct);
+                await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
                 Logger.LogInformation(
                     "Opened uptime interval for Enterprise instance {InstanceId} ({Domain}) at {StartedAt}",
@@ -87,7 +87,7 @@ public sealed class UptimeTrackingService(
             if (openInterval != null)
             {
                 openInterval.EndedAt = instance.Health.LastCheckAt;
-                await dbContext.SaveChangesAsync(ct);
+                await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
                 Logger.LogInformation(
                     "Closed uptime interval {IntervalId} for Enterprise instance {InstanceId} ({Domain}). Duration: {Minutes:F1} minutes",

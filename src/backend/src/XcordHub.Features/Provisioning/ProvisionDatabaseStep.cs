@@ -60,13 +60,13 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             };
 
             await using var conn = new NpgsqlConnection(builder.ConnectionString);
-            await conn.OpenAsync(cancellationToken);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Check if database already exists
             await using var checkCmd = new NpgsqlCommand(
                 "SELECT 1 FROM pg_database WHERE datname = @name", conn);
             checkCmd.Parameters.AddWithValue("name", dbName);
-            var exists = await checkCmd.ExecuteScalarAsync(cancellationToken);
+            var exists = await checkCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
 
             if (exists != null)
             {
@@ -78,14 +78,14 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             // CREATE DATABASE cannot run inside a transaction
             await using var createDbCmd = new NpgsqlCommand(
                 $"CREATE DATABASE \"{dbName}\"", conn);
-            await createDbCmd.ExecuteNonQueryAsync(cancellationToken);
+            await createDbCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Created database {Database} for instance {Domain}", dbName, instance.Domain);
 
             // Create per-instance PG user (idempotent - skip if exists)
             await using var checkUserCmd = new NpgsqlCommand(
                 "SELECT 1 FROM pg_roles WHERE rolname = @name", conn);
             checkUserCmd.Parameters.AddWithValue("name", dbUsername);
-            var userExists = await checkUserCmd.ExecuteScalarAsync(cancellationToken);
+            var userExists = await checkUserCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
 
             var dbPassword = infra.DatabasePassword;
 
@@ -94,11 +94,11 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
                 // CREATE USER with LOGIN and restricted connection privileges
                 await using var createUserCmd = new NpgsqlCommand(
                     $"CREATE USER \"{dbUsername}\" WITH PASSWORD '{EscapeSqlString(dbPassword)}'", conn);
-                await createUserCmd.ExecuteNonQueryAsync(cancellationToken);
+                await createUserCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                 await using var grantConnectCmd = new NpgsqlCommand(
                     $"GRANT CONNECT ON DATABASE \"{dbName}\" TO \"{dbUsername}\"", conn);
-                await grantConnectCmd.ExecuteNonQueryAsync(cancellationToken);
+                await grantConnectCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation("Created PG user {Username} for instance {Domain}", dbUsername, instance.Domain);
             }
@@ -107,7 +107,7 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
                 // User exists from a previous provisioning - update password to match new secrets
                 await using var alterCmd = new NpgsqlCommand(
                     $"ALTER USER \"{dbUsername}\" WITH PASSWORD '{EscapeSqlString(dbPassword)}'", conn);
-                await alterCmd.ExecuteNonQueryAsync(cancellationToken);
+                await alterCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation("Updated password for existing PG user {Username}", dbUsername);
             }
@@ -119,13 +119,13 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             };
 
             await using var instanceConn = new NpgsqlConnection(instanceBuilder.ConnectionString);
-            await instanceConn.OpenAsync(cancellationToken);
+            await instanceConn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Create extensions that require superuser privileges. The per-instance
             // user cannot create extensions, so we do it here as the hub superuser.
             await using var extCmd = new NpgsqlCommand(
                 "CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"", instanceConn);
-            await extCmd.ExecuteNonQueryAsync(cancellationToken);
+            await extCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             // Grant schema privileges (idempotent - GRANT is safe to repeat)
             var grantStatements = new[]
@@ -138,12 +138,12 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             foreach (var sql in grantStatements)
             {
                 await using var grantCmd = new NpgsqlCommand(sql, instanceConn);
-                await grantCmd.ExecuteNonQueryAsync(cancellationToken);
+                await grantCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
 
             // Store the username on the infrastructure record
             infra.DatabaseUsername = dbUsername;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return true;
         }
@@ -175,13 +175,13 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
             };
 
             await using var conn = new NpgsqlConnection(builder.ConnectionString);
-            await conn.OpenAsync(cancellationToken);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Verify database exists
             await using var checkCmd = new NpgsqlCommand(
                 "SELECT 1 FROM pg_database WHERE datname = @name", conn);
             checkCmd.Parameters.AddWithValue("name", infrastructure.DatabaseName);
-            var exists = await checkCmd.ExecuteScalarAsync(cancellationToken);
+            var exists = await checkCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
 
             if (exists == null)
             {
@@ -194,7 +194,7 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
                 await using var checkUserCmd = new NpgsqlCommand(
                     "SELECT 1 FROM pg_roles WHERE rolname = @name", conn);
                 checkUserCmd.Parameters.AddWithValue("name", infrastructure.DatabaseUsername);
-                var userExists = await checkUserCmd.ExecuteScalarAsync(cancellationToken);
+                var userExists = await checkUserCmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
 
                 if (userExists == null)
                 {

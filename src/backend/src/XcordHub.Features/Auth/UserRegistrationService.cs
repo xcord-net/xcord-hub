@@ -55,7 +55,7 @@ public sealed class UserRegistrationService(
         }
 
         // Hash password (BCrypt, configurable work factor) - offloaded to thread pool to avoid starvation
-        var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(password, _authOptions.BcryptWorkFactor));
+        var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(password, _authOptions.BcryptWorkFactor)).ConfigureAwait(false);
 
         // Encrypt email
         var encryptedEmail = encryptionService.Encrypt(email.ToLowerInvariant());

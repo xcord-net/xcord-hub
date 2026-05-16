@@ -74,7 +74,7 @@ public sealed class GetBillingHandler(HubDbContext dbContext, ICurrentUserServic
             GetBillingHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new GetBillingQuery(), ct);
+            return await handler.ExecuteAsync(new GetBillingQuery(), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<GetBillingResponse>(200)

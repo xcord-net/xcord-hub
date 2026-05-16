@@ -23,7 +23,7 @@ public sealed class AdminGetSystemConfigHandler : IEndpoint
             ISystemConfigService service,
             CancellationToken ct) =>
         {
-            var config = await service.GetAsync(ct);
+            var config = await service.GetAsync(ct).ConfigureAwait(false);
             return Results.Ok(new AdminSystemConfigResponse(config.PaidServersDisabled, config.UpdatedAt));
         })
         .RequireAuthorization(Policies.Admin)
@@ -42,7 +42,7 @@ public sealed class AdminUpdateSystemConfigHandler : IEndpoint
             ISystemConfigService service,
             CancellationToken ct) =>
         {
-            var config = await service.SetPaidServersDisabledAsync(request.PaidServersDisabled, ct);
+            var config = await service.SetPaidServersDisabledAsync(request.PaidServersDisabled, ct).ConfigureAwait(false);
             return Results.Ok(new AdminSystemConfigResponse(config.PaidServersDisabled, config.UpdatedAt));
         })
         .RequireAuthorization(Policies.Admin)

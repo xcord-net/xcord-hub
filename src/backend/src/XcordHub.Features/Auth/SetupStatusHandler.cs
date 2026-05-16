@@ -14,7 +14,7 @@ public sealed class SetupStatusHandler : IEndpoint
     {
         return app.MapGet("/api/v1/setup/status", async (HubDbContext dbContext, CancellationToken ct) =>
         {
-            var hasUsers = await dbContext.HubUsers.AnyAsync(ct);
+            var hasUsers = await dbContext.HubUsers.AnyAsync(ct).ConfigureAwait(false);
             return Results.Ok(new SetupStatusResponse(!hasUsers));
         })
         .AllowAnonymous()

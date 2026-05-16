@@ -71,7 +71,7 @@ public sealed class CreateInstanceHandler(
         var requestsPaidFeatures = request.Tier != InstanceTier.Free || request.MediaEnabled;
         if (requestsPaidFeatures)
         {
-            var systemConfig = await systemConfigService.GetAsync(cancellationToken);
+            var systemConfig = await systemConfigService.GetAsync(cancellationToken).ConfigureAwait(false);
             if (systemConfig.PaidServersDisabled)
                 return Error.Validation("PAID_SERVERS_DISABLED", "Creation of new paid servers is currently disabled.");
         }
@@ -96,10 +96,10 @@ public sealed class CreateInstanceHandler(
         if (result.IsFailure) return result.Error!;
         var instance = result.Value;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Enqueue for background provisioning
-        await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken);
+        await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken).ConfigureAwait(false);
 
         return new CreateInstanceResponse(
             instance.Id.ToString(),

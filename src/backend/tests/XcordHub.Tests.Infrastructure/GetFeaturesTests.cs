@@ -46,7 +46,7 @@ public sealed class FeaturesEndpointFixture : IAsyncLifetime
             ["Redis__ChannelPrefix"] = "features-test",
             ["Jwt__Issuer"] = "features-test",
             ["Jwt__Audience"] = "features-test",
-            ["Jwt__AccessTokenExpirationMinutes"] = "60",
+            ["Auth__JwtAccessTokenMinutes"] = "60",
             ["Encryption__Key"] = TestEncryptionKey,
             ["Docker__UseReal"] = "false",
             ["Caddy__UseReal"] = "false",
@@ -90,7 +90,7 @@ public sealed class FeaturesEndpointFixture : IAsyncLifetime
         Environment.SetEnvironmentVariable("Redis__ChannelPrefix", null);
         Environment.SetEnvironmentVariable("Jwt__Issuer", null);
         Environment.SetEnvironmentVariable("Jwt__Audience", null);
-        Environment.SetEnvironmentVariable("Jwt__AccessTokenExpirationMinutes", null);
+        Environment.SetEnvironmentVariable("Auth__JwtAccessTokenMinutes", null);
         Environment.SetEnvironmentVariable("Encryption__Key", null);
         Environment.SetEnvironmentVariable("Docker__UseReal", null);
         Environment.SetEnvironmentVariable("Caddy__UseReal", null);

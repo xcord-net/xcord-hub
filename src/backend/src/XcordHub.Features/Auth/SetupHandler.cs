@@ -37,14 +37,14 @@ public sealed class SetupHandler(
         try
         {
             // Guard: if any user already exists, setup has already been completed
-            var hasUsers = await dbContext.HubUsers.AnyAsync(cancellationToken);
+            var hasUsers = await dbContext.HubUsers.AnyAsync(cancellationToken).ConfigureAwait(false);
             if (hasUsers)
             {
                 return Error.BadRequest("SETUP_ALREADY_COMPLETED", "Setup already completed");
             }
 
             // Hash password - offloaded to thread pool to avoid starvation
-            var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.Password, _authOptions.BcryptWorkFactor));
+            var passwordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.Password, _authOptions.BcryptWorkFactor)).ConfigureAwait(false);
 
             // Encrypt email and compute HMAC for lookup
             var encryptedEmail = encryptionService.Encrypt(request.Email.ToLowerInvariant());
@@ -88,8 +88,8 @@ public sealed class SetupHandler(
             dbContext.LoginAttempts.Add(
                 LoginAttemptRecorder.Create(snowflakeGenerator, httpContextAccessor, request.Email, null, userId));
 
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
 
             // Generate JWT access token
             var accessToken = jwtService.GenerateAccessToken(userId, isAdmin: true);
@@ -98,7 +98,7 @@ public sealed class SetupHandler(
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
             throw;
         }
     }
@@ -123,7 +123,7 @@ public sealed class SetupHandler(
             if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
                 return Results.Problem(statusCode: 400, title: "VALIDATION_FAILED", detail: "Password must be at least 8 characters");
 
-            var result = await handler.Handle(request, ct);
+            var result = await handler.Handle(request, ct).ConfigureAwait(false);
 
             return result.Match(
                 success =>

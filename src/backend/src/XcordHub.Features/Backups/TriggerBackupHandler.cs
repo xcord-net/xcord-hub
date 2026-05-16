@@ -41,7 +41,7 @@ public sealed class TriggerBackupHandler(HubDbContext dbContext, SnowflakeIdGene
         };
 
         dbContext.BackupRecords.Add(record);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new BackupRecordItem(
             record.Id.ToString(),
@@ -64,7 +64,7 @@ public sealed class TriggerBackupHandler(HubDbContext dbContext, SnowflakeIdGene
             CancellationToken ct) =>
         {
             var command = new TriggerBackupCommand(id, body.Kind);
-            return await handler.ExecuteAsync(command, ct, result => Results.Created($"/api/v1/admin/instances/{id}/backups", result));
+            return await handler.ExecuteAsync(command, ct, result => Results.Created($"/api/v1/admin/instances/{id}/backups", result)).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<BackupRecordItem>(201)

@@ -67,14 +67,14 @@ public sealed class ForgotPasswordHandler(
         };
 
         dbContext.PasswordResetTokens.Add(resetToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Decrypt stored email and send reset link
         var plaintextEmail = encryptionService.Decrypt(user.Email);
         var resetUrl = BuildResetUrl(emailOptions.Value.HubBaseUrl, resetTokenValue);
         var emailBody = BuildResetEmailBody(user.DisplayName, resetUrl);
 
-        await emailService.SendAsync(plaintextEmail, "Reset your Xcord password", emailBody);
+        await emailService.SendAsync(plaintextEmail, "Reset your Xcord password", emailBody, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Password reset requested");
 
@@ -89,7 +89,7 @@ public sealed class ForgotPasswordHandler(
             CancellationToken ct) =>
         {
             var command = new ForgotPasswordCommand(request.Email);
-            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent());
+            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent()).ConfigureAwait(false);
             return result;
         })
         .AllowAnonymous()

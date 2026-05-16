@@ -76,7 +76,7 @@ public sealed class GenerateSecretsStep : IProvisioningStep
 
         _dbContext.InstanceInfrastructures.Add(infrastructure);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
     }

@@ -28,7 +28,7 @@ public sealed class StripeService : IStripeService
             Email = email,
             Limit = 1
         };
-        var existing = await service.ListAsync(listOptions, cancellationToken: ct);
+        var existing = await service.ListAsync(listOptions, cancellationToken: ct).ConfigureAwait(false);
         if (existing.Data.Count > 0)
         {
             return existing.Data[0].Id;
@@ -45,7 +45,7 @@ public sealed class StripeService : IStripeService
             }
         };
 
-        var customer = await service.CreateAsync(createOptions, cancellationToken: ct);
+        var customer = await service.CreateAsync(createOptions, cancellationToken: ct).ConfigureAwait(false);
         _logger.LogInformation("Created Stripe customer {CustomerId} for user {UserId}", customer.Id, userId);
         return customer.Id;
     }
@@ -74,7 +74,7 @@ public sealed class StripeService : IStripeService
             }
         };
 
-        var session = await service.CreateAsync(options, cancellationToken: ct);
+        var session = await service.CreateAsync(options, cancellationToken: ct).ConfigureAwait(false);
         _logger.LogInformation("Created Stripe checkout session {SessionId} for instance {InstanceId}",
             session.Id, request.InstanceId);
 
@@ -90,7 +90,7 @@ public sealed class StripeService : IStripeService
             Metadata = metadata ?? new Dictionary<string, string>()
         };
 
-        var intent = await service.CreateAsync(options, cancellationToken: ct);
+        var intent = await service.CreateAsync(options, cancellationToken: ct).ConfigureAwait(false);
         _logger.LogInformation("Created Stripe SetupIntent {SetupIntentId}", intent.Id);
 
         return new SetupIntentResult(intent.Id, intent.ClientSecret);
@@ -152,7 +152,7 @@ public sealed class StripeService : IStripeService
     public async Task CancelSubscriptionAsync(string subscriptionId, CancellationToken ct = default)
     {
         var service = new SubscriptionService();
-        await service.CancelAsync(subscriptionId, cancellationToken: ct);
+        await service.CancelAsync(subscriptionId, cancellationToken: ct).ConfigureAwait(false);
         _logger.LogInformation("Cancelled Stripe subscription {SubscriptionId}", subscriptionId);
     }
 
@@ -165,7 +165,7 @@ public sealed class StripeService : IStripeService
             Limit = limit
         };
 
-        var invoices = await service.ListAsync(options, cancellationToken: ct);
+        var invoices = await service.ListAsync(options, cancellationToken: ct).ConfigureAwait(false);
 
         return invoices.Data.Select(i => new StripeInvoice(
             Id: i.Id,
@@ -244,4 +244,5 @@ public sealed class StripeService : IStripeService
 
         return new CreateMeteredSubscriptionResult(sub.Id, subItemId, sub.LatestInvoiceId);
     }
+
 }

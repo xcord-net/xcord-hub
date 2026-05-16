@@ -66,7 +66,7 @@ public sealed class GetInstanceHandler(HubDbContext dbContext)
             CancellationToken ct) =>
         {
             var query = new GetInstanceQuery(instanceId);
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .AllowAnonymous()
         .Produces<GetInstanceResponse>(200)

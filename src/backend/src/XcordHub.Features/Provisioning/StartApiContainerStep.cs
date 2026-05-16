@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
+using Xcord.Exceptions;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
@@ -113,7 +114,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
             // Create a Docker secret containing the config. The secret is mounted at
             // /run/secrets/xcord-config inside the container and read by entrypoint.sh.
             // This keeps sensitive credentials out of `docker inspect` and /proc/<pid>/environ.
-            var secretId = await _dockerService.CreateSecretAsync(instance.Domain, configJson, cancellationToken);
+            var secretId = await _dockerService.CreateSecretAsync(instance.Domain, configJson, cancellationToken).ConfigureAwait(false);
 
             // Start container with config secret + KEK secret (separate Docker secrets).
             // The KEK secret was created in GenerateSecretsStep and is reused across
@@ -131,9 +132,18 @@ public sealed class StartApiContainerStep : IProvisioningStep
             // Update infrastructure with container ID and secret ID
             instance.Infrastructure.DockerContainerId = containerId;
             instance.Infrastructure.DockerSecretId = secretId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return true;
+        }
+        catch (ProvisioningFailedException ex)
+        {
+            return Error.Failure("CONTAINER_START_FAILED",
+                $"Failed to start container ({ex.ErrorCode}, resource={ex.Resource}): {ex.Message}");
+        }
+        catch (HttpRequestException ex)
+        {
+            return Error.Failure("CONTAINER_START_FAILED", $"Docker API call failed: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -162,8 +172,22 @@ public sealed class StartApiContainerStep : IProvisioningStep
             // by the caller after the full pipeline completes). Waiting for the Swarm
             // task to reach "running" state blocks on the container healthcheck which
             // adds 10-30s of unnecessary delay to provisioning.
-            var serviceExists = await _dockerService.VerifyServiceExistsAsync(infrastructure.DockerContainerId, cancellationToken);
+            var serviceExists = await _dockerService.VerifyServiceExistsAsync(infrastructure.DockerContainerId, cancellationToken).ConfigureAwait(false);
             return serviceExists ? true : Error.Failure("SERVICE_NOT_FOUND", "Swarm service not found");
+        }
+        catch (NetworkVerificationException ex)
+        {
+            return Error.Failure("CONTAINER_VERIFY_ERROR",
+                $"Network verification failed (network={ex.NetworkId}): {ex.Message}");
+        }
+        catch (ProvisioningFailedException ex)
+        {
+            return Error.Failure("CONTAINER_VERIFY_ERROR",
+                $"Provisioning verification failed ({ex.ErrorCode}): {ex.Message}");
+        }
+        catch (HttpRequestException ex)
+        {
+            return Error.Failure("CONTAINER_VERIFY_ERROR", $"Docker API call failed: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -322,7 +346,6 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 canUseHdVideo = featureFlags?.CanUseHdVideo ?? false,
                 canUseSimulcast = featureFlags?.CanUseSimulcast ?? false,
                 canUseRecording = featureFlags?.CanUseRecording ?? false,
-                canUseMemberTiers = featureFlags?.CanUseMemberTiers ?? false,
                 canBroadcast = featureFlags?.CanBroadcast ?? false,
                 maxUsers = resourceLimits?.MaxUsers ?? 0,
                 maxServers = resourceLimits?.MaxServers ?? 0,

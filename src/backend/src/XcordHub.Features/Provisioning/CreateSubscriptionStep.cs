@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Stripe;
+using Xcord.Exceptions;
 using XcordHub.Entities;
 using XcordHub.Features.Instances;
 using XcordHub.Infrastructure.Data;
@@ -87,12 +89,12 @@ public sealed class CreateSubscriptionStep : IProvisioningStep
             {
                 instance.Owner.StripeCustomerId = await _stripeService.EnsureCustomerAsync(
                     instance.OwnerId, ownerEmail, instance.Owner.DisplayName, cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
 
             // Resolve the Stripe price ID from our lookup key convention
             var lookupKey = BuildStripePriceId(tier, mediaEnabled);
-            var priceId = await _stripeService.ResolvePriceIdByLookupKeyAsync(lookupKey, cancellationToken);
+            var priceId = await _stripeService.ResolvePriceIdByLookupKeyAsync(lookupKey, cancellationToken).ConfigureAwait(false);
             if (priceId == null)
             {
                 _logger.LogError("Stripe price not found for lookup key {LookupKey}", lookupKey);
@@ -116,7 +118,7 @@ public sealed class CreateSubscriptionStep : IProvisioningStep
             instance.Billing.StripeSubscriptionId = result.SubscriptionId;
             instance.Billing.StripePriceId = priceId;
             instance.Billing.BillingStatus = BillingStatus.Active;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Created Stripe subscription {SubscriptionId} for instance {InstanceId} ({Domain})",
@@ -124,10 +126,25 @@ public sealed class CreateSubscriptionStep : IProvisioningStep
 
             return true;
         }
-        catch (Exception ex)
+        catch (StripeException ex)
         {
-            _logger.LogError(ex, "Failed to create Stripe subscription for instance {InstanceId}", instanceId);
+            // Wrap and log Stripe failures with our typed BillingException so downstream
+            // observability (and any caller that wants to handle billing failures
+            // specifically) can match on it.
+            var billingEx = new BillingException(
+                $"Stripe subscription creation failed for instance {instanceId}: {ex.Message}",
+                ex.StripeError?.Code ?? "stripe_error",
+                ex);
+            _logger.LogError(billingEx,
+                "Failed to create Stripe subscription for instance {InstanceId} (code {StripeCode})",
+                instanceId, billingEx.StripeCode);
             // Don't fail provisioning - the instance is running. Subscription can be retried.
+            return true;
+        }
+        catch (BillingException ex)
+        {
+            _logger.LogError(ex, "Billing error creating Stripe subscription for instance {InstanceId} (code {StripeCode})",
+                instanceId, ex.StripeCode);
             return true;
         }
     }

@@ -28,7 +28,7 @@ public sealed class RemoveRedisAclStep(
         try
         {
             var db = redis.GetDatabase();
-            await db.ExecuteAsync("ACL", new object[] { "DELUSER", infrastructure.RedisUsername });
+            await db.ExecuteAsync("ACL", new object[] { "DELUSER", infrastructure.RedisUsername }).ConfigureAwait(false);
             logger.LogInformation("Removed Redis ACL user {Username}", infrastructure.RedisUsername);
         }
         catch (RedisException ex)

@@ -57,7 +57,7 @@ public sealed class GetUpgradeHistoryHandler(HubDbContext dbContext)
             CancellationToken ct) =>
         {
             var instanceId = long.Parse(httpContext.User.FindFirst("sub")!.Value);
-            return await handler.ExecuteAsync(new GetUpgradeHistoryQuery(instanceId), ct);
+            return await handler.ExecuteAsync(new GetUpgradeHistoryQuery(instanceId), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Federation)
         .Produces<GetUpgradeHistoryResponse>(200)

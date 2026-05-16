@@ -64,9 +64,9 @@ public sealed class StartUpgradeHandler(
         };
 
         dbContext.UpgradeRollouts.Add(rollout);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        await upgradeQueue.EnqueueRolloutAsync(rollout.Id, request.Force, cancellationToken);
+        await upgradeQueue.EnqueueRolloutAsync(rollout.Id, request.Force, cancellationToken).ConfigureAwait(false);
 
         return new StartUpgradeResponse(
             rollout.Id.ToString(),

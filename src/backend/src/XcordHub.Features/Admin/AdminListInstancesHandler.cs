@@ -47,7 +47,7 @@ public sealed class AdminListInstancesHandler(HubDbContext dbContext)
             query = query.Where(i => i.Status == status);
         }
 
-        var total = await query.CountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -96,7 +96,7 @@ public sealed class AdminListInstancesHandler(HubDbContext dbContext)
             var effectivePage = page > 0 ? page : 1;
             var effectivePageSize = pageSize > 0 ? pageSize : 25;
             var query = new AdminListInstancesQuery(effectivePage, effectivePageSize, status);
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<AdminListInstancesResponse>(200)

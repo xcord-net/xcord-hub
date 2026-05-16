@@ -31,12 +31,12 @@ public sealed class ScheduledRolloutService(
         {
             // Atomically set to InProgress before enqueue to prevent double-enqueue
             rollout.Status = RolloutStatus.InProgress;
-            await dbContext.SaveChangesAsync(ct);
+            await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
             Logger.LogInformation("Scheduled rollout {RolloutId} is due (scheduled for {ScheduledAt}), enqueuing",
                 rollout.Id, rollout.ScheduledAt);
 
-            await upgradeQueue.EnqueueRolloutAsync(rollout.Id, force: false, ct);
+            await upgradeQueue.EnqueueRolloutAsync(rollout.Id, force: false, ct).ConfigureAwait(false);
         }
     }
 }

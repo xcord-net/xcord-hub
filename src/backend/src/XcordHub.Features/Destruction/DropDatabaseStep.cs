@@ -50,7 +50,7 @@ public sealed class DropDatabaseStep : IDestructionStep
             };
 
             await using var conn = new NpgsqlConnection(builder.ConnectionString);
-            await conn.OpenAsync(cancellationToken);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
             // Terminate all existing connections to the database before dropping it.
             // pg_terminate_backend returns false for connections that cannot be terminated
@@ -62,13 +62,13 @@ public sealed class DropDatabaseStep : IDestructionStep
                 WHERE datname = @name AND pid <> pg_backend_pid()
                 """, conn);
             terminateCmd.Parameters.AddWithValue("name", dbName);
-            await terminateCmd.ExecuteNonQueryAsync(cancellationToken);
+            await terminateCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Dropping database {Database} for instance {Domain}", dbName, instance.Domain);
 
             await using var dropDbCmd = new NpgsqlCommand(
                 $"DROP DATABASE IF EXISTS \"{EscapeIdentifier(dbName)}\"", conn);
-            await dropDbCmd.ExecuteNonQueryAsync(cancellationToken);
+            await dropDbCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Dropped database {Database} for instance {Domain}", dbName, instance.Domain);
 
@@ -77,7 +77,7 @@ public sealed class DropDatabaseStep : IDestructionStep
             {
                 await using var dropRoleCmd = new NpgsqlCommand(
                     $"DROP ROLE IF EXISTS \"{EscapeIdentifier(dbUsername)}\"", conn);
-                await dropRoleCmd.ExecuteNonQueryAsync(cancellationToken);
+                await dropRoleCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation("Dropped PG role {Username} for instance {Domain}", dbUsername, instance.Domain);
             }

@@ -12,6 +12,6 @@ public sealed class StopContainerStep(IDockerService dockerService, ILogger<Stop
     {
         if (string.IsNullOrWhiteSpace(infrastructure.DockerContainerId)) return;
         logger.LogInformation("Stopping container {ContainerId}", infrastructure.DockerContainerId);
-        await dockerService.StopContainerAsync(infrastructure.DockerContainerId, cancellationToken);
+        await dockerService.StopContainerAsync(infrastructure.DockerContainerId, cancellationToken).ConfigureAwait(false);
     }
 }

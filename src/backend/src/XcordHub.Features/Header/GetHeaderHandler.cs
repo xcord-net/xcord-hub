@@ -66,7 +66,7 @@ public sealed class GetHeaderHandler : IEndpoint
             {
                 serverList = new ServerList { HubKey = key, CreatedAt = DateTimeOffset.UtcNow };
                 db.ServerLists.Add(serverList);
-                await db.SaveChangesAsync(ct);
+                await db.SaveChangesAsync(ct).ConfigureAwait(false);
             }
 
             // Auto-add current serverUrl if provided and not already in list
@@ -78,7 +78,7 @@ public sealed class GetHeaderHandler : IEndpoint
 
                 if (!exists)
                 {
-                    var (name, iconUrl) = await FetchServerInfo(normalized, ct);
+                    var (name, iconUrl) = await FetchServerInfo(normalized, ct).ConfigureAwait(false);
                     serverList.Entries.Add(new ServerListEntry
                     {
                         HubKey = key,
@@ -87,7 +87,7 @@ public sealed class GetHeaderHandler : IEndpoint
                         ServerIconUrl = iconUrl,
                         AddedAt = DateTimeOffset.UtcNow,
                     });
-                    await db.SaveChangesAsync(ct);
+                    await db.SaveChangesAsync(ct).ConfigureAwait(false);
                 }
             }
 

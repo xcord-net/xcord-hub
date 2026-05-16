@@ -68,7 +68,7 @@ public sealed class GetFederationVersionsHandler(HubDbContext dbContext)
             CancellationToken ct) =>
         {
             var instanceId = long.Parse(httpContext.User.FindFirst("sub")!.Value);
-            return await handler.ExecuteAsync(new GetFederationVersionsQuery(instanceId), ct);
+            return await handler.ExecuteAsync(new GetFederationVersionsQuery(instanceId), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Federation)
         .Produces<GetFederationVersionsResponse>(200)

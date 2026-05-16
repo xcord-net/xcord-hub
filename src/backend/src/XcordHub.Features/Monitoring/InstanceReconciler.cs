@@ -64,7 +64,7 @@ public sealed class InstanceReconciler(
                     instance.Id);
 
                 instance.Status = InstanceStatus.Failed;
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
@@ -159,7 +159,7 @@ public sealed class InstanceReconciler(
                     instance.Id, instance.Domain, string.Join(", ", issueDetails));
 
                 instance.Status = InstanceStatus.Failed;
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -200,11 +200,11 @@ public sealed class InstanceReconciler(
                 instance.Id, instance.Domain, (now - instance.CreatedAt).TotalMinutes);
 
             // Re-enqueue with backoff
-            await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken);
+            await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken).ConfigureAwait(false);
 
             // Update status to Pending to trigger re-provisioning
             instance.Status = InstanceStatus.Pending;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

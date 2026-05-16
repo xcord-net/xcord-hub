@@ -35,10 +35,6 @@ public sealed class HubDbContext : DbContext
     public DbSet<UpgradeRollout> UpgradeRollouts => Set<UpgradeRollout>();
     public DbSet<UpgradeEvent> UpgradeEvents => Set<UpgradeEvent>();
 
-    // Revenue tracking
-    public DbSet<InstanceRevenueConfig> InstanceRevenueConfigs => Set<InstanceRevenueConfig>();
-    public DbSet<PlatformRevenue> PlatformRevenues => Set<PlatformRevenue>();
-
     // Backup management
     public DbSet<BackupPolicy> BackupPolicies => Set<BackupPolicy>();
     public DbSet<BackupRecord> BackupRecords => Set<BackupRecord>();

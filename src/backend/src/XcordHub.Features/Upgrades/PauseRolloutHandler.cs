@@ -27,7 +27,7 @@ public sealed class PauseRolloutHandler(HubDbContext dbContext)
             return Error.BadRequest("INVALID_STATUS", $"Cannot pause a rollout with status '{rollout.Status}'");
 
         rollout.Status = RolloutStatus.Paused;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new PauseRolloutResponse(rollout.Id.ToString(), rollout.Status.ToString());
     }
@@ -39,7 +39,7 @@ public sealed class PauseRolloutHandler(HubDbContext dbContext)
             PauseRolloutHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new PauseRolloutCommand(id), ct);
+            return await handler.ExecuteAsync(new PauseRolloutCommand(id), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<PauseRolloutResponse>(200)

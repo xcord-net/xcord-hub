@@ -29,7 +29,7 @@ public sealed class LogoutHandler(HubDbContext dbContext)
         if (refreshToken != null)
         {
             dbContext.RefreshTokens.Remove(refreshToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return true;
@@ -46,7 +46,7 @@ public sealed class LogoutHandler(HubDbContext dbContext)
             if (httpContext.Request.Cookies.TryGetValue("refresh_token", out var refreshTokenValue) &&
                 !string.IsNullOrWhiteSpace(refreshTokenValue))
             {
-                await handler.HandleWithToken(refreshTokenValue, ct);
+                await handler.HandleWithToken(refreshTokenValue, ct).ConfigureAwait(false);
             }
 
             AuthCookieHelper.DeleteRefreshTokenCookie(httpContext);

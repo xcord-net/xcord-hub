@@ -1,5 +1,6 @@
 import { createSignal, createRoot } from 'solid-js';
 import { api } from '../api/client';
+import { resetAllStores } from './index';
 import type { LoginRequest, AuthTokens } from '../types/auth';
 
 const store = createRoot(() => {
@@ -57,13 +58,14 @@ export function useAuth() {
     async logout(): Promise<void> {
       try {
         await api.post('/api/v1/auth/logout');
+      } catch {
+        // Ignore logout API failures - clean up locally regardless
       } finally {
         api.setToken(null);
         localStorage.removeItem('accessToken');
-        store.setUserId(null);
-        store.setUsername(null);
-        store.setIsAdmin(false);
-        store.setIsAuthenticated(false);
+        // Reset all stores (including this auth store) before any
+        // navigation/redirect to prevent data leakage between sessions.
+        resetAllStores();
       }
     },
 

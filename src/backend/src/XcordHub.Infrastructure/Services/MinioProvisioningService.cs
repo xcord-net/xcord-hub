@@ -47,13 +47,13 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         _logger.LogInformation("Provisioning MinIO bucket {Bucket} for user {AccessKey}", bucketName, accessKey);
 
         // 1. Create the bucket (idempotent)
-        await EnsureBucketExistsAsync(bucketName, cancellationToken);
+        await EnsureBucketExistsAsync(bucketName, cancellationToken).ConfigureAwait(false);
 
         // 2. Apply explicit deny-anonymous bucket policy (defense in depth on top of IAM).
-        await ApplyDenyAnonymousBucketPolicyAsync(bucketName, cancellationToken);
+        await ApplyDenyAnonymousBucketPolicyAsync(bucketName, cancellationToken).ConfigureAwait(false);
 
         // 3. Create IAM user and bucket-scoped policy via Admin API
-        await ProvisionAdminResourcesAsync(bucketName, accessKey, secretKey, cancellationToken);
+        await ProvisionAdminResourcesAsync(bucketName, accessKey, secretKey, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("MinIO bucket {Bucket} provisioned for user {AccessKey}", bucketName, accessKey);
     }
@@ -69,7 +69,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         // 1. Remove IAM user and policy
         try
         {
-            await DeprovisionAdminResourcesAsync(bucketName, accessKey, cancellationToken);
+            await DeprovisionAdminResourcesAsync(bucketName, accessKey, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -81,7 +81,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         // 2. Empty and remove the bucket
         try
         {
-            await EmptyAndRemoveBucketAsync(bucketName, cancellationToken);
+            await EmptyAndRemoveBucketAsync(bucketName, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -187,7 +187,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
             var args = new SetPolicyArgs()
                 .WithBucket(bucketName)
                 .WithPolicy(policy);
-            await _rootClient.SetPolicyAsync(args, cancellationToken);
+            await _rootClient.SetPolicyAsync(args, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Applied deny-anonymous bucket policy to {Bucket}", bucketName);
         }
         catch (Exception ex)
@@ -267,15 +267,15 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         using var http = _httpClientFactory.CreateClient("MinioAdmin");
 
         // 1. Create IAM user (encrypted body - contains secret key)
-        await AddUserAsync(http, accessKey, secretKey, cancellationToken);
+        await AddUserAsync(http, accessKey, secretKey, cancellationToken).ConfigureAwait(false);
 
         // 2. Create bucket-scoped canned policy (plain body - not secret)
         var policyName = $"xcord-policy-{accessKey.ToLowerInvariant()}";
         var policyDoc = BuildBucketPolicy(bucketName);
-        await AddCannedPolicyAsync(http, policyName, policyDoc, cancellationToken);
+        await AddCannedPolicyAsync(http, policyName, policyDoc, cancellationToken).ConfigureAwait(false);
 
         // 3. Attach policy to user (encrypted body)
-        await AttachPolicyAsync(http, accessKey, policyName, cancellationToken);
+        await AttachPolicyAsync(http, accessKey, policyName, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task DeprovisionAdminResourcesAsync(
@@ -286,11 +286,11 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         using var http = _httpClientFactory.CreateClient("MinioAdmin");
 
         // Delete user (MinIO automatically detaches their policies)
-        await RemoveUserAsync(http, accessKey, cancellationToken);
+        await RemoveUserAsync(http, accessKey, cancellationToken).ConfigureAwait(false);
 
         // Delete policy
         var policyName = $"xcord-policy-{accessKey.ToLowerInvariant()}";
-        await RemoveCannedPolicyAsync(http, policyName, cancellationToken);
+        await RemoveCannedPolicyAsync(http, policyName, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -309,7 +309,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
             Content = CreateOctetContent(encrypted)
         };
 
-        var response = await http.SendAsync(request, cancellationToken);
+        var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.Conflict)
         {
@@ -319,7 +319,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogError("MinIO add-user failed: {StatusCode} {Body}", response.StatusCode, body);
         }
 
@@ -340,7 +340,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
             Content = new ByteArrayContent(Encoding.UTF8.GetBytes(policyDocument))
         };
 
-        var response = await http.SendAsync(request, cancellationToken);
+        var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         _logger.LogInformation("Created MinIO policy {PolicyName}", policyName);
     }
@@ -361,11 +361,11 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
             Content = CreateOctetContent(encrypted)
         };
 
-        var response = await http.SendAsync(request, cancellationToken);
+        var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogError("MinIO attach-policy failed: {StatusCode} {Body}", response.StatusCode, body);
         }
 
@@ -383,7 +383,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         var request = new HttpRequestMessage(HttpMethod.Delete,
             $"/minio/admin/v3/remove-user?accessKey={Uri.EscapeDataString(accessKey)}");
 
-        var response = await http.SendAsync(request, cancellationToken);
+        var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -405,7 +405,7 @@ public sealed class MinioProvisioningService : IMinioProvisioningService
         var request = new HttpRequestMessage(HttpMethod.Delete,
             $"/minio/admin/v3/delete-canned-policy?name={Uri.EscapeDataString(policyName)}");
 
-        var response = await http.SendAsync(request, cancellationToken);
+        var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {

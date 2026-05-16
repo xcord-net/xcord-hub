@@ -87,7 +87,7 @@ public sealed class ProvisionRedisAclStep : IProvisioningStep
 
             infra.RedisUsername = aclUsername;
             infra.RedisPassword = password;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return true;
         }
@@ -116,7 +116,7 @@ public sealed class ProvisionRedisAclStep : IProvisioningStep
         try
         {
             var db = _redis.GetDatabase();
-            var result = await db.ExecuteAsync("ACL", new object[] { "GETUSER", infra.RedisUsername });
+            var result = await db.ExecuteAsync("ACL", new object[] { "GETUSER", infra.RedisUsername }).ConfigureAwait(false);
             if (result.IsNull)
             {
                 return Error.Failure("REDIS_ACL_USER_NOT_FOUND",

@@ -1,11 +1,11 @@
 import { A } from '@solidjs/router';
-import { createSignal, For, Show, onMount, onCleanup } from 'solid-js';
+import { createSignal, For, Show, onMount } from 'solid-js';
 import PageMeta from '../components/PageMeta';
 import ContactModal from '../components/ContactModal';
+import { api } from '../api/client';
 
 interface TierFeature {
   label: string;
-  comingSoon?: boolean;
 }
 
 interface Tier {
@@ -70,7 +70,6 @@ const tiers: Tier[] = [
       { label: 'Text messaging' },
       { label: 'Bots & webhooks' },
       { label: 'Custom emoji' },
-      { label: 'Monetization tools', comingSoon: true },
     ],
     cta: 'notify',
   },
@@ -88,7 +87,6 @@ const tiers: Tier[] = [
       { label: 'Text messaging' },
       { label: 'Bots & webhooks' },
       { label: 'Custom emoji' },
-      { label: 'Monetization tools', comingSoon: true },
     ],
     cta: 'contact',
   },
@@ -116,50 +114,59 @@ export default function Pricing() {
   const [notifyMessage, setNotifyMessage] = createSignal('');
 
   onMount(async () => {
-    const script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'xcord-pricing-jsonld';
-    script.textContent = JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebPage',
-      name: 'Xcord Pricing',
-      description: 'Hosted plans for Xcord, the open-source Discord alternative.',
-      url: `${window.location.origin}/pricing`,
-      mainEntity: {
-        '@type': 'ItemList',
-        itemListElement: tiers.map((tier, i) => ({
-          '@type': 'ListItem',
-          position: i + 1,
-          item: {
-            '@type': 'Product',
-            name: `Xcord ${tier.name}`,
-            description: tier.memberLimit,
-            offers: {
-              '@type': 'Offer',
-              price: tier.isFree ? '0' : tier.basePrice.replace(/[^0-9.]/g, ''),
-              priceCurrency: 'USD',
-              ...(tier.isEnterprise ? {} : { priceValidUntil: '2027-12-31' }),
+    // Guard: inject the SEO JSON-LD at most once per browser session. The
+    // sessionStorage flag survives client-side navigations away-and-back, and
+    // an explicit `getElementById` check covers SSR-rehydrated pages where the
+    // tag is already in the document. Either signal short-circuits the
+    // injection so we never accumulate stale script tags.
+    const alreadyInjected =
+      sessionStorage.getItem('pricing-jsonld-injected') === '1' ||
+      document.getElementById('xcord-pricing-jsonld') !== null;
+
+    if (!alreadyInjected) {
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'xcord-pricing-jsonld';
+      script.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: 'Xcord Pricing',
+        description: 'Hosted plans for Xcord, the open-source Discord alternative.',
+        url: `${window.location.origin}/pricing`,
+        mainEntity: {
+          '@type': 'ItemList',
+          itemListElement: tiers.map((tier, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            item: {
+              '@type': 'Product',
+              name: `Xcord ${tier.name}`,
+              description: tier.memberLimit,
+              offers: {
+                '@type': 'Offer',
+                price: tier.isFree ? '0' : tier.basePrice.replace(/[^0-9.]/g, ''),
+                priceCurrency: 'USD',
+                ...(tier.isEnterprise ? {} : { priceValidUntil: '2027-12-31' }),
+              },
             },
-          },
-        })),
-      },
-    });
-    document.head.appendChild(script);
+          })),
+        },
+      });
+      document.head.appendChild(script);
+      sessionStorage.setItem('pricing-jsonld-injected', '1');
+    }
 
     try {
-      const res = await fetch('/api/v1/hub/features');
-      if (res.ok) {
-        const data = await res.json();
-        setPaymentsEnabled(data.paymentsEnabled);
-        setPaidServersDisabled(!!data.paidServersDisabled);
-      }
+      const data = await api.get<{ paymentsEnabled: boolean; paidServersDisabled?: boolean }>('/api/v1/hub/features');
+      setPaymentsEnabled(data.paymentsEnabled);
+      setPaidServersDisabled(!!data.paidServersDisabled);
     } catch { /* default to false */ }
     setFeaturesLoaded(true);
   });
 
-  onCleanup(() => {
-    document.getElementById('xcord-pricing-jsonld')?.remove();
-  });
+  // No onCleanup: we want the JSON-LD tag and session flag to persist across
+  // route mounts/unmounts. The mount-time guard ensures we never insert a
+  // duplicate, and SEO crawlers benefit from the tag remaining on the page.
 
   const tierCta = (tier: Tier) => {
     if (tier.cta === 'contact') return tier.cta;
@@ -174,28 +181,19 @@ export default function Pricing() {
     if (!tier) return;
     setNotifyStatus('loading');
     try {
-      const res = await fetch('/api/v1/mailing-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: notifyEmail(), tier }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setNotifyStatus('error');
-        setNotifyMessage(data.message ?? 'Something went wrong.');
-      } else {
-        setNotifyStatus('success');
-        setNotifyMessage(data.message);
-        setTimeout(() => {
-          setNotifyCardKey(null);
-          setNotifyEmail('');
-          setNotifyStatus('idle');
-          setNotifyMessage('');
-        }, 3000);
-      }
-    } catch {
+      const data = await api.post<{ message: string }>('/api/v1/mailing-list', { email: notifyEmail(), tier });
+      setNotifyStatus('success');
+      setNotifyMessage(data.message);
+      setTimeout(() => {
+        setNotifyCardKey(null);
+        setNotifyEmail('');
+        setNotifyStatus('idle');
+        setNotifyMessage('');
+      }, 3000);
+    } catch (err: unknown) {
       setNotifyStatus('error');
-      setNotifyMessage('Network error. Please try again.');
+      const msg = (err as { message?: string } | null)?.message;
+      setNotifyMessage(msg ?? 'Network error. Please try again.');
     }
   }
 
@@ -251,11 +249,6 @@ export default function Pricing() {
                         <span class="text-xcord-landing-text">
                           {feat.label}
                         </span>
-                        <Show when={feat.comingSoon}>
-                          <span class="text-xs font-medium bg-xcord-brand/20 text-xcord-brand px-1.5 py-0.5 rounded-full leading-none shrink-0">
-                            Soon
-                          </span>
-                        </Show>
                       </li>
                     )}
                   </For>

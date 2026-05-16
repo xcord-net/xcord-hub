@@ -42,17 +42,17 @@ public sealed class ConfigureDnsAndProxyStep : IProvisioningStep
             // Resolve pool-specific public IP, falling back to localhost placeholder
             var ips = _resolver.GetPublicIpsForPool(instance.Infrastructure.PlacedInPool);
             var ipAddress = ips.Count > 0 ? ips[0] : "127.0.0.1";
-            await _dnsProvider.CreateARecordAsync(instance.Domain, ipAddress, cancellationToken);
+            await _dnsProvider.CreateARecordAsync(instance.Domain, ipAddress, cancellationToken).ConfigureAwait(false);
 
             // Create Caddy proxy route using the deterministic container name
             // (Docker DNS resolves by container name, not container ID)
             var subdomain = ValidationHelpers.ExtractSubdomain(instance.Domain);
             var containerName = $"xcord-{subdomain}-api";
-            var routeId = await _proxyManager.CreateRouteAsync(instance.Domain, containerName, cancellationToken);
+            var routeId = await _proxyManager.CreateRouteAsync(instance.Domain, containerName, cancellationToken).ConfigureAwait(false);
 
             // Store route ID
             instance.Infrastructure.CaddyRouteId = routeId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return true;
         }
@@ -76,14 +76,14 @@ public sealed class ConfigureDnsAndProxyStep : IProvisioningStep
         try
         {
             // Verify DNS record
-            var dnsOk = await _dnsProvider.VerifyDnsRecordAsync(instance.Domain, cancellationToken);
+            var dnsOk = await _dnsProvider.VerifyDnsRecordAsync(instance.Domain, cancellationToken).ConfigureAwait(false);
             if (!dnsOk)
             {
                 return Error.Failure("DNS_VERIFY_FAILED", "DNS record verification failed");
             }
 
             // Verify Caddy route
-            var routeOk = await _proxyManager.VerifyRouteAsync(instance.Infrastructure.CaddyRouteId, cancellationToken);
+            var routeOk = await _proxyManager.VerifyRouteAsync(instance.Infrastructure.CaddyRouteId, cancellationToken).ConfigureAwait(false);
             if (!routeOk)
             {
                 return Error.Failure("PROXY_VERIFY_FAILED", "Proxy route verification failed");

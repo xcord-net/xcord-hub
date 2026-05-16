@@ -62,7 +62,7 @@ public sealed class DeleteAccountHandler(
                     "Suspending instance {InstanceId} ({Domain}) for deleted account {UserId}",
                     instance.Id, instance.Domain, user.Id);
 
-                await TryStopInstanceAsync(instance, cancellationToken);
+                await TryStopInstanceAsync(instance, cancellationToken).ConfigureAwait(false);
 
                 instance.Status = InstanceStatus.Suspended;
                 instance.DeletedAt = now;
@@ -86,7 +86,7 @@ public sealed class DeleteAccountHandler(
         user.DeletedAt = now;
         user.IsDisabled = true;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Account {UserId} ({Username}) deleted", user.Id, user.Username);
 
@@ -107,7 +107,7 @@ public sealed class DeleteAccountHandler(
         {
             try
             {
-                await dockerService.StopContainerAsync(infrastructure.DockerContainerId, cancellationToken);
+                await dockerService.StopContainerAsync(infrastructure.DockerContainerId, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -132,7 +132,7 @@ public sealed class DeleteAccountHandler(
             }
 
             var command = new DeleteAccountCommand(userId, request.Password);
-            var result = await handler.Handle(command, ct);
+            var result = await handler.Handle(command, ct).ConfigureAwait(false);
 
             return result.Match(
                 _ =>

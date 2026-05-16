@@ -64,13 +64,13 @@ public sealed class ReleaseRedisSlotStep : IDestructionStep
                 batch.Add(key);
                 if (batch.Count >= 64)
                 {
-                    deletedCount += (int)await redisDb.KeyDeleteAsync(batch.ToArray());
+                    deletedCount += (int)await redisDb.KeyDeleteAsync(batch.ToArray()).ConfigureAwait(false);
                     batch.Clear();
                 }
             }
 
             if (batch.Count > 0)
-                deletedCount += (int)await redisDb.KeyDeleteAsync(batch.ToArray());
+                deletedCount += (int)await redisDb.KeyDeleteAsync(batch.ToArray()).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Deleted {Count} Redis keys for instance {Domain} (prefix: {Prefix})",

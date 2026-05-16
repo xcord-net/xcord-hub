@@ -79,15 +79,15 @@ public sealed class UpgradeOrchestrator
         };
 
         _dbContext.UpgradeEvents.Add(upgradeEvent);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
             // Notify instance of upcoming shutdown
-            await _instanceNotifier.NotifyShuttingDownAsync(instance.Domain, "upgrade", cancellationToken);
+            await _instanceNotifier.NotifyShuttingDownAsync(instance.Domain, "upgrade", cancellationToken).ConfigureAwait(false);
 
             // Update the service image
-            await _dockerService.UpdateServiceImageAsync(containerId, targetImage, cancellationToken);
+            await _dockerService.UpdateServiceImageAsync(containerId, targetImage, cancellationToken).ConfigureAwait(false);
 
             // Poll for container to be running (60s timeout, check every 3s)
             var containerRunning = await PollWithTimeoutAsync(
@@ -107,7 +107,7 @@ public sealed class UpgradeOrchestrator
             var healthyWithNewVersion = await PollWithTimeoutAsync(
                 async ct =>
                 {
-                    var (isHealthy, _, _, version) = await _healthCheckVerifier.VerifyInstanceHealthAsync(instance.Domain, ct);
+                    var (isHealthy, _, _, version) = await _healthCheckVerifier.VerifyInstanceHealthAsync(instance.Domain, ct).ConfigureAwait(false);
                     if (isHealthy && version != null && version != previousVersion)
                     {
                         newVersion = version;
@@ -122,7 +122,7 @@ public sealed class UpgradeOrchestrator
             if (!healthyWithNewVersion)
             {
                 // Check if at least healthy (version might not have changed for same-image redeploy)
-                var (isHealthy, _, _, version) = await _healthCheckVerifier.VerifyInstanceHealthAsync(instance.Domain, cancellationToken);
+                var (isHealthy, _, _, version) = await _healthCheckVerifier.VerifyInstanceHealthAsync(instance.Domain, cancellationToken).ConfigureAwait(false);
                 if (isHealthy)
                 {
                     newVersion = version;
@@ -148,7 +148,7 @@ public sealed class UpgradeOrchestrator
             upgradeEvent.NewVersion = newVersion;
             upgradeEvent.CompletedAt = DateTimeOffset.UtcNow;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Instance {InstanceId} upgraded to {TargetImage} (version {Version})",
                 instanceId, targetImage, newVersion ?? "unknown");
@@ -195,13 +195,13 @@ public sealed class UpgradeOrchestrator
         if (!force)
             query = query.Where(i => i.Config == null || i.Config.BatchUpgradesEnabled);
 
-        var targetInstances = await query.ToListAsync(cancellationToken);
+        var targetInstances = await query.ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (rollout.Status == RolloutStatus.Pending)
         {
             rollout.TotalInstances = targetInstances.Count;
             rollout.Status = RolloutStatus.InProgress;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         _logger.LogInformation("Starting rollout {RolloutId}: {Count} instances to upgrade to {Image}",
@@ -219,7 +219,7 @@ public sealed class UpgradeOrchestrator
             if (cancellationToken.IsCancellationRequested) break;
 
             // Reload rollout status (might have been cancelled/paused externally)
-            await _dbContext.Entry(rollout).ReloadAsync(cancellationToken);
+            await _dbContext.Entry(rollout).ReloadAsync(cancellationToken).ConfigureAwait(false);
             if (rollout.Status is RolloutStatus.Cancelled or RolloutStatus.Paused)
                 break;
 
@@ -231,7 +231,7 @@ public sealed class UpgradeOrchestrator
                     instance.Id, rollout.ToImage, rollout.Id, cancellationToken));
             });
 
-            var results = await Task.WhenAll(tasks);
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
             foreach (var (instanceId, result) in results)
             {
@@ -250,13 +250,13 @@ public sealed class UpgradeOrchestrator
                 }
             }
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             // Check failure threshold
             if (rollout.FailedInstances >= rollout.MaxFailures)
             {
                 rollout.Status = RolloutStatus.Paused;
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 _logger.LogWarning("Rollout {RolloutId} paused: {Failed} failures >= max {Max}",
                     rolloutId, rollout.FailedInstances, rollout.MaxFailures);
                 return Error.Failure("ROLLOUT_PAUSED", $"Rollout paused after {rollout.FailedInstances} failure(s)");
@@ -264,12 +264,12 @@ public sealed class UpgradeOrchestrator
         }
 
         // Reload to check for external cancellation/pause
-        await _dbContext.Entry(rollout).ReloadAsync(cancellationToken);
+        await _dbContext.Entry(rollout).ReloadAsync(cancellationToken).ConfigureAwait(false);
         if (rollout.Status == RolloutStatus.InProgress)
         {
             rollout.Status = RolloutStatus.Completed;
             rollout.CompletedAt = DateTimeOffset.UtcNow;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Rollout {RolloutId} completed: {Count} instances upgraded",
                 rolloutId, rollout.CompletedInstances);
@@ -291,7 +291,7 @@ public sealed class UpgradeOrchestrator
         {
             try
             {
-                await _dockerService.UpdateServiceImageAsync(containerId, previousImage, cancellationToken);
+                await _dockerService.UpdateServiceImageAsync(containerId, previousImage, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Reverted instance {InstanceId} to previous image {Image}",
                     instance.Id, previousImage);
             }
@@ -308,7 +308,7 @@ public sealed class UpgradeOrchestrator
         upgradeEvent.ErrorMessage = errorMessage;
         upgradeEvent.CompletedAt = DateTimeOffset.UtcNow;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return Error.Failure("UPGRADE_FAILED", errorMessage);
     }
@@ -336,7 +336,7 @@ public sealed class UpgradeOrchestrator
                     // Swallow transient errors during polling
                 }
 
-                await Task.Delay(interval, timeoutCts.Token);
+                await Task.Delay(interval, timeoutCts.Token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

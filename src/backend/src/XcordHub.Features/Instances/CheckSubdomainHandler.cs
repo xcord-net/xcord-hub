@@ -69,7 +69,7 @@ public sealed class CheckSubdomainHandler(
             CheckSubdomainHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new CheckSubdomainQuery(subdomain), ct);
+            return await handler.ExecuteAsync(new CheckSubdomainQuery(subdomain), ct).ConfigureAwait(false);
         })
         .AllowAnonymous()
         .Produces<CheckSubdomainResponse>(200)

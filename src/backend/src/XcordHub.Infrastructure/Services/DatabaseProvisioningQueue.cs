@@ -24,7 +24,7 @@ public sealed class DatabaseProvisioningQueue : IProvisioningQueue
         }
 
         instance.Status = InstanceStatus.Provisioning;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<long?> DequeueAsync(CancellationToken cancellationToken = default)

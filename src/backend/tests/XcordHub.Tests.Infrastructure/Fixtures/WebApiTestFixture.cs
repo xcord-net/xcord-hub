@@ -79,7 +79,7 @@ public sealed class WebApiTestFixture : IAsyncLifetime
                         ["Redis:ChannelPrefix"] = "webapi-test",
                         ["Jwt:Issuer"] = TestJwtIssuer,
                         ["Jwt:Audience"] = TestJwtAudience,
-                        ["Jwt:AccessTokenExpirationMinutes"] = "60",
+                        ["Auth:JwtAccessTokenMinutes"] = "60",
                         ["Encryption:Key"] = TestEncryptionKey,
                         ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
                         ["Docker:UseReal"] = "false",

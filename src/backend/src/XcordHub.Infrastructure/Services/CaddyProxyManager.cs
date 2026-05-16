@@ -87,14 +87,14 @@ public sealed class CaddyProxyManager : ICaddyProxyManager
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            var error = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             throw new InvalidOperationException($"Failed to create Caddy route: {error}");
         }
 
         // Add a TLS automation policy so Caddy provisions a cert for this domain.
         // Uses the same "internal" issuer as the hub domain (self-signed CA locally,
         // ACME in production via the Caddyfile's tls directive).
-        await EnsureTlsAutomationPolicyAsync(instanceDomain, cancellationToken);
+        await EnsureTlsAutomationPolicyAsync(instanceDomain, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Created Caddy route {RouteId} for instance {Domain}", routeId, instanceDomain);
         return routeId;
@@ -252,7 +252,7 @@ public sealed class CaddyProxyManager : ICaddyProxyManager
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            var error = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogWarning("Failed to add TLS automation policy for {Domain}: {Error}", domain, error);
             // Non-fatal: in production, ACME certs may be handled differently
         }
@@ -273,7 +273,7 @@ public sealed class CaddyProxyManager : ICaddyProxyManager
 
         if (!response.IsSuccessStatusCode && response.StatusCode != System.Net.HttpStatusCode.NotFound)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            var error = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             throw new InvalidOperationException($"Failed to delete Caddy route: {error}");
         }
 

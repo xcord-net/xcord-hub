@@ -34,17 +34,17 @@ public sealed class DeleteBackupHandler(
 
         // Soft-delete the record
         backup.SoftDelete();
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Delete storage objects - best effort; log but don't fail if storage deletion fails
         if (!string.IsNullOrEmpty(backup.StoragePath))
         {
             try
             {
-                var objects = await coldStorageService.ListObjectsAsync(backup.StoragePath, cancellationToken);
+                var objects = await coldStorageService.ListObjectsAsync(backup.StoragePath, cancellationToken).ConfigureAwait(false);
                 foreach (var key in objects)
                 {
-                    await coldStorageService.DeleteAsync(key, cancellationToken);
+                    await coldStorageService.DeleteAsync(key, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -67,7 +67,7 @@ public sealed class DeleteBackupHandler(
             CancellationToken ct) =>
         {
             var command = new DeleteBackupCommand(id, backupId);
-            return await handler.ExecuteAsync(command, ct);
+            return await handler.ExecuteAsync(command, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<SuccessResponse>(200)

@@ -54,7 +54,7 @@ public sealed class EnforceTierLimitsStep : IProvisioningStep
             instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 

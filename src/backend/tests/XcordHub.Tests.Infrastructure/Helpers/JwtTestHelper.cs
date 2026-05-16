@@ -28,13 +28,17 @@ public static class JwtTestHelper
         var options = Options.Create(new JwtOptions
         {
             Issuer = issuer,
-            Audience = audience,
-            AccessTokenExpirationMinutes = expirationMinutes
+            Audience = audience
+        });
+        var authOptions = Options.Create(new AuthOptions
+        {
+            JwtAccessTokenMinutes = expirationMinutes
         });
 
         var jwt = new JwtService(
             db,
             options,
+            authOptions,
             rsaKeySingleton,
             encryption,
             NullLogger<JwtService>.Instance);

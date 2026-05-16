@@ -12,6 +12,6 @@ public sealed class RemoveProxyRouteStep(ICaddyProxyManager proxyManager, ILogge
     {
         if (string.IsNullOrWhiteSpace(infrastructure.CaddyRouteId)) return;
         logger.LogInformation("Removing proxy route {RouteId}", infrastructure.CaddyRouteId);
-        await proxyManager.DeleteRouteAsync(infrastructure.CaddyRouteId, cancellationToken);
+        await proxyManager.DeleteRouteAsync(infrastructure.CaddyRouteId, cancellationToken).ConfigureAwait(false);
     }
 }

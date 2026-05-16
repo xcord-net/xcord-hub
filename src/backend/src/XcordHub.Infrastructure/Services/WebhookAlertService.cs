@@ -48,7 +48,7 @@ public sealed class WebhookAlertService : IAlertService
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync(_webhookUrl, content, cancellationToken);
+            var response = await _httpClient.PostAsync(_webhookUrl, content, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             _logger.LogInformation(

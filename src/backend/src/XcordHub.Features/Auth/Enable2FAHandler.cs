@@ -37,7 +37,7 @@ public sealed class Enable2FAHandler(HubDbContext dbContext)
         // Generate QR code URL (otpauth://totp/...)
         var qrCodeUrl = $"otpauth://totp/XcordHub:{user.Username}?secret={secret}&issuer=XcordHub&algorithm=SHA256";
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new Enable2FAResponse(secret, qrCodeUrl);
     }
@@ -56,7 +56,7 @@ public sealed class Enable2FAHandler(HubDbContext dbContext)
             }
 
             var command = new Enable2FACommand(userId);
-            var result = await handler.ExecuteAsync(command, ct);
+            var result = await handler.ExecuteAsync(command, ct).ConfigureAwait(false);
             return result;
         })
         .RequireAuthorization(Policies.User)

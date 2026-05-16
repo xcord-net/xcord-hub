@@ -66,7 +66,7 @@ public sealed class SuspendInstanceHandler(
             // Grace period: give the instance time to broadcast the notice to clients.
             var grace = shutdownGracePeriod ?? TimeSpan.FromSeconds(5);
             if (grace > TimeSpan.Zero)
-                await Task.Delay(grace, cancellationToken);
+                await Task.Delay(grace, cancellationToken).ConfigureAwait(false);
 
             // Stop the container
             await dockerService.StopContainerAsync(
@@ -76,7 +76,7 @@ public sealed class SuspendInstanceHandler(
             // Update status - optimistic concurrency via xmin ensures only one concurrent
             // suspension wins; the other gets DbUpdateConcurrencyException → 409 Conflict.
             instance.Status = InstanceStatus.Suspended;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation(
                 "Instance {InstanceId} ({Domain}) suspended successfully",
@@ -118,7 +118,7 @@ public sealed class SuspendInstanceHandler(
             }
 
             var command = new SuspendInstanceCommand(instanceId, userId);
-            var result = await handler.Handle(command, ct);
+            var result = await handler.Handle(command, ct).ConfigureAwait(false);
 
             return result.Match(
                 success => Results.Ok(new SuccessResponse(true)),

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 
@@ -30,6 +31,9 @@ public sealed class UpdateProfileHandler(
     IEncryptionService encryptionService)
     : IRequestHandler<UpdateProfileCommand, Result<UpdateProfileResponse>>, IValidatable<UpdateProfileCommand>
 {
+    // PostgreSQL unique_violation SQLSTATE.
+    private const string UniqueViolationSqlState = "23505";
+
     public Error? Validate(UpdateProfileCommand request)
     {
         if (request.DisplayName is not null && string.IsNullOrWhiteSpace(request.DisplayName))
@@ -69,17 +73,23 @@ public sealed class UpdateProfileHandler(
             var normalizedEmail = request.Email.ToLowerInvariant();
             var emailHash = encryptionService.ComputeHmac(normalizedEmail);
 
-            var emailExists = await dbContext.HubUsers
-                .AnyAsync(u => u.Id != request.UserId && u.EmailHash == emailHash && u.DeletedAt == null, cancellationToken);
-
-            if (emailExists)
-                return Error.Conflict("EMAIL_TAKEN", "Email is already in use");
-
             user.Email = encryptionService.Encrypt(normalizedEmail);
             user.EmailHash = emailHash;
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        // Rely on the unique partial index on hub_users (EmailHash) WHERE DeletedAt IS NULL
+        // to enforce uniqueness atomically. Two concurrent requests with the same email
+        // race at SaveChangesAsync; the loser raises a unique_violation, which we translate
+        // to a clean ValidationError. This eliminates the TOCTOU window between the prior
+        // AnyAsync check and the SaveChanges call.
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex) when (IsEmailUniqueViolation(ex))
+        {
+            return Error.Conflict("EMAIL_TAKEN", "Email is already in use");
+        }
 
         var decryptedEmail = encryptionService.Decrypt(user.Email);
 
@@ -87,6 +97,14 @@ public sealed class UpdateProfileHandler(
             DisplayName: user.DisplayName,
             Email: decryptedEmail
         );
+    }
+
+    private static bool IsEmailUniqueViolation(DbUpdateException ex)
+    {
+        if (ex.InnerException is not PostgresException pg) return false;
+        if (pg.SqlState != UniqueViolationSqlState) return false;
+        // ConstraintName is the EF-generated index name on hub_users.EmailHash.
+        return pg.ConstraintName?.Contains("EmailHash", StringComparison.OrdinalIgnoreCase) ?? false;
     }
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
@@ -107,7 +125,7 @@ public sealed class UpdateProfileHandler(
                 request.Email
             );
 
-            return await handler.ExecuteAsync(command, ct);
+            return await handler.ExecuteAsync(command, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<UpdateProfileResponse>(200)

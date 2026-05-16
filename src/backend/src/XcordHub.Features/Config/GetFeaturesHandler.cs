@@ -22,7 +22,7 @@ public sealed class GetFeaturesHandler : IEndpoint
             CancellationToken ct) =>
         {
             var opts = stripeOptions.Value;
-            var systemConfig = await systemConfigService.GetAsync(ct);
+            var systemConfig = await systemConfigService.GetAsync(ct).ConfigureAwait(false);
             return Results.Ok(new GetFeaturesResponse(
                 PaymentsEnabled: opts.IsConfigured,
                 StripePublishableKey: opts.IsConfigured ? opts.PublishableKey : null,

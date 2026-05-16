@@ -68,7 +68,7 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext, IOptions<AuthOp
         }
 
         // Update password - offloaded to thread pool to avoid starvation
-        resetToken.HubUser.PasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.NewPassword, _authOptions.BcryptWorkFactor));
+        resetToken.HubUser.PasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.NewPassword, _authOptions.BcryptWorkFactor)).ConfigureAwait(false);
 
         // Mark token as used
         resetToken.IsUsed = true;
@@ -79,7 +79,7 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext, IOptions<AuthOp
             .ToListAsync(cancellationToken);
         dbContext.RefreshTokens.RemoveRange(refreshTokens);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -92,7 +92,7 @@ public sealed class ResetPasswordHandler(HubDbContext dbContext, IOptions<AuthOp
             CancellationToken ct) =>
         {
             var command = new ResetPasswordCommand(request.Token, request.NewPassword);
-            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent());
+            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent()).ConfigureAwait(false);
             return result;
         })
         .Produces(204)

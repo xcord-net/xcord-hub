@@ -87,7 +87,7 @@ public sealed class GetUpgradeStatusHandler(HubDbContext dbContext)
             GetUpgradeStatusHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new GetUpgradeStatusQuery(id), ct);
+            return await handler.ExecuteAsync(new GetUpgradeStatusQuery(id), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<GetUpgradeStatusResponse>(200)

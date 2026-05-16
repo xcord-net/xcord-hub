@@ -310,7 +310,7 @@ file sealed class CapturedEmailService : IEmailService
     private readonly List<SentEmail> _emails = [];
     public IReadOnlyList<SentEmail> SentEmails => _emails;
 
-    public Task SendAsync(string to, string subject, string htmlBody)
+    public Task SendAsync(string to, string subject, string htmlBody, CancellationToken cancellationToken = default)
     {
         _emails.Add(new SentEmail(to, subject, htmlBody));
         return Task.CompletedTask;

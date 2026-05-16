@@ -13,6 +13,6 @@ public sealed class RemoveMinioBucketStep(IMinioProvisioningService minioService
         var subdomain = ValidationHelpers.ExtractSubdomain(instance.Domain);
         var bucketName = $"xcord-{subdomain}";
         logger.LogInformation("Removing MinIO bucket {Bucket} for {Domain}", bucketName, instance.Domain);
-        await minioService.DeprovisionBucketAsync(bucketName, infrastructure.MinioAccessKey, cancellationToken);
+        await minioService.DeprovisionBucketAsync(bucketName, infrastructure.MinioAccessKey, cancellationToken).ConfigureAwait(false);
     }
 }

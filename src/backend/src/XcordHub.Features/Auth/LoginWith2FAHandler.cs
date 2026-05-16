@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Auth;
@@ -26,11 +28,14 @@ public sealed class LoginWith2FAHandler(
     IEncryptionService encryptionService,
     IJwtService jwtService,
     SnowflakeIdGenerator snowflakeGenerator,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    IOptions<AuthOptions> authOptions)
     : IRequestHandler<LoginWith2FARequest, Result<LoginWith2FAResponse>>, IValidatable<LoginWith2FARequest>
 {
     private const int MaxCumulativeTwoFactorFailures = 10;
     private static readonly TimeSpan TwoFactorLockoutDuration = TimeSpan.FromMinutes(30);
+
+    private readonly int _refreshTokenDays = authOptions.Value.JwtRefreshTokenDays;
 
     public Error? Validate(LoginWith2FARequest request)
     {
@@ -68,7 +73,7 @@ public sealed class LoginWith2FAHandler(
         if (user == null)
         {
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_CREDENTIALS"));
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
@@ -76,7 +81,7 @@ public sealed class LoginWith2FAHandler(
         if (!await Task.Run(() => BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)))
         {
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_CREDENTIALS", user.Id));
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return Error.Validation("INVALID_CREDENTIALS", "Invalid email or password");
         }
 
@@ -84,7 +89,7 @@ public sealed class LoginWith2FAHandler(
         if (user.IsDisabled)
         {
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "ACCOUNT_DISABLED", user.Id));
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return Error.Forbidden("ACCOUNT_DISABLED", "Account is disabled");
         }
 
@@ -92,7 +97,7 @@ public sealed class LoginWith2FAHandler(
         if (!user.TwoFactorEnabled || string.IsNullOrEmpty(user.TwoFactorSecret))
         {
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "2FA_NOT_ENABLED", user.Id));
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return Error.Validation("2FA_NOT_ENABLED", "Two-factor authentication is not enabled on this account");
         }
 
@@ -103,7 +108,7 @@ public sealed class LoginWith2FAHandler(
             if (DateTimeOffset.UtcNow < lockExpiry)
             {
                 dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "TWO_FACTOR_LOCKED", user.Id));
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 return Error.Forbidden("TWO_FACTOR_LOCKED",
                     "Account is temporarily locked due to too many failed 2FA attempts. Please try again later.");
             }
@@ -111,7 +116,7 @@ public sealed class LoginWith2FAHandler(
             // Lockout has expired -- reset counters
             user.TwoFactorFailureCount = 0;
             user.TwoFactorLockedAt = null;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         // Validate TOTP code
@@ -123,13 +128,13 @@ public sealed class LoginWith2FAHandler(
             {
                 user.TwoFactorLockedAt = DateTimeOffset.UtcNow;
                 dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "TWO_FACTOR_LOCKED", user.Id));
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 return Error.Forbidden("TWO_FACTOR_LOCKED",
                     "Account is temporarily locked due to too many failed 2FA attempts. Please try again later.");
             }
 
             dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, "INVALID_2FA_CODE", user.Id));
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return Error.Validation("INVALID_CODE", "Invalid verification code");
         }
 
@@ -150,7 +155,7 @@ public sealed class LoginWith2FAHandler(
             Id = snowflakeGenerator.NextId(),
             TokenHash = refreshTokenHash,
             HubUserId = user.Id,
-            ExpiresAt = now.AddDays(30),
+            ExpiresAt = now.AddDays(_refreshTokenDays),
             CreatedAt = now
         };
 
@@ -159,7 +164,7 @@ public sealed class LoginWith2FAHandler(
         // Record successful login attempt
         dbContext.LoginAttempts.Add(CreateLoginAttempt(request.Email, null, user.Id));
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Generate JWT access token
         var accessToken = jwtService.GenerateAccessToken(user.Id, user.IsAdmin);

@@ -582,22 +582,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/hub/instances/{instanceId}/revenue": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["GetInstanceRevenue"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/hub/instances/{id}/usage": {
         parameters: {
             query?: never;
@@ -622,22 +606,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetInvoices"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/hub/admin/revenue": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["GetPlatformRevenue"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1472,15 +1440,6 @@ export interface components {
             /** Format: int32 */
             onlineCount: number;
         };
-        InstanceRevenueLine: {
-            instanceId: string;
-            domain: string;
-            displayName: string;
-            /** Format: int32 */
-            amountCents: number;
-            /** Format: int32 */
-            platformFeeCents: number;
-        };
         InstanceSummary: {
             instanceId: string;
             domain: string;
@@ -1589,19 +1548,6 @@ export interface components {
             id: string;
             status: string;
         };
-        PlatformRevenueSummary: {
-            /** Format: int32 */
-            totalAmountCents: number;
-            /** Format: int32 */
-            totalPlatformFeeCents: number;
-            /** Format: int32 */
-            currentMonthAmountCents: number;
-            /** Format: int32 */
-            currentMonthPlatformFeeCents: number;
-            /** Format: int32 */
-            activeInstanceCount: number;
-            topInstances: components["schemas"]["InstanceRevenueLine"][];
-        };
         ProvisionInstanceCommand: {
             /** Format: int64 */
             ownerId: number;
@@ -1644,10 +1590,10 @@ export interface components {
             email: string;
             accessToken: string;
         };
-        RegisterCommand: {
+        RegisterRequest: {
             bootstrapToken: string;
         };
-        RegisterRequest: {
+        RegisterRequest2: {
             username: string;
             displayName: string;
             email: string;
@@ -1695,24 +1641,6 @@ export interface components {
         ResumeRolloutResponse: {
             id: string;
             status: string;
-        };
-        RevenueSummary: {
-            instanceId: string;
-            /** Format: int32 */
-            totalAmountCents: number;
-            /** Format: int32 */
-            totalPlatformFeeCents: number;
-            /** Format: int32 */
-            totalOwnerPayoutCents: number;
-            /** Format: int32 */
-            currentMonthAmountCents: number;
-            /** Format: int32 */
-            currentMonthPlatformFeeCents: number;
-            /** Format: int32 */
-            currentMonthOwnerPayoutCents: number;
-            stripeConnectedAccountId: string | null;
-            /** Format: int32 */
-            revenueSharePercent: number;
         };
         RotateDataKeyResponse: {
             /** Format: int32 */
@@ -2577,7 +2505,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterCommand"];
+                "application/json": components["schemas"]["RegisterRequest"];
             };
         };
         responses: {
@@ -2797,28 +2725,6 @@ export interface operations {
             };
         };
     };
-    GetInstanceRevenue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                instanceId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevenueSummary"];
-                };
-            };
-        };
-    };
     GetInstanceUsage: {
         parameters: {
             query?: never;
@@ -2859,26 +2765,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GetInvoicesResponse"];
-                };
-            };
-        };
-    };
-    GetPlatformRevenue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PlatformRevenueSummary"];
                 };
             };
         };
@@ -3321,7 +3207,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterRequest"];
+                "application/json": components["schemas"]["RegisterRequest2"];
             };
         };
         responses: {

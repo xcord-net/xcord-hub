@@ -3,12 +3,16 @@
 **/node_modules/
 **/dist/
 **/.git
+.git/
 **/.vs/
 **/.vscode/
 **/.idea/
 **/Thumbs.db
 **/.DS_Store
 **/.env
+**/.env.*
+**/*.pem
+**/*.key
 **/*.user
 **/*.suo
 **/TestResults

@@ -54,7 +54,7 @@ public sealed class ReportUsageToStripeService(
 
         foreach (var instance in meteredInstances)
         {
-            await ReportInstanceUsageAsync(instance, dbContext, stripeService, now, ct);
+            await ReportInstanceUsageAsync(instance, dbContext, stripeService, now, ct).ConfigureAwait(false);
         }
     }
 
@@ -101,7 +101,7 @@ public sealed class ReportUsageToStripeService(
 
             var minutesToReport = (long)Math.Floor(totalMinutes);
 
-            await stripeService.ReportUsageAsync(subItemId, minutesToReport, now, ct);
+            await stripeService.ReportUsageAsync(subItemId, minutesToReport, now, ct).ConfigureAwait(false);
 
             // Mark all closed intervals as reported
             foreach (var interval in unreportedIntervals)
@@ -130,7 +130,7 @@ public sealed class ReportUsageToStripeService(
                 dbContext.UptimeIntervals.Add(freshInterval);
             }
 
-            await dbContext.SaveChangesAsync(ct);
+            await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
             Logger.LogInformation(
                 "Reported {Minutes} uptime minutes to Stripe for instance {InstanceId} ({Domain})",

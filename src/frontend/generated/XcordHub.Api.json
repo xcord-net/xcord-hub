@@ -919,7 +919,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterCommand"
+                "$ref": "#/components/schemas/RegisterRequest"
               }
             }
           },
@@ -1217,37 +1217,6 @@
         }
       }
     },
-    "/api/v1/hub/instances/{instanceId}/revenue": {
-      "get": {
-        "tags": [
-          "Billing"
-        ],
-        "operationId": "GetInstanceRevenue",
-        "parameters": [
-          {
-            "name": "instanceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RevenueSummary"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/hub/instances/{id}/usage": {
       "get": {
         "tags": [
@@ -1302,26 +1271,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetInvoicesResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/hub/admin/revenue": {
-      "get": {
-        "tags": [
-          "Billing"
-        ],
-        "operationId": "GetPlatformRevenue",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PlatformRevenueSummary"
                 }
               }
             }
@@ -1899,7 +1848,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
+                "$ref": "#/components/schemas/RegisterRequest2"
               }
             }
           },
@@ -3406,35 +3355,6 @@
           }
         }
       },
-      "InstanceRevenueLine": {
-        "required": [
-          "instanceId",
-          "domain",
-          "displayName",
-          "amountCents",
-          "platformFeeCents"
-        ],
-        "type": "object",
-        "properties": {
-          "instanceId": {
-            "type": "string"
-          },
-          "domain": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "amountCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "platformFeeCents": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
       "InstanceSummary": {
         "required": [
           "instanceId",
@@ -3819,45 +3739,6 @@
           }
         }
       },
-      "PlatformRevenueSummary": {
-        "required": [
-          "totalAmountCents",
-          "totalPlatformFeeCents",
-          "currentMonthAmountCents",
-          "currentMonthPlatformFeeCents",
-          "activeInstanceCount",
-          "topInstances"
-        ],
-        "type": "object",
-        "properties": {
-          "totalAmountCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalPlatformFeeCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentMonthAmountCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentMonthPlatformFeeCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "activeInstanceCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "topInstances": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/InstanceRevenueLine"
-            }
-          }
-        }
-      },
       "ProvisionInstanceCommand": {
         "required": [
           "ownerId",
@@ -4002,7 +3883,7 @@
           }
         }
       },
-      "RegisterCommand": {
+      "RegisterRequest": {
         "required": [
           "bootstrapToken"
         ],
@@ -4013,7 +3894,7 @@
           }
         }
       },
-      "RegisterRequest": {
+      "RegisterRequest2": {
         "required": [
           "username",
           "displayName",
@@ -4180,57 +4061,6 @@
           },
           "status": {
             "type": "string"
-          }
-        }
-      },
-      "RevenueSummary": {
-        "required": [
-          "instanceId",
-          "totalAmountCents",
-          "totalPlatformFeeCents",
-          "totalOwnerPayoutCents",
-          "currentMonthAmountCents",
-          "currentMonthPlatformFeeCents",
-          "currentMonthOwnerPayoutCents",
-          "stripeConnectedAccountId",
-          "revenueSharePercent"
-        ],
-        "type": "object",
-        "properties": {
-          "instanceId": {
-            "type": "string"
-          },
-          "totalAmountCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalPlatformFeeCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalOwnerPayoutCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentMonthAmountCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentMonthPlatformFeeCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "currentMonthOwnerPayoutCents": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "stripeConnectedAccountId": {
-            "type": "string",
-            "nullable": true
-          },
-          "revenueSharePercent": {
-            "type": "integer",
-            "format": "int32"
           }
         }
       },

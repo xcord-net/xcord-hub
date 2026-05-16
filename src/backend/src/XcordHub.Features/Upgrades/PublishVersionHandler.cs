@@ -59,7 +59,7 @@ public sealed class PublishVersionHandler(HubDbContext dbContext, SnowflakeIdGen
         };
 
         dbContext.AvailableVersions.Add(version);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new PublishVersionResponse(
             version.Id.ToString(),

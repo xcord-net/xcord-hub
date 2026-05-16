@@ -122,7 +122,7 @@ public sealed class GetInstanceUsageHandler(
             GetInstanceUsageHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new GetInstanceUsageQuery(id), ct);
+            return await handler.ExecuteAsync(new GetInstanceUsageQuery(id), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<GetInstanceUsageResponse>(200)

@@ -67,21 +67,21 @@ public sealed class ProvisioningPipeline
             _logger.LogInformation("Executing step {StepIndex}/{TotalSteps}: {StepName}",
                 i + 1, _steps.Count, step.StepName);
 
-            var executeResult = await ExecuteStepWithRetry(instanceId, step, ProvisioningPhase.Execute, cancellationToken);
+            var executeResult = await ExecuteStepWithRetry(instanceId, step, ProvisioningPhase.Execute, cancellationToken).ConfigureAwait(false);
             if (executeResult.IsFailure)
             {
                 _logger.LogError("Step {StepName} execution failed: {Error}", step.StepName, executeResult.Error?.Message ?? "Unknown error");
-                await MarkInstanceFailed(instanceId, cancellationToken);
+                await MarkInstanceFailed(instanceId, cancellationToken).ConfigureAwait(false);
                 return executeResult;
             }
 
             _logger.LogInformation("Verifying step {StepName}", step.StepName);
 
-            var verifyResult = await ExecuteStepWithRetry(instanceId, step, ProvisioningPhase.Verify, cancellationToken);
+            var verifyResult = await ExecuteStepWithRetry(instanceId, step, ProvisioningPhase.Verify, cancellationToken).ConfigureAwait(false);
             if (verifyResult.IsFailure)
             {
                 _logger.LogError("Step {StepName} verification failed: {Error}", step.StepName, verifyResult.Error?.Message ?? "Unknown error");
-                await MarkInstanceFailed(instanceId, cancellationToken);
+                await MarkInstanceFailed(instanceId, cancellationToken).ConfigureAwait(false);
                 return verifyResult;
             }
 
@@ -89,7 +89,7 @@ public sealed class ProvisioningPipeline
         }
 
         // All steps completed, mark instance as Running
-        await MarkInstanceRunning(instanceId, cancellationToken);
+        await MarkInstanceRunning(instanceId, cancellationToken).ConfigureAwait(false);
 
         // Record provisioning metrics
         var duration = (DateTimeOffset.UtcNow - startTime).TotalSeconds;
@@ -112,17 +112,17 @@ public sealed class ProvisioningPipeline
         {
             attempt++;
 
-            var eventId = await RecordProvisioningEvent(instanceId, step.StepName, phase, ProvisioningStepStatus.InProgress, null, cancellationToken);
+            var eventId = await RecordProvisioningEvent(instanceId, step.StepName, phase, ProvisioningStepStatus.InProgress, null, cancellationToken).ConfigureAwait(false);
 
             try
             {
                 Result<bool> result = phase == ProvisioningPhase.Execute
                     ? await step.ExecuteAsync(instanceId, cancellationToken)
-                    : await step.VerifyAsync(instanceId, cancellationToken);
+                    : await step.VerifyAsync(instanceId, cancellationToken).ConfigureAwait(false);
 
                 if (result.IsSuccess)
                 {
-                    await UpdateProvisioningEvent(eventId, ProvisioningStepStatus.Completed, null, cancellationToken);
+                    await UpdateProvisioningEvent(eventId, ProvisioningStepStatus.Completed, null, cancellationToken).ConfigureAwait(false);
                     _metrics.RecordProvisioningStep(step.StepName, success: true);
                     return result;
                 }
@@ -130,7 +130,7 @@ public sealed class ProvisioningPipeline
                 _logger.LogWarning("Step {StepName} {Phase} failed (attempt {Attempt}/{MaxRetries}): {Error}",
                     step.StepName, phase, attempt, MaxRetries, result.Error?.Message ?? "Unknown error");
 
-                await UpdateProvisioningEvent(eventId, ProvisioningStepStatus.Failed, result.Error?.Message, cancellationToken);
+                await UpdateProvisioningEvent(eventId, ProvisioningStepStatus.Failed, result.Error?.Message, cancellationToken).ConfigureAwait(false);
 
                 if (attempt == MaxRetries)
                 {
@@ -141,7 +141,7 @@ public sealed class ProvisioningPipeline
                 {
                     var delay = RetryDelays[attempt - 1];
                     _logger.LogInformation("Retrying in {Delay}s", delay.TotalSeconds);
-                    await Task.Delay(delay, cancellationToken);
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -153,13 +153,13 @@ public sealed class ProvisioningPipeline
                 _logger.LogError(ex, "Step {StepName} {Phase} threw exception (attempt {Attempt}/{MaxRetries})",
                     step.StepName, phase, attempt, MaxRetries);
 
-                await UpdateProvisioningEvent(eventId, ProvisioningStepStatus.Failed, ex.Message, cancellationToken);
+                await UpdateProvisioningEvent(eventId, ProvisioningStepStatus.Failed, ex.Message, cancellationToken).ConfigureAwait(false);
 
                 if (attempt < MaxRetries)
                 {
                     var delay = RetryDelays[attempt - 1];
                     _logger.LogInformation("Retrying in {Delay}s", delay.TotalSeconds);
-                    await Task.Delay(delay, cancellationToken);
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -191,7 +191,7 @@ public sealed class ProvisioningPipeline
         };
 
         _dbContext.ProvisioningEvents.Add(provisioningEvent);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return provisioningEvent.Id;
     }
@@ -210,7 +210,7 @@ public sealed class ProvisioningPipeline
             provisioningEvent.Status = status;
             provisioningEvent.ErrorMessage = errorMessage;
             provisioningEvent.CompletedAt = DateTimeOffset.UtcNow;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -241,7 +241,7 @@ public sealed class ProvisioningPipeline
         if (instance != null)
         {
             instance.Status = InstanceStatus.Running;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -253,7 +253,7 @@ public sealed class ProvisioningPipeline
         if (instance != null)
         {
             instance.Status = InstanceStatus.Failed;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

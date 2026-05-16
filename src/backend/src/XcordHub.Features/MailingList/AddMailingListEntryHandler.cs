@@ -66,7 +66,7 @@ public sealed class AddMailingListEntryHandler(HubDbContext dbContext, Snowflake
         };
 
         dbContext.MailingListEntries.Add(entry);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new AddMailingListEntryResponse("You've been added to the mailing list. We'll notify you when this plan is available.");
     }
@@ -78,7 +78,7 @@ public sealed class AddMailingListEntryHandler(HubDbContext dbContext, Snowflake
             AddMailingListEntryHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(request, ct);
+            return await handler.ExecuteAsync(request, ct).ConfigureAwait(false);
         })
         .AllowAnonymous()
         .Produces<AddMailingListEntryResponse>(200)

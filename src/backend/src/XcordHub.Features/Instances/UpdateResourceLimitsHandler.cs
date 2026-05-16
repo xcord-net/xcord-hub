@@ -71,7 +71,7 @@ public sealed class UpdateResourceLimitsHandler(HubDbContext dbContext)
         instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
         instance.Config.Version++;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new UpdateResourceLimitsResponse(
             request.InstanceId.ToString(),
@@ -110,7 +110,7 @@ public sealed class UpdateResourceLimitsHandler(HubDbContext dbContext)
                 request.MaxVideoConcurrency
             );
 
-            var result = await handler.Handle(command, ct);
+            var result = await handler.Handle(command, ct).ConfigureAwait(false);
 
             return result.Match(
                 success => Results.Ok(success),

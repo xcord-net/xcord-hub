@@ -69,7 +69,7 @@ public sealed class ResumeInstanceHandler(
             // Update status - optimistic concurrency via xmin ensures only one concurrent
             // resume wins; the other gets DbUpdateConcurrencyException → 409 Conflict.
             instance.Status = InstanceStatus.Running;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation(
                 "Instance {InstanceId} ({Domain}) resumed successfully",
@@ -111,7 +111,7 @@ public sealed class ResumeInstanceHandler(
             }
 
             var command = new ResumeInstanceCommand(instanceId, userId);
-            var result = await handler.Handle(command, ct);
+            var result = await handler.Handle(command, ct).ConfigureAwait(false);
 
             return result.Match(
                 success => Results.Ok(new SuccessResponse(true)),

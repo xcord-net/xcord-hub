@@ -43,7 +43,7 @@ public sealed class Disable2FAHandler(HubDbContext dbContext)
         user.TwoFactorEnabled = false;
         user.TwoFactorSecret = null;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -63,7 +63,7 @@ public sealed class Disable2FAHandler(HubDbContext dbContext)
             }
 
             var command = new Disable2FACommand(userId, request.Password);
-            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent());
+            var result = await handler.ExecuteAsync(command, ct, _ => Results.NoContent()).ConfigureAwait(false);
             return result;
         })
         .RequireAuthorization(Policies.User)

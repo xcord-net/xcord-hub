@@ -44,7 +44,7 @@ public sealed class CloudflareDnsProvider : IDnsProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            var error = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             throw new InvalidOperationException($"Failed to create Cloudflare DNS record: {error}");
         }
 
@@ -66,7 +66,7 @@ public sealed class CloudflareDnsProvider : IDnsProvider
                 return false;
             }
 
-            var result = await response.Content.ReadFromJsonAsync<CloudflareListResponse>(cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<CloudflareListResponse>(cancellationToken).ConfigureAwait(false);
             return result?.Result?.Length > 0;
         }
         catch (Exception ex)
@@ -93,7 +93,7 @@ public sealed class CloudflareDnsProvider : IDnsProvider
             return;
         }
 
-        var listResult = await listResponse.Content.ReadFromJsonAsync<CloudflareListResponse>(cancellationToken);
+        var listResult = await listResponse.Content.ReadFromJsonAsync<CloudflareListResponse>(cancellationToken).ConfigureAwait(false);
         if (listResult?.Result == null || listResult.Result.Length == 0)
         {
             _logger.LogWarning("Cloudflare DNS record {RecordName} not found", recordName);
@@ -109,7 +109,7 @@ public sealed class CloudflareDnsProvider : IDnsProvider
 
         if (!deleteResponse.IsSuccessStatusCode)
         {
-            var error = await deleteResponse.Content.ReadAsStringAsync(cancellationToken);
+            var error = await deleteResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             throw new InvalidOperationException($"Failed to delete Cloudflare DNS record: {error}");
         }
 

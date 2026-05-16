@@ -40,25 +40,25 @@ public sealed class S3ColdStorageService : IColdStorageService
             Key = key,
             InputStream = content
         };
-        await _client.PutObjectAsync(request, ct);
+        await _client.PutObjectAsync(request, ct).ConfigureAwait(false);
         _logger.LogInformation("Uploaded backup to {Key} ({Bucket})", key, _bucket);
     }
 
     public async Task<Stream> DownloadAsync(string key, CancellationToken ct = default)
     {
-        var response = await _client.GetObjectAsync(_bucket, key, ct);
+        var response = await _client.GetObjectAsync(_bucket, key, ct).ConfigureAwait(false);
         return response.ResponseStream;
     }
 
     public async Task DeleteAsync(string key, CancellationToken ct = default)
     {
-        await _client.DeleteObjectAsync(_bucket, key, ct);
+        await _client.DeleteObjectAsync(_bucket, key, ct).ConfigureAwait(false);
         _logger.LogInformation("Deleted backup {Key} from {Bucket}", key, _bucket);
     }
 
     public async Task<long> GetObjectSizeAsync(string key, CancellationToken ct = default)
     {
-        var metadata = await _client.GetObjectMetadataAsync(_bucket, key, ct);
+        var metadata = await _client.GetObjectMetadataAsync(_bucket, key, ct).ConfigureAwait(false);
         return metadata.ContentLength;
     }
 
@@ -73,7 +73,7 @@ public sealed class S3ColdStorageService : IColdStorageService
         ListObjectsV2Response response;
         do
         {
-            response = await _client.ListObjectsV2Async(request, ct);
+            response = await _client.ListObjectsV2Async(request, ct).ConfigureAwait(false);
             keys.AddRange(response.S3Objects.Select(o => o.Key));
             request.ContinuationToken = response.NextContinuationToken;
         } while (response.IsTruncated);

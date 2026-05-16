@@ -57,7 +57,7 @@ public sealed class Route53DnsProvider : IDnsProvider, IDisposable
             }
         };
 
-        await _route53Client.ChangeResourceRecordSetsAsync(request, cancellationToken);
+        await _route53Client.ChangeResourceRecordSetsAsync(request, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Created Route53 A record {RecordName}", recordName);
     }
@@ -128,7 +128,7 @@ public sealed class Route53DnsProvider : IDnsProvider, IDisposable
             }
         };
 
-        await _route53Client.ChangeResourceRecordSetsAsync(request, cancellationToken);
+        await _route53Client.ChangeResourceRecordSetsAsync(request, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Deleted Route53 A record {RecordName}", recordName);
     }

@@ -38,7 +38,7 @@ public sealed class AdminListMailingListHandler(HubDbContext dbContext)
             query = query.Where(e => e.Tier == request.Tier);
         }
 
-        var total = await query.CountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -69,7 +69,7 @@ public sealed class AdminListMailingListHandler(HubDbContext dbContext)
         {
             var effectivePage = page > 0 ? page : 1;
             var effectivePageSize = pageSize > 0 ? pageSize : 25;
-            return await handler.ExecuteAsync(new AdminListMailingListQuery(effectivePage, effectivePageSize, tier), ct);
+            return await handler.ExecuteAsync(new AdminListMailingListQuery(effectivePage, effectivePageSize, tier), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<AdminListMailingListResponse>(200)

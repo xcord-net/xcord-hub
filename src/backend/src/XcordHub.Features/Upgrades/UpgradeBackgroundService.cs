@@ -27,13 +27,13 @@ public sealed class UpgradeBackgroundService : BackgroundService
     {
         _logger.LogInformation("Upgrade background service started");
 
-        await RecoverStuckUpgradesAsync(stoppingToken);
+        await RecoverStuckUpgradesAsync(stoppingToken).ConfigureAwait(false);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var workItem = await _queue.DequeueAsync(stoppingToken);
+                var workItem = await _queue.DequeueAsync(stoppingToken).ConfigureAwait(false);
 
                 using var scope = _serviceProvider.CreateScope();
                 var orchestrator = scope.ServiceProvider.GetRequiredService<UpgradeOrchestrator>();
@@ -117,7 +117,7 @@ public sealed class UpgradeBackgroundService : BackgroundService
 
             if (stuckInstances.Count > 0 || stuckRollouts.Count > 0)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Recovered {InstanceCount} stuck instances and {RolloutCount} stuck rollouts",
                     stuckInstances.Count, stuckRollouts.Count);
             }

@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using XcordHub.Infrastructure.Data;
+using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Auth;
@@ -14,9 +16,11 @@ public sealed record RefreshTokenApiResponse(string AccessToken);
 public sealed class RefreshTokenHandler(
     HubDbContext dbContext,
     IJwtService jwtService,
-    SnowflakeIdGenerator snowflakeGenerator)
+    SnowflakeIdGenerator snowflakeGenerator,
+    IOptions<AuthOptions> authOptions)
     : IEndpoint
 {
+    private readonly int _refreshTokenDays = authOptions.Value.JwtRefreshTokenDays;
     public async Task<Result<RefreshTokenResponse>> HandleWithToken(string refreshTokenValue, CancellationToken cancellationToken)
     {
         // Hash the token
@@ -36,7 +40,7 @@ public sealed class RefreshTokenHandler(
         if (refreshToken.ExpiresAt < DateTimeOffset.UtcNow)
         {
             dbContext.RefreshTokens.Remove(refreshToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return Error.Validation("INVALID_TOKEN", "Invalid or expired refresh token");
         }
 
@@ -59,12 +63,12 @@ public sealed class RefreshTokenHandler(
             Id = snowflakeGenerator.NextId(),
             TokenHash = newRefreshTokenHash,
             HubUserId = refreshToken.HubUserId,
-            ExpiresAt = now.AddDays(30),
+            ExpiresAt = now.AddDays(_refreshTokenDays),
             CreatedAt = now
         };
 
         dbContext.RefreshTokens.Add(newRefreshToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Generate new JWT access token
         var accessToken = jwtService.GenerateAccessToken(
@@ -91,7 +95,7 @@ public sealed class RefreshTokenHandler(
                     detail: "Invalid or expired refresh token");
             }
 
-            var result = await handler.HandleWithToken(refreshTokenValue, ct);
+            var result = await handler.HandleWithToken(refreshTokenValue, ct).ConfigureAwait(false);
 
             return result.Match(
                 success =>

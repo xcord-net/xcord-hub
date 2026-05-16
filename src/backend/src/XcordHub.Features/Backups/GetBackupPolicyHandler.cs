@@ -65,7 +65,7 @@ public sealed class GetBackupPolicyHandler(HubDbContext dbContext)
             CancellationToken ct) =>
         {
             var query = new GetBackupPolicyQuery(id);
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<BackupPolicyResponse>(200)

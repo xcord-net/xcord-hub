@@ -47,7 +47,7 @@ public sealed class GetMeHandler(HubDbContext dbContext, ICurrentUserService cur
             GetMeHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new GetMeQuery(), ct);
+            return await handler.ExecuteAsync(new GetMeQuery(), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<GetMeResponse>(200)

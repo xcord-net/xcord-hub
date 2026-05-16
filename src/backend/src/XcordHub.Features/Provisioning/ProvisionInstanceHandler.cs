@@ -143,7 +143,7 @@ public sealed class ProvisionInstanceHandler(
         var featureFlags = TierDefaults.GetFeatureFlags(request.Tier, request.MediaEnabled);
 
         // Create config record with admin password (BCrypt hashed) - offloaded to thread pool to avoid starvation
-        var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, _authOptions.BcryptWorkFactor));
+        var adminPasswordHash = await Task.Run(() => BCrypt.Net.BCrypt.HashPassword(request.AdminPassword, _authOptions.BcryptWorkFactor)).ConfigureAwait(false);
         var config = new InstanceConfig
         {
             Id = snowflakeGenerator.NextId(),
@@ -161,10 +161,10 @@ public sealed class ProvisionInstanceHandler(
 
         dbContext.InstanceConfigs.Add(config);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Enqueue for background processing
-        await provisioningQueue.EnqueueAsync(instanceId, cancellationToken);
+        await provisioningQueue.EnqueueAsync(instanceId, cancellationToken).ConfigureAwait(false);
 
         // Return 201 with instance details and plaintext admin password
         return new ProvisionInstanceResponse(

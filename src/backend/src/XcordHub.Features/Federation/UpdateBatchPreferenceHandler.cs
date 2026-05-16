@@ -32,7 +32,7 @@ public sealed class UpdateBatchPreferenceHandler(HubDbContext dbContext)
         instance.Config.BatchUpgradesEnabled = request.Enabled;
         instance.Config.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new UpdateBatchPreferenceResponse(instance.Config.BatchUpgradesEnabled);
     }

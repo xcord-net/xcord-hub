@@ -11,6 +11,6 @@ public sealed class RemoveDnsRecordStep(IDnsProvider dnsProvider, ILogger<Remove
     public async Task ExecuteAsync(ManagedInstance instance, InstanceInfrastructure infrastructure, CancellationToken cancellationToken)
     {
         logger.LogInformation("Removing DNS record for {Domain}", instance.Domain);
-        await dnsProvider.DeleteARecordAsync(instance.Domain, cancellationToken);
+        await dnsProvider.DeleteARecordAsync(instance.Domain, cancellationToken).ConfigureAwait(false);
     }
 }

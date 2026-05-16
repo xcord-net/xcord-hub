@@ -69,12 +69,14 @@ export const instanceStore = {
     setSelectedInstanceUrl(url);
   },
 
-  async searchInstances(query: string): Promise<DiscoverableInstance[]> {
+  async searchInstances(query: string, signal?: AbortSignal): Promise<DiscoverableInstance[]> {
     try {
-      const response = await fetch(`/api/v1/discover/instances?search=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/v1/discover/instances?search=${encodeURIComponent(query)}`, { signal });
       if (!response.ok) return [];
       return await response.json();
-    } catch {
+    } catch (err) {
+      // Rethrow aborts so callers can ignore stale searches; swallow other errors as before
+      if (err instanceof DOMException && err.name === 'AbortError') throw err;
       return [];
     }
   },

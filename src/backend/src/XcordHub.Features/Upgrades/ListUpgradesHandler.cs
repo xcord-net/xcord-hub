@@ -38,7 +38,7 @@ public sealed class ListUpgradesHandler(HubDbContext dbContext)
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
         var skip = (page - 1) * pageSize;
 
-        var total = await dbContext.UpgradeRollouts.CountAsync(cancellationToken);
+        var total = await dbContext.UpgradeRollouts.CountAsync(cancellationToken).ConfigureAwait(false);
 
         var rollouts = await dbContext.UpgradeRollouts
             .OrderByDescending(r => r.StartedAt)
@@ -68,7 +68,7 @@ public sealed class ListUpgradesHandler(HubDbContext dbContext)
             ListUpgradesHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new ListUpgradesQuery(page ?? 1, pageSize ?? 25), ct);
+            return await handler.ExecuteAsync(new ListUpgradesQuery(page ?? 1, pageSize ?? 25), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<ListUpgradesResponse>(200)

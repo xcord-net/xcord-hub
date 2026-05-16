@@ -10,6 +10,7 @@ export default function Account() {
   const [email, setEmail] = createSignal(auth.user?.email ?? '');
   const [savingProfile, setSavingProfile] = createSignal(false);
   const [profileMessage, setProfileMessage] = createSignal('');
+  const [profileError, setProfileError] = createSignal('');
 
   const [currentPassword, setCurrentPassword] = createSignal('');
   const [newPassword, setNewPassword] = createSignal('');
@@ -28,6 +29,7 @@ export default function Account() {
     e.preventDefault();
     setSavingProfile(true);
     setProfileMessage('');
+    setProfileError('');
     try {
       const token = localStorage.getItem('xcord_hub_token');
       const response = await fetch('/api/v1/auth/profile', {
@@ -41,12 +43,20 @@ export default function Account() {
       if (response.ok) {
         setProfileMessage('Profile updated');
         setTimeout(() => setProfileMessage(''), 3000);
+      } else {
+        setProfileError('Failed to save profile changes. Please try again.');
       }
-    } catch {
-      setProfileMessage('Failed to update profile');
+    } catch (err) {
+      console.error('[Account] profile save threw', err);
+      setProfileError('Failed to save profile changes. Please check your connection and try again.');
     } finally {
       setSavingProfile(false);
     }
+  };
+
+  // Clear the error the next time the user edits a profile field.
+  const clearProfileError = () => {
+    if (profileError()) setProfileError('');
   };
 
   const handleDeleteAccount = async () => {
@@ -131,7 +141,7 @@ export default function Account() {
             <input
               type="text"
               value={displayName()}
-              onInput={(e) => setDisplayName(e.currentTarget.value)}
+              onInput={(e) => { setDisplayName(e.currentTarget.value); clearProfileError(); }}
               class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
             />
           </div>
@@ -140,10 +150,13 @@ export default function Account() {
             <input
               type="email"
               value={email()}
-              onInput={(e) => setEmail(e.currentTarget.value)}
+              onInput={(e) => { setEmail(e.currentTarget.value); clearProfileError(); }}
               class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
             />
           </div>
+          <Show when={profileError()}>
+            <div class="text-sm text-xcord-red" role="alert">{profileError()}</div>
+          </Show>
           <Show when={profileMessage()}>
             <div class="text-sm text-xcord-green">{profileMessage()}</div>
           </Show>

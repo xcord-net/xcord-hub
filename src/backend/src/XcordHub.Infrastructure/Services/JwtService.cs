@@ -22,6 +22,7 @@ public sealed class JwtService : IJwtService
 
     private readonly HubDbContext _dbContext;
     private readonly JwtOptions _jwtOptions;
+    private readonly AuthOptions _authOptions;
     private readonly RsaKeySingleton _rsaKeySingleton;
     private readonly IEncryptionService _encryptionService;
     private readonly ILogger<JwtService> _logger;
@@ -30,12 +31,14 @@ public sealed class JwtService : IJwtService
     public JwtService(
         HubDbContext dbContext,
         IOptions<JwtOptions> jwtOptions,
+        IOptions<AuthOptions> authOptions,
         RsaKeySingleton rsaKeySingleton,
         IEncryptionService encryptionService,
         ILogger<JwtService> logger)
     {
         _dbContext = dbContext;
         _jwtOptions = jwtOptions.Value;
+        _authOptions = authOptions.Value;
         _rsaKeySingleton = rsaKeySingleton;
         _encryptionService = encryptionService;
         _logger = logger;
@@ -80,7 +83,7 @@ public sealed class JwtService : IJwtService
             UpdatedAt = now
         });
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("Generated new RSA key pair for hub JWT signing (RS256, 3072-bit)");
     }
 
@@ -107,12 +110,12 @@ public sealed class JwtService : IJwtService
             signingKey,
             SecurityAlgorithms.RsaSha256);
 
-        var expires = DateTime.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpirationMinutes);
+        var expires = DateTime.UtcNow.AddMinutes(_authOptions.JwtAccessTokenMinutes);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            NotBefore = _jwtOptions.AccessTokenExpirationMinutes < 0 ? expires.AddMinutes(-1) : DateTime.UtcNow,
-            IssuedAt = _jwtOptions.AccessTokenExpirationMinutes < 0 ? expires.AddMinutes(-1) : DateTime.UtcNow,
+            NotBefore = _authOptions.JwtAccessTokenMinutes < 0 ? expires.AddMinutes(-1) : DateTime.UtcNow,
+            IssuedAt = _authOptions.JwtAccessTokenMinutes < 0 ? expires.AddMinutes(-1) : DateTime.UtcNow,
             Expires = expires,
             Issuer = _jwtOptions.Issuer,
             Audience = _jwtOptions.Audience,

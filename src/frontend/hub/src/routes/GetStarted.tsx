@@ -1,416 +1,14 @@
-import { createSignal, createEffect, Show, onMount } from 'solid-js';
-import { A, useNavigate, useSearchParams } from '@solidjs/router';
-import { loadStripe } from '@stripe/stripe-js';
-import type { Stripe, StripeElements } from '@stripe/stripe-js';
-import { useAuth } from '../stores/auth.store';
-import { instanceStore } from '../stores/instance.store';
-import Captcha from '../components/Captcha';
-import PasswordStrength from '../components/PasswordStrength';
+import { Show } from 'solid-js';
 import ContactModal from '../components/ContactModal';
 import PageMeta from '../components/PageMeta';
-
-// Must match backend ValidationHelpers.ReservedSubdomains
-const RESERVED = new Set([
-  'www', 'mail', 'smtp', 'imap', 'pop', 'ftp',
-  'docker', 'registry',
-  'api', 'admin', 'hub', 'auth',
-  'ns1', 'ns2', 'ns3', 'ns4',
-  'caddy', 'proxy', 'lb',
-  'pg', 'postgres', 'redis', 'minio', 's3',
-  'livekit', 'rtc', 'turn', 'stun',
-  'status', 'monitor', 'grafana', 'prometheus',
-  '_dmarc', 'autoconfig', 'autodiscover',
-]);
-
-interface StripeContext {
-  stripe: Stripe;
-  elements: StripeElements;
-}
-
-// Tier base prices in dollars
-const TIER_BASE_PRICE: Record<string, number> = {
-  Basic: 60,
-  Pro: 150,
-};
-
-// Media addon total price (base + per-user * max users)
-const TIER_MEDIA_ADDON: Record<string, number> = {
-  Basic: 150,  // $3/user * 50 users
-  Pro: 400,    // $2/user * 200 users
-};
+import ConfigStep from './GetStarted/ConfigStep';
+import PaymentStep from './GetStarted/PaymentStep';
+import AccountStep from './GetStarted/AccountStep';
+import NotifyModal from './GetStarted/NotifyModal';
+import { useGetStartedFlow } from './GetStarted/useGetStartedFlow';
 
 export default function GetStarted() {
-  const auth = useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  // Preselect tier from query param (e.g. /get-started?tier=Basic)
-  const initialTier = (['Free', 'Basic', 'Pro'] as const).includes(searchParams.tier as any)
-    ? (searchParams.tier as 'Free' | 'Basic' | 'Pro')
-    : 'Free';
-
-  // Wizard step (1 = config, 2 = payment [paid only], 3 = account [new users only])
-  const [step, setStep] = createSignal(1);
-  const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal('');
-  const [ready, setReady] = createSignal(false);
-
-  // Features
-  const [paymentsEnabled, setPaymentsEnabled] = createSignal(false);
-  const [paidServersDisabled, setPaidServersDisabled] = createSignal(false);
-  const [stripePublishableKey, setStripePublishableKey] = createSignal('');
-
-  // Paid tier creation is gated by both Stripe being configured AND admin not disabling it
-  const paidTierAvailable = () => paymentsEnabled() && !paidServersDisabled();
-
-  // Step 1 - Instance config
-  const [subdomain, setSubdomain] = createSignal('');
-  const [serverName, setServerName] = createSignal('');
-  const [selectedTier, setSelectedTier] = createSignal<'Free' | 'Basic' | 'Pro'>(initialTier);
-  const [mediaEnabled, setMediaEnabled] = createSignal(false);
-  const [subdomainStatus, setSubdomainStatus] = createSignal<'idle' | 'checking' | 'available' | 'taken'>('idle');
-  const [subdomainReason, setSubdomainReason] = createSignal('');
-
-  // Step 2 - Payment
-  const [clientSecret, setClientSecret] = createSignal('');
-  const [paymentMethodId, setPaymentMethodId] = createSignal('');
-  const [stripeCtx, setStripeCtx] = createSignal<StripeContext | null>(null);
-
-  // Step 3 (or 2 for free) - Account
-  const [email, setEmail] = createSignal('');
-  const [username, setUsername] = createSignal('');
-  const [displayName, setDisplayName] = createSignal('');
-  const [password, setPassword] = createSignal('');
-  const [confirmPassword, setConfirmPassword] = createSignal('');
-  const [agreed, setAgreed] = createSignal(false);
-  const [ageConfirmed, setAgeConfirmed] = createSignal(false);
-  const [jurisdictionConfirmed, setJurisdictionConfirmed] = createSignal(false);
-  const [captchaId, setCaptchaId] = createSignal('');
-  const [captchaAnswer, setCaptchaAnswer] = createSignal('');
-
-  // Modals
-  const [showContact, setShowContact] = createSignal(false);
-  const [notifyTier, setNotifyTier] = createSignal<string | null>(null);
-  const [notifyEmail, setNotifyEmail] = createSignal('');
-  const [notifyStatus, setNotifyStatus] = createSignal<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [notifyMessage, setNotifyMessage] = createSignal('');
-
-  // Derived: is the selected tier a paid tier?
-  const isPaidTier = () => (selectedTier() !== 'Free' || mediaEnabled()) && paidTierAvailable();
-
-  // Total wizard steps depending on auth state and tier
-  const totalSteps = () => {
-    if (isLoggedIn()) {
-      return isPaidTier() ? 2 : 1;
-    }
-    return isPaidTier() ? 3 : 2;
-  };
-
-  // Step number for the account step (varies based on whether payment step exists)
-  const accountStep = () => isPaidTier() ? 3 : 2;
-
-  // On mount: fetch features + check auth
-  onMount(async () => {
-    try {
-      const featRes = await fetch('/api/v1/hub/features');
-      if (featRes.ok) {
-        const feat = await featRes.json();
-        setPaymentsEnabled(feat.paymentsEnabled);
-        setPaidServersDisabled(!!feat.paidServersDisabled);
-        if (feat.stripePublishableKey) {
-          setStripePublishableKey(feat.stripePublishableKey);
-        }
-      }
-    } catch { /* default to false */ }
-
-    const hasToken = !!localStorage.getItem('xcord_hub_token');
-    const restored = hasToken ? await auth.restoreSession() : false;
-    if (restored) {
-      // Check if user already has an instance
-      try {
-        const token = localStorage.getItem('xcord_hub_token');
-        const res = await fetch('/api/v1/hub/billing', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.instances && data.instances.length > 0) {
-            navigate('/dashboard', { replace: true });
-            return;
-          }
-        }
-      } catch {
-        // If check fails, allow the form - backend enforces limits
-      }
-    }
-    setReady(true);
-  });
-
-  // Mount Stripe Payment Element when clientSecret is available
-  createEffect(async () => {
-    const secret = clientSecret();
-    if (!secret) return;
-
-    const key = stripePublishableKey();
-    if (!key) return;
-
-    const stripe = await loadStripe(key);
-    if (!stripe) return;
-
-    const elements = stripe.elements({
-      clientSecret: secret,
-      appearance: {
-        theme: 'night',
-        variables: {
-          colorPrimary: '#d4943a',
-          colorBackground: '#1e1f22',
-          colorText: '#dbdee1',
-          colorTextSecondary: '#949ba4',
-          borderRadius: '6px',
-        },
-      },
-    });
-    const paymentElement = elements.create('payment', {
-      layout: { type: 'tabs', defaultCollapsed: false },
-    });
-    paymentElement.mount('#payment-element');
-
-    setStripeCtx({ stripe, elements });
-  });
-
-  const isLoggedIn = () => auth.isAuthenticated;
-
-  // Subdomain validation
-  const subdomainError = () => {
-    const s = subdomain();
-    if (!s) return '';
-    if (s.length < 6) return 'Must be at least 6 characters';
-    if (s.startsWith('-') || s.endsWith('-')) return 'Cannot start or end with a hyphen';
-    if (s.includes('--')) return 'Cannot contain consecutive hyphens';
-    if (RESERVED.has(s)) return `'${s}' is reserved for infrastructure use`;
-    if (subdomainStatus() === 'taken') return subdomainReason() || 'Already taken';
-    return '';
-  };
-
-  const subdomainValid = () => subdomain().length >= 6 && !subdomainError();
-
-  let checkTimer: ReturnType<typeof setTimeout>;
-
-  const handleSubdomainInput = (value: string) => {
-    const clean = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-    setSubdomain(clean);
-    setSubdomainStatus('idle');
-    setSubdomainReason('');
-
-    clearTimeout(checkTimer);
-    if (clean.length >= 6 && !RESERVED.has(clean) && !clean.startsWith('-') && !clean.endsWith('-') && !clean.includes('--')) {
-      setSubdomainStatus('checking');
-      checkTimer = setTimeout(async () => {
-        try {
-          const token = localStorage.getItem('xcord_hub_token');
-          const response = await fetch(`/api/v1/hub/check-subdomain?subdomain=${encodeURIComponent(clean)}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setSubdomainStatus(data.available ? 'available' : 'taken');
-            setSubdomainReason(data.reason ?? '');
-          } else {
-            setSubdomainStatus('idle');
-          }
-        } catch {
-          setSubdomainStatus('idle');
-        }
-      }, 500);
-    }
-  };
-
-  const canProceedStep1 = () => subdomainValid() && subdomainStatus() === 'available' && serverName().trim().length > 0;
-
-  // Move from step 1 to payment step (for paid tiers)
-  const handleNextToPayment = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch('/api/v1/hub/billing/create-payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: selectedTier(), mediaEnabled: mediaEnabled() }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setError((err as any).message || 'Failed to initialize payment');
-        return;
-      }
-      const data = await res.json();
-      setClientSecret(data.clientSecret);
-      setStep(2);
-    } catch {
-      setError('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleNext = () => {
-    if (isPaidTier()) {
-      handleNextToPayment();
-    } else if (isLoggedIn()) {
-      handleSubmitLoggedIn();
-    } else {
-      setStep(2);
-      setError('');
-    }
-  };
-
-  const handleBack = () => {
-    setStep(1);
-    setError('');
-  };
-
-  const handleBackFromPayment = () => {
-    setStep(1);
-    setError('');
-    setClientSecret('');
-    setStripeCtx(null);
-  };
-
-  // Confirm payment via Stripe Elements
-  const handleConfirmPayment = async () => {
-    const ctx = stripeCtx();
-    if (!ctx) {
-      setError('Payment form not ready');
-      return;
-    }
-    setLoading(true);
-    setError('');
-
-    const { error: stripeError, setupIntent } = await ctx.stripe.confirmSetup({
-      elements: ctx.elements,
-      redirect: 'if_required',
-    });
-
-    if (stripeError) {
-      setError(stripeError.message || 'Card validation failed');
-      setLoading(false);
-      return;
-    }
-
-    if (!setupIntent?.payment_method) {
-      setError('Card setup did not complete');
-      setLoading(false);
-      return;
-    }
-
-    setPaymentMethodId(typeof setupIntent.payment_method === 'string'
-      ? setupIntent.payment_method
-      : setupIntent.payment_method.id);
-    setLoading(false);
-
-    if (isLoggedIn()) {
-      handleSubmitLoggedIn();
-    } else {
-      setStep(3);
-      setError('');
-    }
-  };
-
-  // Submit for logged-in users (after step 1 or step 2)
-  const handleSubmitLoggedIn = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await instanceStore.createInstance(
-        subdomain(),
-        serverName(),
-        '',
-        selectedTier(),
-        mediaEnabled()
-      );
-      navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      if (err?.message?.includes('SUBDOMAIN_TAKEN')) {
-        setSubdomainStatus('taken');
-      }
-      setError(err?.message || 'Failed to create server');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Submit for new users (account creation step)
-  const handleSubmit = async (e: Event) => {
-    e.preventDefault();
-    setError('');
-
-    if (password() !== confirmPassword()) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (password().length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-    if (!agreed() || !ageConfirmed() || !jurisdictionConfirmed()) {
-      setError('You must agree to all terms');
-      return;
-    }
-
-    setLoading(true);
-    const result = await auth.signupWithInstance(
-      email(),
-      password(),
-      displayName() || username(),
-      username(),
-      subdomain(),
-      serverName(),
-      selectedTier(),
-      mediaEnabled(),
-      captchaId(),
-      captchaAnswer(),
-      paymentMethodId() || undefined
-    );
-
-    setLoading(false);
-    if (result) {
-      navigate('/dashboard', { replace: true });
-    } else if (auth.error?.includes('SUBDOMAIN_TAKEN')) {
-      setStep(1);
-      setSubdomainStatus('taken');
-      setError('This subdomain was taken while you were signing up. Please choose another.');
-    }
-  };
-
-  const handleNotify = async (e: Event) => {
-    e.preventDefault();
-    const tier = notifyTier();
-    if (!tier) return;
-    setNotifyStatus('loading');
-    try {
-      const res = await fetch('/api/v1/mailing-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: notifyEmail(), tier }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setNotifyStatus('error');
-        setNotifyMessage((data as any).message ?? 'Something went wrong.');
-      } else {
-        setNotifyStatus('success');
-        setNotifyMessage((data as any).message);
-        setTimeout(() => {
-          setNotifyTier(null);
-          setNotifyEmail('');
-          setNotifyStatus('idle');
-          setNotifyMessage('');
-        }, 3000);
-      }
-    } catch {
-      setNotifyStatus('error');
-      setNotifyMessage('Network error. Please try again.');
-    }
-  };
+  const f = useGetStartedFlow();
 
   return (
     <>
@@ -419,7 +17,7 @@ export default function GetStarted() {
         description="Create your own Xcord server in minutes. Choose a subdomain, pick a plan, and launch your self-hosted Discord alternative with voice and video streaming."
         path="/get-started"
       />
-      <Show when={ready()} fallback={
+      <Show when={f.ready()} fallback={
         <div class="min-h-[60vh] flex items-center justify-center">
           <p class="text-xcord-text-muted">Loading...</p>
         </div>
@@ -428,403 +26,108 @@ export default function GetStarted() {
           {/* Step indicator */}
           <div data-testid="get-started-steps" class="flex items-center justify-center gap-2 mb-8">
             <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              step() === 1 ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
+              f.step() === 1 ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
             }`}>1</div>
-            <Show when={isPaidTier()}>
+            <Show when={f.isPaidTier()}>
               <div class="w-8 h-0.5 bg-xcord-bg-accent" />
               <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                step() === 2 ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
+                f.step() === 2 ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
               }`}>2</div>
             </Show>
-            <Show when={!isLoggedIn()}>
+            <Show when={!f.isLoggedIn()}>
               <div class="w-8 h-0.5 bg-xcord-bg-accent" />
               <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                step() === accountStep() ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
-              }`}>{accountStep()}</div>
+                f.step() === f.accountStep() ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
+              }`}>{f.accountStep()}</div>
             </Show>
           </div>
 
-          {/* Step 1: Configure Your Server */}
-          <Show when={step() === 1}>
-            <div class="bg-xcord-bg-secondary rounded-lg p-8">
-              <h1 class="text-xl font-bold text-xcord-text-primary mb-1">Configure Your Server</h1>
-              <p class="text-sm text-xcord-text-muted mb-6">
-                Step 1 of {totalSteps()} - Choose your server's identity
-              </p>
-
-              <div class="space-y-5">
-                {/* Subdomain */}
-                <div>
-                  <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Subdomain</label>
-                  <div class="flex items-center">
-                    <input
-                      data-testid="get-started-subdomain"
-                      type="text"
-                      value={subdomain()}
-                      onInput={(e) => handleSubdomainInput(e.currentTarget.value)}
-                      class={`flex-1 px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-l border-none outline-none focus:ring-2 ${
-                        subdomainError() ? 'ring-2 ring-xcord-red focus:ring-xcord-red' : 'focus:ring-xcord-brand'
-                      }`}
-                      placeholder="my-server"
-                      autocomplete="off"
-                      pattern="[a-z0-9\-]+"
-                      minLength={6}
-                      disabled={loading()}
-                    />
-                    <span class="px-3 py-2 bg-xcord-bg-accent text-xcord-text-muted text-sm rounded-r whitespace-nowrap">
-                      .xcord-dev.net
-                    </span>
-                  </div>
-                  <Show when={subdomainStatus() === 'checking' && !subdomainError()}>
-                    <span class="text-xs text-xcord-text-muted mt-1 block">Checking availability...</span>
-                  </Show>
-                  <Show when={subdomain().length > 0 && subdomainError()}>
-                    <span class="text-xs text-xcord-red mt-1 block">{subdomainError()}</span>
-                  </Show>
-                  <Show when={subdomainValid() && subdomainStatus() === 'available'}>
-                    <span class="text-xs text-xcord-green mt-1 block">Available!</span>
-                  </Show>
-                </div>
-
-                {/* Server Name */}
-                <div>
-                  <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Server Name</label>
-                  <input
-                    data-testid="get-started-server-name"
-                    type="text"
-                    value={serverName()}
-                    onInput={(e) => setServerName(e.currentTarget.value)}
-                    class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-                    placeholder="My Awesome Server"
-                    autocomplete="off"
-                    disabled={loading()}
-                  />
-                </div>
-
-                {/* Plan selection */}
-                <div>
-                  <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Plan</label>
-                  <div class="grid grid-cols-4 gap-2 mb-3">
-                    <button data-testid="get-started-plan-free" type="button" disabled={loading()} onClick={() => setSelectedTier('Free')} class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ${selectedTier() === 'Free' ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'} transition`}>
-                      <div class="font-semibold">Free</div>
-                      <div class="text-xs text-xcord-text-muted mt-1">Up to 10 users</div>
-                    </button>
-                    <Show when={paidTierAvailable()} fallback={
-                      <button data-testid="get-started-plan-basic-notify" type="button" onClick={() => { setNotifyTier('Basic'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
-                        <div class="font-semibold">Basic</div>
-                        <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
-                        <div class="text-xs text-xcord-brand mt-1">Notify me</div>
-                      </button>
-                    }>
-                      <button data-testid="get-started-plan-basic" type="button" disabled={loading()} onClick={() => setSelectedTier('Basic')} class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ${selectedTier() === 'Basic' ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'} transition`}>
-                        <div class="font-semibold">Basic</div>
-                        <div class="text-xs text-xcord-text-muted mt-1">Up to 50 users</div>
-                        <div class="text-xs text-xcord-brand mt-1">$60/mo</div>
-                      </button>
-                    </Show>
-                    <Show when={paidTierAvailable()} fallback={
-                      <button data-testid="get-started-plan-pro-notify" type="button" onClick={() => { setNotifyTier('Pro'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} disabled={loading()} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
-                        <div class="font-semibold">Pro</div>
-                        <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
-                        <div class="text-xs text-xcord-brand mt-1">Notify me</div>
-                      </button>
-                    }>
-                      <button data-testid="get-started-plan-pro" type="button" disabled={loading()} onClick={() => setSelectedTier('Pro')} class={`px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center ${selectedTier() === 'Pro' ? 'ring-2 ring-xcord-brand' : 'hover:bg-xcord-bg-accent'} transition`}>
-                        <div class="font-semibold">Pro</div>
-                        <div class="text-xs text-xcord-text-muted mt-1">Up to 200 users</div>
-                        <div class="text-xs text-xcord-brand mt-1">$150/mo</div>
-                      </button>
-                    </Show>
-                    <button type="button" onClick={() => setShowContact(true)} class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition">
-                      <div class="font-semibold">Enterprise</div>
-                      <div class="text-xs text-xcord-text-muted mt-1">500+ users</div>
-                      <div class="text-xs text-xcord-brand mt-1">Contact us</div>
-                    </button>
-                  </div>
-
-                  <div class="flex items-center gap-3 mb-3">
-                    <span class="text-sm text-xcord-text-primary">Voice & video</span>
-                    <Show when={paidTierAvailable()} fallback={
-                      <button type="button" onClick={() => { setNotifyTier('Voice & Video'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }} class="text-xs text-xcord-brand hover:underline">Notify me</button>
-                    }>
-                      <button type="button" onClick={() => setMediaEnabled(!mediaEnabled())} class={`relative w-10 h-5 rounded-full transition ${mediaEnabled() ? 'bg-xcord-brand' : 'bg-xcord-bg-accent'}`}>
-                        <div class={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${mediaEnabled() ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                      </button>
-                    </Show>
-                  </div>
-
-                  <div class="px-3 py-2 bg-xcord-bg-accent rounded">
-                    <div class="flex items-center justify-between">
-                      <span class="text-xs font-medium text-xcord-text-primary">Total</span>
-                      <span class="text-sm font-bold text-xcord-text-primary">
-                        {selectedTier() === 'Free' && !mediaEnabled() ? 'Free' :
-                         selectedTier() === 'Free' && mediaEnabled() ? '+$4/user' :
-                         selectedTier() === 'Basic' ? (mediaEnabled() ? '$60/mo + $3/user' : '$60/mo') :
-                         selectedTier() === 'Pro' ? (mediaEnabled() ? '$150/mo + $2/user' : '$150/mo') : 'Free'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <Show when={error()}>
-                  <div class="text-sm text-xcord-red">{error()}</div>
-                </Show>
-
-                <button
-                  data-testid="get-started-next"
-                  type="button"
-                  onClick={handleNext}
-                  disabled={loading() || !canProceedStep1()}
-                  class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
-                >
-                  {loading()
-                    ? (isPaidTier() ? 'Initializing...' : 'Creating...')
-                    : isLoggedIn()
-                      ? (isPaidTier() ? 'Next: Payment' : 'Create Server')
-                      : 'Next'}
-                </button>
-              </div>
-
-              <Show when={!isLoggedIn()}>
-                <p class="text-sm text-xcord-text-muted mt-4 text-center">
-                  Already have an account? <A href="/login" class="text-xcord-text-link hover:underline">Log In</A>
-                </p>
-              </Show>
-            </div>
+          <Show when={f.step() === 1}>
+            <ConfigStep
+              totalSteps={f.totalSteps}
+              loading={f.loading}
+              error={f.error}
+              isLoggedIn={f.isLoggedIn}
+              paidTierAvailable={f.paidTierAvailable}
+              isPaidTier={f.isPaidTier}
+              subdomain={f.subdomain}
+              subdomainStatus={f.subdomainStatus}
+              subdomainError={f.subdomainError}
+              subdomainValid={f.subdomainValid}
+              onSubdomainInput={f.handleSubdomainInput}
+              serverName={f.serverName}
+              setServerName={f.setServerName}
+              selectedTier={f.selectedTier}
+              setSelectedTier={f.setSelectedTier}
+              mediaEnabled={f.mediaEnabled}
+              setMediaEnabled={f.setMediaEnabled}
+              canProceedStep1={f.canProceedStep1}
+              onNext={f.handleNext}
+              onShowContact={() => f.setShowContact(true)}
+              onNotifyOpen={f.handleNotifyOpen}
+              setNotifyStatus={f.setNotifyStatus}
+              setNotifyMessage={f.setNotifyMessage}
+              setNotifyEmail={f.setNotifyEmail}
+            />
           </Show>
 
-          {/* Step 2: Payment (paid tiers only) */}
-          <Show when={step() === 2 && isPaidTier()}>
-            <div data-testid="get-started-payment-step" class="bg-xcord-bg-secondary rounded-lg p-8">
-              <h1 class="text-xl font-bold text-xcord-text-primary mb-1">Payment</h1>
-              <p class="text-sm text-xcord-text-muted mb-6">
-                Step 2 of {totalSteps()} - {selectedTier()} plan
-              </p>
-
-              {/* Price summary */}
-              <div class="mb-6 p-4 bg-xcord-bg-accent rounded space-y-1">
-                <div class="flex justify-between text-sm">
-                  <span class="text-xcord-text-primary">{selectedTier()} plan</span>
-                  <span class="text-xcord-text-primary font-medium">${TIER_BASE_PRICE[selectedTier()] ?? 0}/mo</span>
-                </div>
-                <Show when={mediaEnabled()}>
-                  <div class="flex justify-between text-sm">
-                    <span class="text-xcord-text-muted">Voice & video</span>
-                    <span class="text-xcord-text-muted">+${TIER_MEDIA_ADDON[selectedTier()] ?? 0}/mo</span>
-                  </div>
-                </Show>
-                <div class="flex justify-between text-sm pt-1 border-t border-xcord-bg-tertiary">
-                  <span class="text-xcord-text-primary font-medium">Total</span>
-                  <span class="text-xcord-text-primary font-bold">
-                    ${(TIER_BASE_PRICE[selectedTier()] ?? 0) + (mediaEnabled() ? (TIER_MEDIA_ADDON[selectedTier()] ?? 0) : 0)}/mo
-                  </span>
-                </div>
-              </div>
-
-              {/* Stripe Payment Element mount point */}
-              <div id="payment-element" data-testid="stripe-payment-element" class="mb-6" />
-
-              <Show when={error()}>
-                <div class="text-sm text-xcord-red mb-4">{error()}</div>
-              </Show>
-
-              <div class="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleBackFromPayment}
-                  disabled={loading()}
-                  class="px-4 py-2 bg-xcord-bg-tertiary hover:bg-xcord-bg-accent text-xcord-text-primary rounded font-medium transition"
-                >
-                  Back
-                </button>
-                <button
-                  data-testid="get-started-payment-continue"
-                  type="button"
-                  onClick={handleConfirmPayment}
-                  disabled={loading() || !stripeCtx()}
-                  class="flex-1 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
-                >
-                  {loading() ? 'Processing...' : 'Continue'}
-                </button>
-              </div>
-            </div>
+          <Show when={f.step() === 2 && f.isPaidTier()}>
+            <PaymentStep
+              totalSteps={f.totalSteps}
+              loading={f.loading}
+              error={f.error}
+              selectedTier={f.selectedTier}
+              mediaEnabled={f.mediaEnabled}
+              stripeCtx={f.stripeCtx}
+              onBack={f.handleBackFromPayment}
+              onConfirm={f.handleConfirmPayment}
+            />
           </Show>
 
-          {/* Account creation step (step 2 for free, step 3 for paid) */}
-          <Show when={step() === accountStep() && !isLoggedIn()}>
-            <div class="bg-xcord-bg-secondary rounded-lg p-8">
-              <h1 class="text-xl font-bold text-xcord-text-primary mb-1">Create Your Account</h1>
-              <p class="text-sm text-xcord-text-muted mb-6">
-                Step {accountStep()} of {totalSteps()} - Set up your account for {subdomain()}.xcord-dev.net
-              </p>
-
-              <form onSubmit={handleSubmit} class="space-y-4">
-                <div>
-                  <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Email</label>
-                  <input
-                    data-testid="get-started-email"
-                    type="email"
-                    value={email()}
-                    onInput={(e) => setEmail(e.currentTarget.value)}
-                    class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Username</label>
-                  <input
-                    data-testid="get-started-username"
-                    type="text"
-                    value={username()}
-                    onInput={(e) => setUsername(e.currentTarget.value)}
-                    class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Display Name</label>
-                  <input
-                    data-testid="get-started-display-name"
-                    type="text"
-                    value={displayName()}
-                    onInput={(e) => setDisplayName(e.currentTarget.value)}
-                    class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-                    placeholder={username() || 'Optional'}
-                    autocomplete="nickname"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Password</label>
-                  <input
-                    data-testid="get-started-password"
-                    type="password"
-                    value={password()}
-                    onInput={(e) => setPassword(e.currentTarget.value)}
-                    class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-                    required
-                    minLength={8}
-                    autocomplete="new-password"
-                  />
-                  <PasswordStrength password={password()} />
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Confirm Password</label>
-                  <input
-                    data-testid="get-started-confirm-password"
-                    type="password"
-                    value={confirmPassword()}
-                    onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-                    class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
-                    required
-                    autocomplete="new-password"
-                  />
-                </div>
-
-                <div class="space-y-2">
-                  <label class="flex items-start gap-2 cursor-pointer">
-                    <input
-                      data-testid="get-started-tos"
-                      type="checkbox"
-                      checked={agreed()}
-                      onChange={(e) => setAgreed(e.currentTarget.checked)}
-                      class="mt-1 accent-xcord-brand"
-                    />
-                    <span class="text-xs text-xcord-text-muted">
-                      I agree to the <A href="/terms" class="text-xcord-text-link hover:underline" target="_blank">Terms of Service</A> and{' '}
-                      <A href="/privacy" class="text-xcord-text-link hover:underline" target="_blank">Privacy Policy</A>
-                    </span>
-                  </label>
-
-                  <label class="flex items-start gap-2 cursor-pointer">
-                    <input
-                      data-testid="get-started-age"
-                      type="checkbox"
-                      checked={ageConfirmed()}
-                      onChange={(e) => setAgeConfirmed(e.currentTarget.checked)}
-                      class="mt-1 accent-xcord-brand"
-                    />
-                    <span class="text-xs text-xcord-text-muted">
-                      I confirm that I am at least 18 years old
-                    </span>
-                  </label>
-
-                  <label class="flex items-start gap-2 cursor-pointer">
-                    <input
-                      data-testid="get-started-jurisdiction"
-                      type="checkbox"
-                      checked={jurisdictionConfirmed()}
-                      onChange={(e) => setJurisdictionConfirmed(e.currentTarget.checked)}
-                      class="mt-1 accent-xcord-brand"
-                    />
-                    <span class="text-xs text-xcord-text-muted">
-                      I confirm that the use of this platform is allowed in my jurisdiction
-                    </span>
-                  </label>
-                </div>
-
-                <Captcha onSolved={(id, ans) => { setCaptchaId(id); setCaptchaAnswer(ans); }} />
-
-                <Show when={error() || auth.error}>
-                  <div class="text-sm text-xcord-red">{error() || auth.error}</div>
-                </Show>
-
-                <div class="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={isPaidTier() ? () => { setStep(2); setError(''); } : handleBack}
-                    disabled={loading()}
-                    class="px-4 py-2 bg-xcord-bg-tertiary hover:bg-xcord-bg-accent text-xcord-text-primary rounded font-medium transition"
-                  >
-                    Back
-                  </button>
-                  <button
-                    data-testid="get-started-submit"
-                    type="submit"
-                    disabled={loading()}
-                    class="flex-1 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
-                  >
-                    {loading() ? 'Creating...' : 'Create Account & Server'}
-                  </button>
-                </div>
-              </form>
-
-              <p class="text-sm text-xcord-text-muted mt-4 text-center">
-                Already have an account? <A href="/login" class="text-xcord-text-link hover:underline">Log In</A>
-              </p>
-            </div>
+          <Show when={f.step() === f.accountStep() && !f.isLoggedIn()}>
+            <AccountStep
+              totalSteps={f.totalSteps}
+              accountStep={f.accountStep}
+              loading={f.loading}
+              error={f.error}
+              authError={() => f.auth.error}
+              subdomain={f.subdomain}
+              isPaidTier={f.isPaidTier}
+              email={f.email}
+              setEmail={f.setEmail}
+              username={f.username}
+              setUsername={f.setUsername}
+              displayName={f.displayName}
+              setDisplayName={f.setDisplayName}
+              password={f.password}
+              setPassword={f.setPassword}
+              confirmPassword={f.confirmPassword}
+              setConfirmPassword={f.setConfirmPassword}
+              agreed={f.agreed}
+              setAgreed={f.setAgreed}
+              ageConfirmed={f.ageConfirmed}
+              setAgeConfirmed={f.setAgeConfirmed}
+              jurisdictionConfirmed={f.jurisdictionConfirmed}
+              setJurisdictionConfirmed={f.setJurisdictionConfirmed}
+              onCaptchaSolved={f.handleCaptchaSolved}
+              onSubmit={f.handleSubmit}
+              onBack={f.isPaidTier() ? () => { f.setStep(2); f.setError(''); } : f.handleBack}
+            />
           </Show>
         </div>
       </Show>
 
-      {/* Notify-me modal */}
-      <Show when={notifyTier()}>
-        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setNotifyTier(null); }}>
-          <div class="bg-xcord-bg-primary rounded-xl w-full max-w-sm p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-bold text-xcord-text-primary">{notifyTier()}</h3>
-              <button onClick={() => setNotifyTier(null)} class="text-xcord-text-muted hover:text-xcord-text-primary text-xl leading-none">&times;</button>
-            </div>
-            <Show when={notifyStatus() !== 'success'} fallback={<p class="text-sm text-xcord-green py-4 text-center">{notifyMessage()}</p>}>
-              <p class="text-sm text-xcord-text-muted mb-4">We'll let you know when {notifyTier()} is available.</p>
-              <form onSubmit={handleNotify} class="space-y-3">
-                <input type="email" required placeholder="you@example.com" value={notifyEmail()} onInput={(e) => setNotifyEmail(e.currentTarget.value)} class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand text-sm" />
-                <button type="submit" disabled={notifyStatus() === 'loading'} class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition text-sm">
-                  {notifyStatus() === 'loading' ? 'Submitting...' : 'Notify Me'}
-                </button>
-              </form>
-              <Show when={notifyStatus() === 'error'}>
-                <p class="text-xs text-xcord-red mt-2">{notifyMessage()}</p>
-              </Show>
-            </Show>
-          </div>
-        </div>
-      </Show>
+      <NotifyModal
+        notifyTier={f.notifyTier}
+        setNotifyTier={f.setNotifyTier}
+        notifyEmail={f.notifyEmail}
+        setNotifyEmail={f.setNotifyEmail}
+        notifyStatus={f.notifyStatus}
+        notifyMessage={f.notifyMessage}
+        onSubmit={f.handleNotify}
+      />
 
-      <ContactModal open={showContact()} onClose={() => setShowContact(false)} />
+      <ContactModal open={f.showContact()} onClose={() => f.setShowContact(false)} />
     </>
   );
 }

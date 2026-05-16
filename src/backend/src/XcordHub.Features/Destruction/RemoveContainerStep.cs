@@ -12,6 +12,6 @@ public sealed class RemoveContainerStep(IDockerService dockerService, ILogger<Re
     {
         if (string.IsNullOrWhiteSpace(infrastructure.DockerContainerId)) return;
         logger.LogInformation("Removing container {ContainerId}", infrastructure.DockerContainerId);
-        await dockerService.RemoveContainerAsync(infrastructure.DockerContainerId, cancellationToken);
+        await dockerService.RemoveContainerAsync(infrastructure.DockerContainerId, cancellationToken).ConfigureAwait(false);
     }
 }

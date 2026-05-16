@@ -45,7 +45,7 @@ public sealed class CreateSetupIntentHandler(
             ["mediaEnabled"] = request.MediaEnabled.ToString().ToLowerInvariant()
         };
 
-        var result = await stripeService.CreateSetupIntentAsync(metadata, cancellationToken);
+        var result = await stripeService.CreateSetupIntentAsync(metadata, cancellationToken).ConfigureAwait(false);
 
         return new CreateSetupIntentResponse(result.ClientSecret, priceCents);
     }
@@ -58,7 +58,7 @@ public sealed class CreateSetupIntentHandler(
             CreateSetupIntentHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(command, ct);
+            return await handler.ExecuteAsync(command, ct).ConfigureAwait(false);
         })
         .AllowAnonymous()
         .Produces<CreateSetupIntentResponse>(200)

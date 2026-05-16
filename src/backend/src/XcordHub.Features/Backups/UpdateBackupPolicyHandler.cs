@@ -67,7 +67,7 @@ public sealed class UpdateBackupPolicyHandler(HubDbContext dbContext)
         policy.BackupRedis = request.BackupRedis;
         policy.UpdatedAt = now;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new BackupPolicyResponse(
             policy.ManagedInstanceId.ToString(),
@@ -95,7 +95,7 @@ public sealed class UpdateBackupPolicyHandler(HubDbContext dbContext)
                 body.BackupDatabase,
                 body.BackupFiles,
                 body.BackupRedis);
-            return await handler.ExecuteAsync(command, ct);
+            return await handler.ExecuteAsync(command, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<BackupPolicyResponse>(200)

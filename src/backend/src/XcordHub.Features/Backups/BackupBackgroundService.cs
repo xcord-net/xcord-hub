@@ -33,7 +33,7 @@ public sealed class BackupBackgroundService(
         if (!_coldStorageConfigured.Value)
             return;
 
-        await CheckAndRunBackupsAsync(ct);
+        await CheckAndRunBackupsAsync(ct).ConfigureAwait(false);
     }
 
     private async Task CheckAndRunBackupsAsync(CancellationToken ct)
@@ -64,7 +64,7 @@ public sealed class BackupBackgroundService(
 
             try
             {
-                await executor.ExecuteBackupAsync(policy.ManagedInstance, BackupKind.Full, ct);
+                await executor.ExecuteBackupAsync(policy.ManagedInstance, BackupKind.Full, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

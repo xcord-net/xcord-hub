@@ -42,7 +42,7 @@ public sealed class LinodeDnsProvider : IDnsProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            var error = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             throw new InvalidOperationException($"Failed to create Linode DNS record: {error}");
         }
 
@@ -64,7 +64,7 @@ public sealed class LinodeDnsProvider : IDnsProvider
                 return false;
             }
 
-            var result = await response.Content.ReadFromJsonAsync<LinodeListResponse>(cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<LinodeListResponse>(cancellationToken).ConfigureAwait(false);
             return result?.Data?.Any(r => r.Name.Equals(recordName, StringComparison.OrdinalIgnoreCase)) ?? false;
         }
         catch (Exception ex)
@@ -91,7 +91,7 @@ public sealed class LinodeDnsProvider : IDnsProvider
             return;
         }
 
-        var listResult = await listResponse.Content.ReadFromJsonAsync<LinodeListResponse>(cancellationToken);
+        var listResult = await listResponse.Content.ReadFromJsonAsync<LinodeListResponse>(cancellationToken).ConfigureAwait(false);
         var record = listResult?.Data?.FirstOrDefault(r => r.Name.Equals(recordName, StringComparison.OrdinalIgnoreCase));
 
         if (record == null)
@@ -107,7 +107,7 @@ public sealed class LinodeDnsProvider : IDnsProvider
 
         if (!deleteResponse.IsSuccessStatusCode)
         {
-            var error = await deleteResponse.Content.ReadAsStringAsync(cancellationToken);
+            var error = await deleteResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             throw new InvalidOperationException($"Failed to delete Linode DNS record: {error}");
         }
 

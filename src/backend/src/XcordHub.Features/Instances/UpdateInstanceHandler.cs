@@ -28,7 +28,7 @@ public sealed class UpdateInstanceHandler(HubDbContext dbContext, ICurrentUserSe
         if (!string.IsNullOrWhiteSpace(request.DisplayName))
             instance.DisplayName = request.DisplayName.Trim();
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         var subdomain = instance.Domain.Contains('.')
             ? instance.Domain[..instance.Domain.IndexOf('.')]
@@ -55,7 +55,7 @@ public sealed class UpdateInstanceHandler(HubDbContext dbContext, ICurrentUserSe
             CancellationToken ct) =>
         {
             var command = new UpdateInstanceCommand(instanceId, body.DisplayName ?? string.Empty);
-            return await handler.ExecuteAsync(command, ct);
+            return await handler.ExecuteAsync(command, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<GetInstanceResponse>(200)

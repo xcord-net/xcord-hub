@@ -60,7 +60,7 @@ public sealed class GetInstanceHandler(HubDbContext dbContext, ICurrentUserServi
             CancellationToken ct) =>
         {
             var query = new GetInstanceQuery(instanceId);
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<GetInstanceResponse>(200)

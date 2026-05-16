@@ -28,9 +28,9 @@ public sealed class ResumeRolloutHandler(HubDbContext dbContext, IUpgradeQueue u
 
         rollout.Status = RolloutStatus.InProgress;
         rollout.FailedInstances = 0;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        await upgradeQueue.EnqueueRolloutAsync(rollout.Id, force: false, cancellationToken);
+        await upgradeQueue.EnqueueRolloutAsync(rollout.Id, force: false, cancellationToken).ConfigureAwait(false);
 
         return new ResumeRolloutResponse(rollout.Id.ToString(), rollout.Status.ToString());
     }
@@ -42,7 +42,7 @@ public sealed class ResumeRolloutHandler(HubDbContext dbContext, IUpgradeQueue u
             ResumeRolloutHandler handler,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new ResumeRolloutCommand(id), ct);
+            return await handler.ExecuteAsync(new ResumeRolloutCommand(id), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<ResumeRolloutResponse>(200)

@@ -72,7 +72,7 @@ public sealed class GetInvoicesHandler(
             int? limit,
             CancellationToken ct) =>
         {
-            return await handler.ExecuteAsync(new GetInvoicesQuery(limit ?? 25), ct);
+            return await handler.ExecuteAsync(new GetInvoicesQuery(limit ?? 25), ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.User)
         .Produces<GetInvoicesResponse>(200)

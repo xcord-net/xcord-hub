@@ -46,7 +46,7 @@ public sealed class ListBackupRecordsHandler(HubDbContext dbContext)
         var query = dbContext.BackupRecords
             .Where(r => r.ManagedInstanceId == request.InstanceId);
 
-        var total = await query.CountAsync(cancellationToken);
+        var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
         var records = await query
             .OrderByDescending(r => r.StartedAt)
@@ -79,7 +79,7 @@ public sealed class ListBackupRecordsHandler(HubDbContext dbContext)
             var effectivePage = page > 0 ? page : 1;
             var effectivePageSize = pageSize > 0 ? pageSize : 20;
             var query = new ListBackupRecordsQuery(id, effectivePage, effectivePageSize);
-            return await handler.ExecuteAsync(query, ct);
+            return await handler.ExecuteAsync(query, ct).ConfigureAwait(false);
         })
         .RequireAuthorization(Policies.Admin)
         .Produces<ListBackupRecordsResponse>(200)

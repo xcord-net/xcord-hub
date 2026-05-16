@@ -29,14 +29,14 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
             var subdomain = ValidationHelpers.ExtractSubdomain(domain);
             var serviceHost = $"xcord-{subdomain}-api";
             var healthUrl = $"http://{serviceHost}:80/health";
-            var response = await _httpClient.GetAsync(healthUrl, cancellationToken);
+            var response = await _httpClient.GetAsync(healthUrl, cancellationToken).ConfigureAwait(false);
 
             stopwatch.Stop();
             var responseTimeMs = (int)stopwatch.ElapsedMilliseconds;
 
             if (response.IsSuccessStatusCode)
             {
-                var version = await ParseVersionFromResponseAsync(response, cancellationToken);
+                var version = await ParseVersionFromResponseAsync(response, cancellationToken).ConfigureAwait(false);
                 return (true, responseTimeMs, null, version);
             }
 
@@ -59,7 +59,7 @@ public sealed class HttpHealthCheckVerifier : IHealthCheckVerifier
     {
         try
         {
-            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("version", out var versionElement))
             {

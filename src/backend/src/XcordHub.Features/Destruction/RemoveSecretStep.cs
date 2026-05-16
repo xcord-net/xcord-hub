@@ -13,13 +13,13 @@ public sealed class RemoveSecretStep(IDockerService dockerService, ILogger<Remov
         if (!string.IsNullOrWhiteSpace(infrastructure.DockerSecretId))
         {
             logger.LogInformation("Removing Docker config secret {SecretId} for instance {Domain}", infrastructure.DockerSecretId, instance.Domain);
-            await dockerService.RemoveSecretAsync(infrastructure.DockerSecretId, cancellationToken);
+            await dockerService.RemoveSecretAsync(infrastructure.DockerSecretId, cancellationToken).ConfigureAwait(false);
         }
 
         if (!string.IsNullOrWhiteSpace(infrastructure.DockerKekSecretId))
         {
             logger.LogInformation("Removing Docker KEK secret {SecretId} for instance {Domain}", infrastructure.DockerKekSecretId, instance.Domain);
-            await dockerService.RemoveSecretAsync(infrastructure.DockerKekSecretId, cancellationToken);
+            await dockerService.RemoveSecretAsync(infrastructure.DockerKekSecretId, cancellationToken).ConfigureAwait(false);
         }
     }
 }

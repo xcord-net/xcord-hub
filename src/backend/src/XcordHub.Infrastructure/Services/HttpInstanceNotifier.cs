@@ -40,7 +40,7 @@ public sealed class HttpInstanceNotifier : IInstanceNotifier
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(4));
 
-            var response = await _httpClient.PostAsJsonAsync(url, payload, cts.Token);
+            var response = await _httpClient.PostAsJsonAsync(url, payload, cts.Token).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
