@@ -32,6 +32,20 @@ namespace XcordHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "encrypted_data_keys",
+                columns: table => new
+                {
+                    Version = table.Column<int>(type: "integer", nullable: false),
+                    WrappedKey = table.Column<byte[]>(type: "bytea", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_encrypted_data_keys", x => x.Version);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "hub_users",
                 columns: table => new
                 {
@@ -49,9 +63,7 @@ namespace XcordHub.Infrastructure.Migrations
                     TwoFactorFailureCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     TwoFactorLockedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     TwoFactorSecret = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    SubscriptionTier = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     StripeCustomerId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    StripeSubscriptionId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     LastLoginAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
@@ -81,6 +93,87 @@ namespace XcordHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "mailing_list_entries",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Tier = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_mailing_list_entries", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "server_lists",
+                columns: table => new
+                {
+                    HubKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_server_lists", x => x.HubKey);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "system_config",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    PaidServersDisabled = table.Column<bool>(type: "boolean", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_system_config", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "system_settings",
+                columns: table => new
+                {
+                    Key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Value = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_system_settings", x => x.Key);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "available_versions",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Image = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ReleaseNotes = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    IsMinimumVersion = table.Column<bool>(type: "boolean", nullable: false),
+                    MinimumEnforcementDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    PublishedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    PublishedBy = table.Column<long>(type: "bigint", nullable: false),
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_available_versions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_available_versions_hub_users_PublishedBy",
+                        column: x => x.PublishedBy,
+                        principalTable: "hub_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "managed_instances",
                 columns: table => new
                 {
@@ -96,7 +189,8 @@ namespace XcordHub.Infrastructure.Migrations
                     Status = table.Column<int>(type: "integer", nullable: false),
                     SnowflakeWorkerId = table.Column<long>(type: "bigint", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -155,166 +249,56 @@ namespace XcordHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "federation_tokens",
+                name: "upgrade_rollouts",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
-                    TokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    RevokedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    FromImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ToImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    TotalInstances = table.Column<int>(type: "integer", nullable: false),
+                    CompletedInstances = table.Column<int>(type: "integer", nullable: false),
+                    BatchSize = table.Column<int>(type: "integer", nullable: false, defaultValue: 5),
+                    MaxFailures = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                    ScheduledAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    FailedInstances = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    TargetPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    InitiatedBy = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_federation_tokens", x => x.Id);
+                    table.PrimaryKey("PK_upgrade_rollouts", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_federation_tokens_managed_instances_ManagedInstanceId",
-                        column: x => x.ManagedInstanceId,
-                        principalTable: "managed_instances",
+                        name: "FK_upgrade_rollouts_hub_users_InitiatedBy",
+                        column: x => x.InitiatedBy,
+                        principalTable: "hub_users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "instance_billing",
+                name: "server_list_entries",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
-                    Tier = table.Column<int>(type: "integer", nullable: false),
-                    MediaEnabled = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    BillingStatus = table.Column<int>(type: "integer", nullable: false),
-                    BillingExempt = table.Column<bool>(type: "boolean", nullable: false),
-                    StripePriceId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    StripeSubscriptionId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    CurrentPeriodEnd = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    NextBillingDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                    HubKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    ServerUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    ServerName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    ServerIconUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
+                    AddedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_instance_billing", x => x.Id);
+                    table.PrimaryKey("PK_server_list_entries", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_instance_billing_managed_instances_ManagedInstanceId",
-                        column: x => x.ManagedInstanceId,
-                        principalTable: "managed_instances",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "instance_configs",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
-                    ConfigJson = table.Column<string>(type: "text", nullable: false),
-                    ResourceLimitsJson = table.Column<string>(type: "text", nullable: false),
-                    FeatureFlagsJson = table.Column<string>(type: "text", nullable: false),
-                    BatchUpgradesEnabled = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    Version = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_instance_configs", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_instance_configs_managed_instances_ManagedInstanceId",
-                        column: x => x.ManagedInstanceId,
-                        principalTable: "managed_instances",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "instance_health",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
-                    IsHealthy = table.Column<bool>(type: "boolean", nullable: false),
-                    LastCheckAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    ConsecutiveFailures = table.Column<int>(type: "integer", nullable: false),
-                    ResponseTimeMs = table.Column<int>(type: "integer", nullable: true),
-                    ErrorMessage = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    Version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_instance_health", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_instance_health_managed_instances_ManagedInstanceId",
-                        column: x => x.ManagedInstanceId,
-                        principalTable: "managed_instances",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "instance_infrastructure",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
-                    DockerNetworkId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    DockerContainerId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    DockerSecretId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
-                    DatabaseName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    DatabasePassword = table.Column<byte[]>(type: "bytea", nullable: false),
-                    RedisDb = table.Column<int>(type: "integer", nullable: false),
-                    MinioAccessKey = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    MinioSecretKey = table.Column<byte[]>(type: "bytea", nullable: false),
-                    CaddyRouteId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    LiveKitApiKey = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    LiveKitSecretKey = table.Column<byte[]>(type: "bytea", nullable: false),
-                    BootstrapTokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
-                    DeployedImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    AdminPasswordHash = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    PaymentMethodId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    PlacedInPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: "default"),
-                    PlacedInDataPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
-                    PlacementRegion = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_instance_infrastructure", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_instance_infrastructure_managed_instances_ManagedInstanceId",
-                        column: x => x.ManagedInstanceId,
-                        principalTable: "managed_instances",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "provisioning_events",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
-                    Phase = table.Column<int>(type: "integer", nullable: false),
-                    StepName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
-                    ErrorMessage = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
-                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_provisioning_events", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_provisioning_events_managed_instances_ManagedInstanceId",
-                        column: x => x.ManagedInstanceId,
-                        principalTable: "managed_instances",
-                        principalColumn: "Id",
+                        name: "FK_server_list_entries_server_lists_HubKey",
+                        column: x => x.HubKey,
+                        principalTable: "server_lists",
+                        principalColumn: "HubKey",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -373,58 +357,217 @@ namespace XcordHub.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "available_versions",
+                name: "federation_tokens",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Image = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    ReleaseNotes = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    IsMinimumVersion = table.Column<bool>(type: "boolean", nullable: false),
-                    MinimumEnforcementDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    PublishedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    PublishedBy = table.Column<long>(type: "bigint", nullable: false),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    TokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    RevokedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_federation_tokens", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_federation_tokens_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "instance_billing",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    Tier = table.Column<int>(type: "integer", nullable: false),
+                    MediaEnabled = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    BillingStatus = table.Column<int>(type: "integer", nullable: false),
+                    BillingExempt = table.Column<bool>(type: "boolean", nullable: false),
+                    StripePriceId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    StripeSubscriptionId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    StripeSubscriptionItemId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    IsMeteredBilling = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    CurrentPeriodEnd = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    NextBillingDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_instance_billing", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_instance_billing_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "instance_configs",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    ConfigJson = table.Column<string>(type: "text", nullable: false),
+                    ResourceLimitsJson = table.Column<string>(type: "text", nullable: false),
+                    FeatureFlagsJson = table.Column<string>(type: "text", nullable: false),
+                    Version = table.Column<int>(type: "integer", nullable: false),
+                    BatchUpgradesEnabled = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_instance_configs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_instance_configs_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "instance_health",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    IsHealthy = table.Column<bool>(type: "boolean", nullable: false),
+                    LastCheckAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ConsecutiveFailures = table.Column<int>(type: "integer", nullable: false),
+                    ResponseTimeMs = table.Column<int>(type: "integer", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    Version = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_instance_health", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_instance_health_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "instance_infrastructure",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    DockerNetworkId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    DockerContainerId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    DockerSecretId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    DatabaseName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    DatabasePassword = table.Column<byte[]>(type: "bytea", nullable: false),
+                    RedisDb = table.Column<int>(type: "integer", nullable: false),
+                    MinioAccessKey = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    MinioSecretKey = table.Column<byte[]>(type: "bytea", nullable: false),
+                    CaddyRouteId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    LiveKitApiKey = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    LiveKitSecretKey = table.Column<byte[]>(type: "bytea", nullable: false),
+                    DockerKekSecretId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    DatabaseUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    RedisUsername = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    RedisPassword = table.Column<byte[]>(type: "bytea", nullable: false),
+                    BootstrapTokenHash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    PlacedInPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: "default"),
+                    PlacedInDataPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
+                    PlacementRegion = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false, defaultValue: ""),
+                    DeployedImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    AdminPasswordHash = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    PaymentMethodId = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_instance_infrastructure", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_instance_infrastructure_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "provisioning_events",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    Phase = table.Column<int>(type: "integer", nullable: false),
+                    StepName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    ErrorMessage = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_provisioning_events", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_provisioning_events_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "uptime_intervals",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ManagedInstanceId = table.Column<long>(type: "bigint", nullable: false),
+                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    EndedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    ReportedToStripe = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    ReportedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_available_versions", x => x.Id);
+                    table.PrimaryKey("PK_uptime_intervals", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_available_versions_hub_users_PublishedBy",
-                        column: x => x.PublishedBy,
-                        principalTable: "hub_users",
+                        name: "FK_uptime_intervals_managed_instances_ManagedInstanceId",
+                        column: x => x.ManagedInstanceId,
+                        principalTable: "managed_instances",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "upgrade_rollouts",
+                name: "worker_id_registry",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    FromImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    ToImage = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    TotalInstances = table.Column<int>(type: "integer", nullable: false),
-                    CompletedInstances = table.Column<int>(type: "integer", nullable: false),
-                    BatchSize = table.Column<int>(type: "integer", nullable: false, defaultValue: 5),
-                    MaxFailures = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
-                    ScheduledAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    FailedInstances = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
-                    TargetPool = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    StartedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    CompletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    InitiatedBy = table.Column<long>(type: "bigint", nullable: false)
+                    worker_id = table.Column<int>(type: "integer", nullable: false),
+                    managed_instance_id = table.Column<long>(type: "bigint", nullable: true),
+                    is_tombstoned = table.Column<bool>(type: "boolean", nullable: false),
+                    allocated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    released_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_upgrade_rollouts", x => x.Id);
+                    table.PrimaryKey("PK_worker_id_registry", x => x.worker_id);
                     table.ForeignKey(
-                        name: "FK_upgrade_rollouts_hub_users_InitiatedBy",
-                        column: x => x.InitiatedBy,
-                        principalTable: "hub_users",
+                        name: "FK_worker_id_registry_managed_instances_managed_instance_id",
+                        column: x => x.managed_instance_id,
+                        principalTable: "managed_instances",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -463,61 +606,17 @@ namespace XcordHub.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "server_lists",
-                columns: table => new
-                {
-                    HubKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_server_lists", x => x.HubKey);
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_available_versions_PublishedBy",
+                table: "available_versions",
+                column: "PublishedBy");
 
-            migrationBuilder.CreateTable(
-                name: "server_list_entries",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    HubKey = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    ServerUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
-                    ServerName = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    ServerIconUrl = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: true),
-                    AddedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_server_list_entries", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_server_list_entries_server_lists_HubKey",
-                        column: x => x.HubKey,
-                        principalTable: "server_lists",
-                        principalColumn: "HubKey",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "worker_id_registry",
-                columns: table => new
-                {
-                    worker_id = table.Column<int>(type: "integer", nullable: false),
-                    managed_instance_id = table.Column<long>(type: "bigint", nullable: true),
-                    is_tombstoned = table.Column<bool>(type: "boolean", nullable: false),
-                    allocated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    released_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_worker_id_registry", x => x.worker_id);
-                    table.ForeignKey(
-                        name: "FK_worker_id_registry_managed_instances_managed_instance_id",
-                        column: x => x.managed_instance_id,
-                        principalTable: "managed_instances",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_available_versions_Version",
+                table: "available_versions",
+                column: "Version",
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_backup_policies_ManagedInstanceId",
@@ -529,6 +628,13 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "IX_backup_records_ManagedInstanceId_StartedAt",
                 table: "backup_records",
                 columns: new[] { "ManagedInstanceId", "StartedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_encrypted_data_keys_IsActive_Unique",
+                table: "encrypted_data_keys",
+                column: "IsActive",
+                unique: true,
+                filter: "\"IsActive\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_federation_tokens_ManagedInstanceId",
@@ -545,23 +651,15 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "IX_hub_users_EmailHash",
                 table: "hub_users",
                 column: "EmailHash",
-                unique: true);
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_hub_users_Username",
                 table: "hub_users",
                 column: "Username",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_login_attempts_CreatedAt",
-                table: "login_attempts",
-                column: "CreatedAt");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_login_attempts_IpAddress",
-                table: "login_attempts",
-                column: "IpAddress");
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_instance_billing_ManagedInstanceId",
@@ -588,10 +686,28 @@ namespace XcordHub.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_login_attempts_CreatedAt",
+                table: "login_attempts",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_login_attempts_IpAddress",
+                table: "login_attempts",
+                column: "IpAddress");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_mailing_list_entries_Email_Tier",
+                table: "mailing_list_entries",
+                columns: new[] { "Email", "Tier" },
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_managed_instances_Domain",
                 table: "managed_instances",
                 column: "Domain",
-                unique: true);
+                unique: true,
+                filter: "\"DeletedAt\" IS NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_managed_instances_OwnerId",
@@ -602,7 +718,8 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "IX_managed_instances_SnowflakeWorkerId",
                 table: "managed_instances",
                 column: "SnowflakeWorkerId",
-                unique: true);
+                unique: true,
+                filter: "\"SnowflakeWorkerId\" > 0 AND \"DeletedAt\" IS NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_password_reset_tokens_HubUserId",
@@ -619,38 +736,6 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "IX_provisioning_events_ManagedInstanceId",
                 table: "provisioning_events",
                 column: "ManagedInstanceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_available_versions_Version",
-                table: "available_versions",
-                column: "Version",
-                unique: true,
-                filter: "\"DeletedAt\" IS NULL");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_available_versions_PublishedBy",
-                table: "available_versions",
-                column: "PublishedBy");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_upgrade_rollouts_InitiatedBy",
-                table: "upgrade_rollouts",
-                column: "InitiatedBy");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_upgrade_rollouts_Status",
-                table: "upgrade_rollouts",
-                column: "Status");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_upgrade_events_ManagedInstanceId",
-                table: "upgrade_events",
-                column: "ManagedInstanceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_upgrade_events_UpgradeRolloutId",
-                table: "upgrade_events",
-                column: "UpgradeRolloutId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_HubUserId",
@@ -670,6 +755,36 @@ namespace XcordHub.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_upgrade_events_ManagedInstanceId",
+                table: "upgrade_events",
+                column: "ManagedInstanceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_upgrade_events_UpgradeRolloutId",
+                table: "upgrade_events",
+                column: "UpgradeRolloutId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_upgrade_rollouts_InitiatedBy",
+                table: "upgrade_rollouts",
+                column: "InitiatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_upgrade_rollouts_Status",
+                table: "upgrade_rollouts",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_uptime_intervals_ManagedInstanceId_EndedAt",
+                table: "uptime_intervals",
+                columns: new[] { "ManagedInstanceId", "EndedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_uptime_intervals_ReportedToStripe_EndedAt",
+                table: "uptime_intervals",
+                columns: new[] { "ReportedToStripe", "EndedAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_worker_id_registry_is_tombstoned",
                 table: "worker_id_registry",
                 column: "is_tombstoned");
@@ -678,73 +793,13 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "IX_worker_id_registry_managed_instance_id",
                 table: "worker_id_registry",
                 column: "managed_instance_id");
-
-            migrationBuilder.CreateTable(
-                name: "system_config",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false),
-                    PaidServersDisabled = table.Column<bool>(type: "boolean", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_system_config", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "system_settings",
-                columns: table => new
-                {
-                    Key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Value = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_system_settings", x => x.Key);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "encrypted_data_keys",
-                columns: table => new
-                {
-                    Version = table.Column<int>(type: "integer", nullable: false),
-                    WrappedKey = table.Column<byte[]>(type: "bytea", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_encrypted_data_keys", x => x.Version);
-                });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_encrypted_data_keys_IsActive_Unique",
-                table: "encrypted_data_keys",
-                column: "IsActive",
-                unique: true,
-                filter: "\"IsActive\" = true");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "server_list_entries");
-
-            migrationBuilder.DropTable(
-                name: "server_lists");
-
-            migrationBuilder.DropTable(
-                name: "system_config");
-
-            migrationBuilder.DropTable(
-                name: "system_settings");
-
-            migrationBuilder.DropTable(
-                name: "contact_submissions");
+                name: "available_versions");
 
             migrationBuilder.DropTable(
                 name: "backup_policies");
@@ -753,22 +808,16 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "backup_records");
 
             migrationBuilder.DropTable(
-                name: "upgrade_events");
+                name: "contact_submissions");
 
             migrationBuilder.DropTable(
-                name: "upgrade_rollouts");
-
-            migrationBuilder.DropTable(
-                name: "available_versions");
+                name: "encrypted_data_keys");
 
             migrationBuilder.DropTable(
                 name: "federation_tokens");
 
             migrationBuilder.DropTable(
                 name: "instance_billing");
-
-            migrationBuilder.DropTable(
-                name: "login_attempts");
 
             migrationBuilder.DropTable(
                 name: "instance_configs");
@@ -780,6 +829,12 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "instance_infrastructure");
 
             migrationBuilder.DropTable(
+                name: "login_attempts");
+
+            migrationBuilder.DropTable(
+                name: "mailing_list_entries");
+
+            migrationBuilder.DropTable(
                 name: "password_reset_tokens");
 
             migrationBuilder.DropTable(
@@ -789,7 +844,28 @@ namespace XcordHub.Infrastructure.Migrations
                 name: "refresh_tokens");
 
             migrationBuilder.DropTable(
+                name: "server_list_entries");
+
+            migrationBuilder.DropTable(
+                name: "system_config");
+
+            migrationBuilder.DropTable(
+                name: "system_settings");
+
+            migrationBuilder.DropTable(
+                name: "upgrade_events");
+
+            migrationBuilder.DropTable(
+                name: "uptime_intervals");
+
+            migrationBuilder.DropTable(
                 name: "worker_id_registry");
+
+            migrationBuilder.DropTable(
+                name: "server_lists");
+
+            migrationBuilder.DropTable(
+                name: "upgrade_rollouts");
 
             migrationBuilder.DropTable(
                 name: "managed_instances");

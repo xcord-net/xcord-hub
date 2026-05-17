@@ -4370,39 +4370,27 @@
       },
       "UpdateFeatureFlagsRequest": {
         "required": [
-          "canCreateBots",
-          "canUseWebhooks",
-          "canUseCustomEmoji",
-          "canUseThreads",
           "canUseVoiceChannels",
           "canUseVideoChannels",
-          "canUseForumChannels",
-          "canUseScheduledEvents"
+          "canUseSimulcast",
+          "canUseMemberTiers",
+          "canBroadcast"
         ],
         "type": "object",
         "properties": {
-          "canCreateBots": {
-            "type": "boolean"
-          },
-          "canUseWebhooks": {
-            "type": "boolean"
-          },
-          "canUseCustomEmoji": {
-            "type": "boolean"
-          },
-          "canUseThreads": {
-            "type": "boolean"
-          },
           "canUseVoiceChannels": {
             "type": "boolean"
           },
           "canUseVideoChannels": {
             "type": "boolean"
           },
-          "canUseForumChannels": {
+          "canUseSimulcast": {
             "type": "boolean"
           },
-          "canUseScheduledEvents": {
+          "canUseMemberTiers": {
+            "type": "boolean"
+          },
+          "canBroadcast": {
             "type": "boolean"
           }
         }

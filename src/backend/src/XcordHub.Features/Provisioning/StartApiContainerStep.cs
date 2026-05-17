@@ -337,15 +337,7 @@ public sealed class StartApiContainerStep : IProvisioningStep
             {
                 canUseVoiceChannels = featureFlags?.CanUseVoiceChannels ?? true,
                 canUseVideoChannels = featureFlags?.CanUseVideoChannels ?? true,
-                canCreateBots = featureFlags?.CanCreateBots ?? true,
-                canUseWebhooks = featureFlags?.CanUseWebhooks ?? true,
-                canUseCustomEmoji = featureFlags?.CanUseCustomEmoji ?? true,
-                canUseThreads = featureFlags?.CanUseThreads ?? true,
-                canUseForumChannels = featureFlags?.CanUseForumChannels ?? true,
-                canUseScheduledEvents = featureFlags?.CanUseScheduledEvents ?? true,
-                canUseHdVideo = featureFlags?.CanUseHdVideo ?? false,
                 canUseSimulcast = featureFlags?.CanUseSimulcast ?? false,
-                canUseRecording = featureFlags?.CanUseRecording ?? false,
                 canUseMemberTiers = featureFlags?.CanUseMemberTiers ?? false,
                 canBroadcast = featureFlags?.CanBroadcast ?? false,
                 maxUsers = resourceLimits?.MaxUsers ?? 0,
@@ -360,18 +352,15 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 broadcastMaxBitrateKbps = resourceLimits?.BroadcastMaxBitrateKbps ?? 0,
                 broadcastMaxResolutionWidth = resourceLimits?.BroadcastMaxResolutionWidth ?? 0,
                 broadcastMaxResolutionHeight = resourceLimits?.BroadcastMaxResolutionHeight ?? 0,
-                // Quality limits derived from feature tier
+                // Quality limits: video is HD by default when enabled (the prior
+                // CanUseHdVideo flag was never read by the fed, so the distinction
+                // was unenforced -- ship HD limits whenever video is on).
                 maxAudioBitrateKbps = (featureFlags?.CanUseVoiceChannels ?? true) ? 50 : 0,
-                maxVideoBitrateKbps = (featureFlags?.CanUseVideoChannels ?? false)
-                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 4000 : 1500) : 0,
-                maxVideoWidth = (featureFlags?.CanUseVideoChannels ?? false)
-                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 1920 : 1280) : 0,
-                maxVideoHeight = (featureFlags?.CanUseVideoChannels ?? false)
-                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 1080 : 720) : 0,
-                maxVideoFps = (featureFlags?.CanUseVideoChannels ?? false)
-                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 60 : 30) : 0,
-                maxScreenShareBitrateKbps = (featureFlags?.CanUseVideoChannels ?? false)
-                    ? ((featureFlags?.CanUseHdVideo ?? false) ? 3000 : 1000) : 0
+                maxVideoBitrateKbps = (featureFlags?.CanUseVideoChannels ?? false) ? 4000 : 0,
+                maxVideoWidth = (featureFlags?.CanUseVideoChannels ?? false) ? 1920 : 0,
+                maxVideoHeight = (featureFlags?.CanUseVideoChannels ?? false) ? 1080 : 0,
+                maxVideoFps = (featureFlags?.CanUseVideoChannels ?? false) ? 60 : 0,
+                maxScreenShareBitrateKbps = (featureFlags?.CanUseVideoChannels ?? false) ? 3000 : 0
             }
         };
 

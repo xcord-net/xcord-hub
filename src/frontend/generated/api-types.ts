@@ -1742,14 +1742,11 @@ export interface components {
             batchUpgradesEnabled: boolean;
         };
         UpdateFeatureFlagsRequest: {
-            canCreateBots: boolean;
-            canUseWebhooks: boolean;
-            canUseCustomEmoji: boolean;
-            canUseThreads: boolean;
             canUseVoiceChannels: boolean;
             canUseVideoChannels: boolean;
-            canUseForumChannels: boolean;
-            canUseScheduledEvents: boolean;
+            canUseSimulcast: boolean;
+            canUseMemberTiers: boolean;
+            canBroadcast: boolean;
         };
         UpdateFeatureFlagsResponse: {
             instanceId: string;

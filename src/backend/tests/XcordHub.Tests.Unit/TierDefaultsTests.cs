@@ -114,17 +114,9 @@ public sealed class TierDefaultsTests
         var flags = TierDefaults.GetFeatureFlags(tier, mediaEnabled: false);
 
         flags.Should().NotBeNull();
-        flags.CanCreateBots.Should().BeTrue();
-        flags.CanUseWebhooks.Should().BeTrue();
-        flags.CanUseCustomEmoji.Should().BeTrue();
-        flags.CanUseThreads.Should().BeTrue();
-        flags.CanUseForumChannels.Should().BeTrue();
-        flags.CanUseScheduledEvents.Should().BeTrue();
         flags.CanUseVoiceChannels.Should().BeFalse();
         flags.CanUseVideoChannels.Should().BeFalse();
-        flags.CanUseHdVideo.Should().BeFalse();
         flags.CanUseSimulcast.Should().BeFalse();
-        flags.CanUseRecording.Should().BeFalse();
         flags.CanUseMemberTiers.Should().Be(tier >= InstanceTier.Pro);
     }
 
@@ -138,29 +130,10 @@ public sealed class TierDefaultsTests
         var flags = TierDefaults.GetFeatureFlags(tier, mediaEnabled: true);
 
         flags.Should().NotBeNull();
-        flags.CanCreateBots.Should().BeTrue();
-        flags.CanUseWebhooks.Should().BeTrue();
-        flags.CanUseCustomEmoji.Should().BeTrue();
-        flags.CanUseThreads.Should().BeTrue();
-        flags.CanUseForumChannels.Should().BeTrue();
-        flags.CanUseScheduledEvents.Should().BeTrue();
         flags.CanUseVoiceChannels.Should().BeTrue();
         flags.CanUseVideoChannels.Should().BeTrue();
-        flags.CanUseHdVideo.Should().BeTrue();
         flags.CanUseSimulcast.Should().BeTrue();
         flags.CanUseMemberTiers.Should().Be(tier >= InstanceTier.Pro);
-    }
-
-    [Theory]
-    [InlineData(InstanceTier.Free, false)]
-    [InlineData(InstanceTier.Basic, false)]
-    [InlineData(InstanceTier.Pro, true)]
-    [InlineData(InstanceTier.Enterprise, true)]
-    public void GetFeatureFlags_Recording_OnlyProAndEnterprise(InstanceTier tier, bool expectedRecording)
-    {
-        var flags = TierDefaults.GetFeatureFlags(tier, mediaEnabled: true);
-        flags.CanUseRecording.Should().Be(expectedRecording,
-            $"{tier} with media should {(expectedRecording ? "" : "not ")}allow recording");
     }
 
     [Theory]

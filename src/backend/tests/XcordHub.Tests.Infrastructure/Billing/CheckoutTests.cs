@@ -96,10 +96,9 @@ public sealed class CheckoutTests : BillingTestsBase
             .FirstOrDefaultAsync(c => c.ManagedInstanceId == instanceId);
 
         var flags = JsonSerializer.Deserialize<FeatureFlags>(config!.FeatureFlagsJson);
-        flags!.CanUseHdVideo.Should().BeTrue("mediaEnabled must enable HD video in feature flags");
-        flags.CanUseSimulcast.Should().BeTrue();
-        flags.CanUseRecording.Should().BeTrue(
-            "Pro tier with mediaEnabled must enable recording in feature flags");
+        flags!.CanUseSimulcast.Should().BeTrue("mediaEnabled must enable simulcast in feature flags");
+        flags.CanUseVoiceChannels.Should().BeTrue();
+        flags.CanUseVideoChannels.Should().BeTrue();
     }
 
     [Fact]

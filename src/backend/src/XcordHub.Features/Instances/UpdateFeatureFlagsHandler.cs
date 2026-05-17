@@ -10,14 +10,11 @@ namespace XcordHub.Features.Instances;
 
 public sealed record UpdateFeatureFlagsCommand(
     long InstanceId,
-    bool CanCreateBots,
-    bool CanUseWebhooks,
-    bool CanUseCustomEmoji,
-    bool CanUseThreads,
     bool CanUseVoiceChannels,
     bool CanUseVideoChannels,
-    bool CanUseForumChannels,
-    bool CanUseScheduledEvents
+    bool CanUseSimulcast,
+    bool CanUseMemberTiers,
+    bool CanBroadcast
 );
 
 public sealed record UpdateFeatureFlagsResponse(
@@ -26,14 +23,11 @@ public sealed record UpdateFeatureFlagsResponse(
 );
 
 public sealed record UpdateFeatureFlagsRequest(
-    bool CanCreateBots,
-    bool CanUseWebhooks,
-    bool CanUseCustomEmoji,
-    bool CanUseThreads,
     bool CanUseVoiceChannels,
     bool CanUseVideoChannels,
-    bool CanUseForumChannels,
-    bool CanUseScheduledEvents
+    bool CanUseSimulcast,
+    bool CanUseMemberTiers,
+    bool CanBroadcast
 );
 
 public sealed class UpdateFeatureFlagsHandler(HubDbContext dbContext)
@@ -57,14 +51,11 @@ public sealed class UpdateFeatureFlagsHandler(HubDbContext dbContext)
 
         var featureFlags = new FeatureFlags
         {
-            CanCreateBots = request.CanCreateBots,
-            CanUseWebhooks = request.CanUseWebhooks,
-            CanUseCustomEmoji = request.CanUseCustomEmoji,
-            CanUseThreads = request.CanUseThreads,
             CanUseVoiceChannels = request.CanUseVoiceChannels,
             CanUseVideoChannels = request.CanUseVideoChannels,
-            CanUseForumChannels = request.CanUseForumChannels,
-            CanUseScheduledEvents = request.CanUseScheduledEvents
+            CanUseSimulcast = request.CanUseSimulcast,
+            CanUseMemberTiers = request.CanUseMemberTiers,
+            CanBroadcast = request.CanBroadcast
         };
 
         instance.Config.FeatureFlagsJson = JsonSerializer.Serialize(featureFlags);
@@ -100,14 +91,11 @@ public sealed class UpdateFeatureFlagsHandler(HubDbContext dbContext)
 
             var command = new UpdateFeatureFlagsCommand(
                 id,
-                request.CanCreateBots,
-                request.CanUseWebhooks,
-                request.CanUseCustomEmoji,
-                request.CanUseThreads,
                 request.CanUseVoiceChannels,
                 request.CanUseVideoChannels,
-                request.CanUseForumChannels,
-                request.CanUseScheduledEvents
+                request.CanUseSimulcast,
+                request.CanUseMemberTiers,
+                request.CanBroadcast
             );
 
             var result = await handler.Handle(command, ct).ConfigureAwait(false);

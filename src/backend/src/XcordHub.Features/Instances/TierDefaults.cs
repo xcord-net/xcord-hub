@@ -99,17 +99,9 @@ public static class TierDefaults
 
         return new FeatureFlags
         {
-            CanCreateBots = true,
-            CanUseWebhooks = true,
-            CanUseCustomEmoji = true,
-            CanUseThreads = true,
-            CanUseForumChannels = true,
-            CanUseScheduledEvents = true,
             CanUseVoiceChannels = mediaEnabled,
             CanUseVideoChannels = mediaEnabled,
-            CanUseHdVideo = mediaEnabled,
             CanUseSimulcast = mediaEnabled,
-            CanUseRecording = mediaEnabled && tier >= InstanceTier.Pro,
             CanUseMemberTiers = tier >= InstanceTier.Pro,
             CanBroadcast = mediaEnabled && tier >= InstanceTier.Basic
         };
