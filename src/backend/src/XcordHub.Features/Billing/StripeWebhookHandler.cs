@@ -16,6 +16,7 @@ namespace XcordHub.Features.Billing;
 public sealed class StripeWebhookHandler(
     HubDbContext dbContext,
     IOptions<StripeOptions> stripeOptions,
+    BillingSuspensionService suspensionService,
     ILogger<StripeWebhookHandler> logger)
 {
     public async Task<IResult> HandleAsync(HttpContext httpContext, CancellationToken ct)
@@ -97,8 +98,13 @@ public sealed class StripeWebhookHandler(
 
         billing.StripeSubscriptionId = session.SubscriptionId;
         billing.BillingStatus = BillingStatus.Active;
+        billing.BillingStatusChangedAt = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        // If the BillingEnforcer suspended this instance for non-payment, the
+        // completed checkout settles it - bring the instance back up.
+        await suspensionService.ResumeAfterPaymentAsync(billing, ct).ConfigureAwait(false);
 
         logger.LogInformation("Checkout completed for instance {InstanceId}, subscription {SubscriptionId}",
             instanceId, session.SubscriptionId);
@@ -116,10 +122,15 @@ public sealed class StripeWebhookHandler(
         if (billing == null) return;
 
         billing.BillingStatus = BillingStatus.Active;
+        billing.BillingStatusChangedAt = DateTimeOffset.UtcNow;
         billing.CurrentPeriodEnd = invoice!.PeriodEnd;
         billing.NextBillingDate = invoice.PeriodEnd;
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        // A paid invoice settles a non-payment suspension - bring the instance back up.
+        await suspensionService.ResumeAfterPaymentAsync(billing, ct).ConfigureAwait(false);
+
         logger.LogInformation("Invoice paid for subscription {SubscriptionId}", subscriptionId);
     }
 
@@ -135,6 +146,7 @@ public sealed class StripeWebhookHandler(
         if (billing == null) return;
 
         billing.BillingStatus = BillingStatus.PastDue;
+        billing.BillingStatusChangedAt = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogWarning("Payment failed for subscription {SubscriptionId}, status set to PastDue",
@@ -176,6 +188,7 @@ public sealed class StripeWebhookHandler(
         billing.Tier = InstanceTier.Free;
         billing.MediaEnabled = false;
         billing.BillingStatus = BillingStatus.Cancelled;
+        billing.BillingStatusChangedAt = DateTimeOffset.UtcNow;
         billing.StripeSubscriptionId = null;
         billing.StripePriceId = null;
         billing.CurrentPeriodEnd = null;

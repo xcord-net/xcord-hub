@@ -14,6 +14,20 @@ public sealed class ManagedInstance : ISoftDeletable
     public int OnlineCount { get; set; }
     public InstanceStatus Status { get; set; }
     public long SnowflakeWorkerId { get; set; }
+
+    /// <summary>
+    /// Number of times provisioning has been attempted (initial enqueue plus
+    /// reconciler retries). The reconciler marks the instance Failed once this
+    /// reaches its retry cap.
+    /// </summary>
+    public int ProvisioningAttempts { get; set; }
+
+    /// <summary>
+    /// When provisioning was last enqueued. Stuck-detection measures from this
+    /// timestamp (not CreatedAt, which never resets across retries).
+    /// </summary>
+    public DateTimeOffset? LastProvisioningAttemptAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
 

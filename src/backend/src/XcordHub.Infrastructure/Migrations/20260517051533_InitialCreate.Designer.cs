@@ -359,6 +359,14 @@ namespace XcordHub.Infrastructure.Migrations
                     b.Property<bool>("BillingExempt")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset>("BillingStatusChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("BillingSuspended")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("BillingStatus")
                         .HasColumnType("integer");
 
@@ -732,6 +740,9 @@ namespace XcordHub.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<DateTimeOffset?>("LastProvisioningAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("MemberCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -744,6 +755,11 @@ namespace XcordHub.Infrastructure.Migrations
 
                     b.Property<long>("OwnerId")
                         .HasColumnType("bigint");
+
+                    b.Property<int>("ProvisioningAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<long>("SnowflakeWorkerId")
                         .HasColumnType("bigint");

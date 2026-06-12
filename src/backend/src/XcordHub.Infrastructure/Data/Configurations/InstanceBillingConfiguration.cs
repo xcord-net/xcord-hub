@@ -45,6 +45,13 @@ public sealed class InstanceBillingConfiguration : IEntityTypeConfiguration<Inst
 
         builder.Property(x => x.NextBillingDate);
 
+        builder.Property(x => x.BillingStatusChangedAt)
+            .IsRequired();
+
+        builder.Property(x => x.BillingSuspended)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

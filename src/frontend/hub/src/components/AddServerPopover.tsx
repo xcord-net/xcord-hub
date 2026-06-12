@@ -45,9 +45,14 @@ export default function AddServerPopover(props: AddServerPopoverProps) {
       }
     };
 
-    // Delay to avoid the opening click triggering close
-    setTimeout(() => document.addEventListener('mousedown', handleClick), 0);
-    onCleanup(() => document.removeEventListener('mousedown', handleClick));
+    // Delay to avoid the opening click triggering close. Cleanup must cancel
+    // the pending timeout too: if the popover closes within the same tick,
+    // cleanup would otherwise run before the deferred add and leak the listener.
+    const attachTimer = setTimeout(() => document.addEventListener('mousedown', handleClick), 0);
+    onCleanup(() => {
+      clearTimeout(attachTimer);
+      document.removeEventListener('mousedown', handleClick);
+    });
   });
 
   // Close on Escape

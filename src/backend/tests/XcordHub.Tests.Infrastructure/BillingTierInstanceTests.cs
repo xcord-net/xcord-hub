@@ -103,7 +103,8 @@ public sealed class BillingTierInstanceTests
             new NoOpCaptchaService(),
             new SnowflakeIdGenerator(254),
             BuildConfiguration(),
-            Options.Create(new AuthOptions()));
+            Options.Create(new AuthOptions()),
+            Options.Create(new StripeOptions()));
 
         return new CreateInstanceHandler(
             dbContext,

@@ -1557,6 +1557,10 @@ export interface components {
             tier?: components["schemas"]["InstanceTier"];
             /** @default false */
             mediaEnabled: boolean;
+            /** @default null */
+            paymentMethodId: string | null;
+            /** @default false */
+            billingExempt: boolean;
         };
         ProvisionInstanceResponse: {
             instanceId: string;

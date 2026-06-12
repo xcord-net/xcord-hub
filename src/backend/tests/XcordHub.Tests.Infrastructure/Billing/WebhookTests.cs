@@ -20,6 +20,12 @@ namespace XcordHub.Tests.Infrastructure.Billing;
 [Trait("Category", "Integration")]
 public sealed class WebhookTests : BillingTestsBase
 {
+    private sealed class NoopNotifier : XcordHub.Infrastructure.Services.IInstanceNotifier
+    {
+        public Task NotifyShuttingDownAsync(string instanceDomain, string reason, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+    }
+
     public WebhookTests(SharedPostgresFixture fixture) : base(fixture, "xcordhub_billing_webhook_test") { }
 
     [Fact]
@@ -170,6 +176,11 @@ public sealed class WebhookTests : BillingTestsBase
         var handler = new StripeWebhookHandler(
             dbContext,
             NoStripeOptions(),
+            new BillingSuspensionService(
+                dbContext,
+                new XcordHub.Infrastructure.Services.NoopDockerService(NullLogger<XcordHub.Infrastructure.Services.NoopDockerService>.Instance),
+                new NoopNotifier(),
+                NullLogger<BillingSuspensionService>.Instance),
             NullLogger<StripeWebhookHandler>.Instance);
 
         // Build a minimal HttpContext with an empty body

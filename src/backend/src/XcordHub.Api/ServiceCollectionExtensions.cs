@@ -68,6 +68,7 @@ public static partial class ServiceCollectionExtensions
             config.GetSection(XcordHub.Infrastructure.Options.StripeOptions.SectionName));
         services.AddScoped<IStripeService, XcordHub.Infrastructure.Services.StripeService>();
         services.AddScoped<XcordHub.Features.Billing.StripeWebhookHandler>();
+        services.AddScoped<XcordHub.Features.Billing.BillingSuspensionService>();
 
         // JWT (Auth partial)
         AddJwt(services, config);
@@ -86,6 +87,7 @@ public static partial class ServiceCollectionExtensions
         services.AddHostedService<ProvisioningBackgroundService>();
         services.AddHostedService<HealthCheckMonitor>();
         services.AddHostedService<InstanceReconciler>();
+        services.AddHostedService<XcordHub.Features.Monitoring.BillingEnforcer>();
         services.AddHostedService<UpgradeBackgroundService>();
         services.AddHostedService<MinimumVersionEnforcerService>();
         services.AddHostedService<ScheduledRolloutService>();

@@ -25,6 +25,20 @@ public sealed class InstanceBilling
 
     public DateTimeOffset? CurrentPeriodEnd { get; set; }
     public DateTimeOffset? NextBillingDate { get; set; }
+
+    /// <summary>
+    /// When <see cref="BillingStatus"/> last changed. The BillingEnforcer's
+    /// grace period is measured from this timestamp.
+    /// </summary>
+    public DateTimeOffset BillingStatusChangedAt { get; set; }
+
+    /// <summary>
+    /// True when the BillingEnforcer suspended the instance for non-payment.
+    /// Guards webhook-driven resume so a payment can never resume an instance
+    /// that was suspended manually for other reasons.
+    /// </summary>
+    public bool BillingSuspended { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     // Navigation properties

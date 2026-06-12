@@ -101,6 +101,7 @@ export function formatDate(iso: string): string {
 export function statusBadge(status: string): string {
   const classes: Record<string, string> = {
     Active: 'bg-xcord-green/10 text-xcord-green',
+    AwaitingPayment: 'bg-yellow-500/10 text-yellow-400',
     PastDue: 'bg-yellow-500/10 text-yellow-400',
     Suspended: 'bg-xcord-red/10 text-xcord-red',
     Cancelled: 'bg-xcord-bg-tertiary text-xcord-text-muted',

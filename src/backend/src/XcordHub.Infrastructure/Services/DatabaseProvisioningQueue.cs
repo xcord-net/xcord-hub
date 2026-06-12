@@ -24,6 +24,8 @@ public sealed class DatabaseProvisioningQueue : IProvisioningQueue
         }
 
         instance.Status = InstanceStatus.Provisioning;
+        instance.LastProvisioningAttemptAt = DateTimeOffset.UtcNow;
+        instance.ProvisioningAttempts++;
         await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 

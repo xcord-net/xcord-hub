@@ -62,7 +62,8 @@ public sealed class InstanceCreationServiceTests
             new NoOpCaptchaService(),
             new SnowflakeIdGenerator(248),
             BuildConfiguration(),
-            Options.Create(new AuthOptions { BcryptWorkFactor = 4 }));
+            Options.Create(new AuthOptions { BcryptWorkFactor = 4 }),
+            Options.Create(new StripeOptions()));
 
     private async Task<HubUser> SeedUserAsync(HubDbContext db, long userId, string username)
     {

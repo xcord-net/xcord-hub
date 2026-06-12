@@ -13,6 +13,9 @@ export function ProvisionForm(props: ProvisionFormProps) {
   const [adminPassword, setAdminPassword] = createSignal('');
   const [tier, setTier] = createSignal<'Free' | 'Basic' | 'Pro' | 'Enterprise'>('Free');
   const [mediaEnabled, setMediaEnabled] = createSignal(false);
+  const [billingExempt, setBillingExempt] = createSignal(false);
+
+  const isPaidSelection = () => tier() !== 'Free' || mediaEnabled();
   const [error, setError] = createSignal('');
   const [isLoading, setIsLoading] = createSignal(false);
 
@@ -29,6 +32,10 @@ export function ProvisionForm(props: ProvisionFormProps) {
         adminPassword: adminPassword(),
         tier: tier(),
         mediaEnabled: mediaEnabled(),
+        // Admin provisioning has no checkout step; paid tiers must be marked
+        // billing-exempt or the backend rejects them (fail-fast on unpaid tiers).
+        paymentMethodId: null,
+        billingExempt: billingExempt(),
       });
       props.onSuccess();
     } catch (err: any) {
@@ -124,6 +131,22 @@ export function ProvisionForm(props: ProvisionFormProps) {
             Enable voice & video
           </label>
         </div>
+
+        {isPaidSelection() && (
+          <div class="flex items-center gap-2">
+            <input
+              id="billingExempt"
+              type="checkbox"
+              checked={billingExempt()}
+              onChange={(e) => setBillingExempt(e.currentTarget.checked)}
+              disabled={isLoading()}
+              class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label class="text-sm font-medium" for="billingExempt">
+              Billing exempt (internal/test instance, never billed)
+            </label>
+          </div>
+        )}
 
         {error() && (
           <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">

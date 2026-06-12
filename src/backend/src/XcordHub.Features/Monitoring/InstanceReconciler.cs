@@ -12,6 +12,9 @@ public sealed class InstanceReconciler(
     ILogger<InstanceReconciler> logger) : PollingBackgroundService(serviceScopeFactory, logger)
 {
     private readonly TimeSpan _provisioningTimeout = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _pendingOrphanTimeout = TimeSpan.FromMinutes(2);
+
+    internal const int MaxProvisioningAttempts = 3;
 
     protected override TimeSpan Interval => TimeSpan.FromSeconds(60);
 
@@ -34,6 +37,12 @@ public sealed class InstanceReconciler(
 
         // 2. Detect stuck Provisioning instances
         await DetectStuckProvisioningAsync(
+            dbContext,
+            provisioningQueue,
+            ct);
+
+        // 3. Recover instances stranded in Pending (failed/missed enqueue)
+        await SweepOrphanedPendingAsync(
             dbContext,
             provisioningQueue,
             ct);
@@ -170,7 +179,7 @@ public sealed class InstanceReconciler(
         }
     }
 
-    private async Task DetectStuckProvisioningAsync(
+    internal async Task DetectStuckProvisioningAsync(
         HubDbContext dbContext,
         IProvisioningQueue provisioningQueue,
         CancellationToken cancellationToken)
@@ -178,9 +187,11 @@ public sealed class InstanceReconciler(
         var now = DateTimeOffset.UtcNow;
         var stuckCutoff = now - _provisioningTimeout;
 
+        // Measure staleness from the last enqueue, not CreatedAt: a retried
+        // instance gets a fresh timeout window for each attempt.
         var stuckInstances = await dbContext.ManagedInstances
             .Where(i => i.Status == InstanceStatus.Provisioning
-                && i.CreatedAt < stuckCutoff
+                && (i.LastProvisioningAttemptAt ?? i.CreatedAt) < stuckCutoff
                 && i.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
@@ -195,16 +206,58 @@ public sealed class InstanceReconciler(
 
         foreach (var instance in stuckInstances)
         {
+            if (instance.ProvisioningAttempts >= MaxProvisioningAttempts)
+            {
+                Logger.LogError(
+                    "Instance {InstanceId} ({Domain}) stuck in Provisioning after {Attempts} attempts, marking Failed",
+                    instance.Id, instance.Domain, instance.ProvisioningAttempts);
+
+                instance.Status = InstanceStatus.Failed;
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
             Logger.LogError(
-                "Instance {InstanceId} ({Domain}) stuck in Provisioning for {Duration} minutes, re-enqueueing",
-                instance.Id, instance.Domain, (now - instance.CreatedAt).TotalMinutes);
+                "Instance {InstanceId} ({Domain}) stuck in Provisioning for {Duration} minutes, re-enqueueing (attempt {Attempt}/{Max})",
+                instance.Id, instance.Domain,
+                (now - (instance.LastProvisioningAttemptAt ?? instance.CreatedAt)).TotalMinutes,
+                instance.ProvisioningAttempts + 1, MaxProvisioningAttempts);
 
-            // Re-enqueue with backoff
+            // EnqueueAsync sets Status = Provisioning and stamps the attempt,
+            // which keeps the instance dequeueable. (The previous code reset
+            // Status to Pending afterwards - a state nothing ever dequeues, so
+            // stuck instances were silently abandoned.)
             await provisioningQueue.EnqueueAsync(instance.Id, cancellationToken).ConfigureAwait(false);
+        }
+    }
 
-            // Update status to Pending to trigger re-provisioning
-            instance.Status = InstanceStatus.Pending;
-            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    /// <summary>
+    /// Re-enqueues instances stranded in Pending. Creation paths save the
+    /// instance and then enqueue; if the enqueue fails (or the process dies in
+    /// between), the instance would otherwise sit in Pending forever because
+    /// the provisioning queue only dequeues Provisioning instances.
+    /// </summary>
+    internal async Task SweepOrphanedPendingAsync(
+        HubDbContext dbContext,
+        IProvisioningQueue provisioningQueue,
+        CancellationToken cancellationToken)
+    {
+        var cutoff = DateTimeOffset.UtcNow - _pendingOrphanTimeout;
+
+        var orphanedIds = await dbContext.ManagedInstances
+            .Where(i => i.Status == InstanceStatus.Pending
+                && i.CreatedAt < cutoff
+                && i.DeletedAt == null)
+            .Select(i => i.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var instanceId in orphanedIds)
+        {
+            Logger.LogWarning(
+                "Instance {InstanceId} stranded in Pending past {Timeout}, enqueueing for provisioning",
+                instanceId, _pendingOrphanTimeout);
+
+            await provisioningQueue.EnqueueAsync(instanceId, cancellationToken).ConfigureAwait(false);
         }
     }
 }

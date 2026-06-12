@@ -19,7 +19,6 @@ interface Tier {
   isFree: boolean;
   isEnterprise: boolean;
   features: TierFeature[];
-  monetizationNote?: string;
   cta: 'get-started' | 'notify' | 'contact';
 }
 
@@ -71,9 +70,7 @@ const tiers: Tier[] = [
       { label: 'Text messaging' },
       { label: 'Bots & webhooks' },
       { label: 'Custom emoji' },
-      { label: 'Monetization tools' },
     ],
-    monetizationNote: 'Member subscriptions pay directly to your Stripe account; we take no cut.',
     cta: 'notify',
   },
   {
@@ -90,9 +87,7 @@ const tiers: Tier[] = [
       { label: 'Text messaging' },
       { label: 'Bots & webhooks' },
       { label: 'Custom emoji' },
-      { label: 'Monetization tools' },
     ],
-    monetizationNote: 'Member subscriptions pay directly to your Stripe account; we take no cut.',
     cta: 'contact',
   },
 ];
@@ -258,12 +253,6 @@ export default function Pricing() {
                     )}
                   </For>
                 </ul>
-
-                <Show when={tier.monetizationNote}>
-                  <p class="text-xs text-xcord-landing-muted mb-4 -mt-2 italic">
-                    {tier.monetizationNote}
-                  </p>
-                </Show>
 
                 {/* CTA */}
                 <Show when={tierCta(tier) === 'get-started'}>

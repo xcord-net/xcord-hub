@@ -15,9 +15,11 @@ public sealed class InstanceCreationService(
     ICaptchaService captchaService,
     SnowflakeIdGenerator idGenerator,
     IConfiguration configuration,
-    IOptions<AuthOptions> authOptions)
+    IOptions<AuthOptions> authOptions,
+    IOptions<StripeOptions> stripeOptions)
 {
     private readonly AuthOptions _authOptions = authOptions.Value;
+    private readonly StripeOptions _stripeOptions = stripeOptions.Value;
 
     public async Task<Result<ManagedInstance>> CreateAsync(
         long userId,
@@ -84,14 +86,22 @@ public sealed class InstanceCreationService(
 
         db.ManagedInstances.Add(instance);
 
-        // Create billing record
+        // Create billing record. Billed instances start AwaitingPayment until
+        // CreateSubscriptionStep establishes the Stripe subscription; the
+        // BillingEnforcer suspends instances left in that state past the grace period.
+        var priceCents = TierDefaults.GetTotalPriceCents(tier, mediaEnabled);
+        var initialBillingStatus = priceCents > 0 && _stripeOptions.IsConfigured
+            ? BillingStatus.AwaitingPayment
+            : BillingStatus.Active;
+
         var billing = new InstanceBilling
         {
             Id = idGenerator.NextId(),
             ManagedInstanceId = instanceId,
             Tier = tier,
             MediaEnabled = mediaEnabled,
-            BillingStatus = BillingStatus.Active,
+            BillingStatus = initialBillingStatus,
+            BillingStatusChangedAt = now,
             BillingExempt = false,
             NextBillingDate = now.AddMonths(1),
             CreatedAt = now

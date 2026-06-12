@@ -20,7 +20,9 @@ public sealed record ProvisionInstanceCommand(
     string DisplayName,
     string AdminPassword,
     InstanceTier Tier = InstanceTier.Free,
-    bool MediaEnabled = false
+    bool MediaEnabled = false,
+    string? PaymentMethodId = null,
+    bool BillingExempt = false
 );
 
 public sealed record ProvisionInstanceResponse(
@@ -35,10 +37,12 @@ public sealed class ProvisionInstanceHandler(
     IProvisioningQueue provisioningQueue,
     SnowflakeIdGenerator snowflakeGenerator,
     ICurrentUserService currentUserService,
-    IOptions<AuthOptions> authOptions)
+    IOptions<AuthOptions> authOptions,
+    IOptions<StripeOptions> stripeOptions)
     : IRequestHandler<ProvisionInstanceCommand, Result<ProvisionInstanceResponse>>, IValidatable<ProvisionInstanceCommand>
 {
     private readonly AuthOptions _authOptions = authOptions.Value;
+    private readonly StripeOptions _stripeOptions = stripeOptions.Value;
 
     public Error? Validate(ProvisionInstanceCommand request)
     {
@@ -86,6 +90,17 @@ public sealed class ProvisionInstanceHandler(
             return Error.NotFound("OWNER_NOT_FOUND", $"Owner {ownerId} not found");
         }
 
+        // Fail fast: a paid instance without a payment method would otherwise be
+        // provisioned with no Stripe subscription and nothing ever charging for it.
+        // BillingExempt is the deliberate admin escape hatch (internal/test instances).
+        var priceCents = TierDefaults.GetTotalPriceCents(request.Tier, request.MediaEnabled);
+        if (priceCents > 0 && _stripeOptions.IsConfigured && !request.BillingExempt
+            && string.IsNullOrWhiteSpace(request.PaymentMethodId))
+        {
+            return Error.BadRequest("PAYMENT_METHOD_REQUIRED",
+                "A payment method is required for paid tiers (or set billingExempt for non-billed instances)");
+        }
+
         // One free instance per user (permanent limit) - applies to target owner, not admin
         if (request.Tier == InstanceTier.Free)
         {
@@ -124,14 +139,22 @@ public sealed class ProvisionInstanceHandler(
         dbContext.ManagedInstances.Add(instance);
 
         // Create billing record with requested tier
+        // Paid + billed instances start AwaitingPayment until CreateSubscriptionStep
+        // (or a later checkout) establishes the Stripe subscription; the
+        // BillingEnforcer suspends instances left in that state past the grace period.
+        var initialBillingStatus = priceCents > 0 && _stripeOptions.IsConfigured && !request.BillingExempt
+            ? BillingStatus.AwaitingPayment
+            : BillingStatus.Active;
+
         var billing = new InstanceBilling
         {
             Id = snowflakeGenerator.NextId(),
             ManagedInstanceId = instanceId,
             Tier = request.Tier,
             MediaEnabled = request.MediaEnabled,
-            BillingStatus = BillingStatus.Active,
-            BillingExempt = false,
+            BillingStatus = initialBillingStatus,
+            BillingStatusChangedAt = now,
+            BillingExempt = request.BillingExempt,
             NextBillingDate = now.AddMonths(1),
             CreatedAt = now
         };
@@ -150,7 +173,8 @@ public sealed class ProvisionInstanceHandler(
             ManagedInstanceId = instanceId,
             ConfigJson = JsonSerializer.Serialize(new
             {
-                AdminPasswordHash = adminPasswordHash
+                AdminPasswordHash = adminPasswordHash,
+                PaymentMethodId = request.PaymentMethodId
             }),
             ResourceLimitsJson = JsonSerializer.Serialize(resourceLimits),
             FeatureFlagsJson = JsonSerializer.Serialize(featureFlags),

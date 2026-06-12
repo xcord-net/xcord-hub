@@ -73,12 +73,23 @@ public sealed class CreateSubscriptionStep : IProvisioningStep
                 if (doc.RootElement.TryGetProperty("PaymentMethodId", out var pmElem))
                     paymentMethodId = pmElem.GetString();
             }
-            catch { /* config JSON parse failure - skip */ }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex,
+                    "Instance {InstanceId} has unparseable ConfigJson; cannot read payment method",
+                    instanceId);
+            }
         }
         if (string.IsNullOrWhiteSpace(paymentMethodId))
         {
-            _logger.LogWarning("Instance {InstanceId} is a paid tier but no payment method was provided", instanceId);
-            return true; // Don't fail provisioning - subscription can be created later via billing page
+            // Creation paths fail fast on missing payment methods, so this is
+            // defense-in-depth. The billing record stays AwaitingPayment and the
+            // BillingEnforcer suspends the instance if no subscription appears
+            // within the grace period.
+            _logger.LogWarning(
+                "Instance {InstanceId} is a paid tier but no payment method was provided; billing remains {Status}",
+                instanceId, instance.Billing.BillingStatus);
+            return true; // Don't fail provisioning - the BillingEnforcer owns escalation
         }
 
         try
@@ -97,8 +108,10 @@ public sealed class CreateSubscriptionStep : IProvisioningStep
             var priceId = await _stripeService.ResolvePriceIdByLookupKeyAsync(lookupKey, cancellationToken).ConfigureAwait(false);
             if (priceId == null)
             {
-                _logger.LogError("Stripe price not found for lookup key {LookupKey}", lookupKey);
-                return true; // Don't fail provisioning
+                _logger.LogError(
+                    "Stripe price not found for lookup key {LookupKey}; instance {InstanceId} billing remains {Status} and the BillingEnforcer will suspend it if unresolved",
+                    lookupKey, instanceId, instance.Billing.BillingStatus);
+                return true; // Don't fail provisioning - the BillingEnforcer owns escalation
             }
 
             // Create subscription with 30-day trial - no charge until trial ends
@@ -118,6 +131,7 @@ public sealed class CreateSubscriptionStep : IProvisioningStep
             instance.Billing.StripeSubscriptionId = result.SubscriptionId;
             instance.Billing.StripePriceId = priceId;
             instance.Billing.BillingStatus = BillingStatus.Active;
+            instance.Billing.BillingStatusChangedAt = DateTimeOffset.UtcNow;
             await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(

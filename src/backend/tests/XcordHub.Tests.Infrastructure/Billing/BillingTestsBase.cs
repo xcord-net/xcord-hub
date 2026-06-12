@@ -110,7 +110,8 @@ public abstract class BillingTestsBase
             new NoOpCaptchaService(),
             new SnowflakeIdGenerator(255),
             BuildConfiguration(),
-            Options.Create(new AuthOptions()));
+            Options.Create(new AuthOptions()),
+            Options.Create(new StripeOptions()));
 
         var handler = new CreateInstanceHandler(
             dbContext,

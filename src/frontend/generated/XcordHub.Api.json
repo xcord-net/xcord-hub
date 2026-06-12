@@ -3767,6 +3767,15 @@
           "mediaEnabled": {
             "type": "boolean",
             "default": false
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "default": null,
+            "nullable": true
+          },
+          "billingExempt": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

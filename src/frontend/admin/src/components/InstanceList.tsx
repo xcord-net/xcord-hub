@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createSignal, onMount } from 'solid-js';
+import { For, Show, createEffect, createSignal } from 'solid-js';
 import { useInstances } from '../stores/instance.store';
 import { InstanceStatus } from '../types/instance';
 import { FleetUpgrade } from './FleetUpgrade';
@@ -13,10 +13,9 @@ export function InstanceList(props: InstanceListProps) {
   const instanceStore = useInstances();
   const [fleetUpgradeOpen, setFleetUpgradeOpen] = createSignal(false);
 
-  onMount(() => {
-    instanceStore.fetchInstances();
-  });
-
+  // The effect runs immediately on mount and re-runs when the store's
+  // tracked pagination/filter signals change; a separate onMount fetch
+  // would just duplicate the initial request.
   createEffect(() => {
     instanceStore.fetchInstances();
   });

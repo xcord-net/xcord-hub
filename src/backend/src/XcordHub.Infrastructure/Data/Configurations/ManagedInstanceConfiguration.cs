@@ -52,6 +52,12 @@ public sealed class ManagedInstanceConfiguration : IEntityTypeConfiguration<Mana
         builder.Property(x => x.SnowflakeWorkerId)
             .IsRequired();
 
+        builder.Property(x => x.ProvisioningAttempts)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(x => x.LastProvisioningAttemptAt);
+
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 

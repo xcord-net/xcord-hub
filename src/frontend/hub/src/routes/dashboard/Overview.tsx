@@ -16,6 +16,7 @@ interface InstanceInfo {
 export default function Overview() {
   const [instances, setInstances] = createSignal<InstanceInfo[]>([]);
   const [loading, setLoading] = createSignal(true);
+  const [loadError, setLoadError] = createSignal(false);
 
   const TRANSIENT_STATUSES = ['provisioning', 'suspending', 'resuming', 'destroying', 'pending'];
 
@@ -28,9 +29,14 @@ export default function Overview() {
       if (response.ok) {
         const data = await response.json();
         setInstances(data.instances ?? []);
+        setLoadError(false);
+      } else {
+        setLoadError(true);
       }
     } catch {
-      // API may not be available yet
+      // Surface the failure instead of silently showing "No servers yet" -
+      // an owner with instances must be able to tell outage from empty.
+      setLoadError(true);
     }
   };
 
@@ -116,6 +122,14 @@ export default function Overview() {
         }
       >
         <Show
+          when={!loadError() || instances().length > 0}
+          fallback={
+            <div class="bg-xcord-bg-secondary rounded-lg p-8 text-center text-xcord-text-muted">
+              Couldn't load your instances. Retrying automatically...
+            </div>
+          }
+        >
+        <Show
           when={instances().length > 0}
           fallback={
             <div class="bg-xcord-bg-secondary rounded-lg p-8 text-center">
@@ -154,6 +168,7 @@ export default function Overview() {
               )}
             </For>
           </div>
+        </Show>
         </Show>
       </Show>
     </div>

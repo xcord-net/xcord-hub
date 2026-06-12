@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onMount } from 'solid-js';
+import { createSignal, createEffect, onMount, onCleanup } from 'solid-js';
 import type { Setter } from 'solid-js';
 import { useNavigate, useSearchParams } from '@solidjs/router';
 import { loadStripe } from '@stripe/stripe-js';
@@ -100,13 +100,20 @@ export function useGetStartedFlow() {
     setReady(true);
   });
 
+  // Guard the async effect against disposal and re-entry: if the secret or key
+  // changes (or the component unmounts) while loadStripe is pending, the stale
+  // run must not mount a payment element or overwrite newer Stripe context.
+  let stripeEffectRun = 0;
+  onCleanup(() => { stripeEffectRun++; });
+
   createEffect(async () => {
     const secret = clientSecret();
     if (!secret) return;
     const key = stripePublishableKey();
     if (!key) return;
+    const run = ++stripeEffectRun;
     const stripe = await loadStripe(key);
-    if (!stripe) return;
+    if (!stripe || run !== stripeEffectRun) return;
 
     const elements = stripe.elements({
       clientSecret: secret,
@@ -121,6 +128,7 @@ export function useGetStartedFlow() {
         },
       },
     });
+    if (run !== stripeEffectRun || !document.querySelector('#payment-element')) return;
     const paymentElement = elements.create('payment', { layout: { type: 'tabs', defaultCollapsed: false } });
     paymentElement.mount('#payment-element');
     setStripeCtx({ stripe, elements });
@@ -139,6 +147,7 @@ export function useGetStartedFlow() {
   const subdomainValid = () => subdomain().length >= 6 && !subdomainError();
 
   let checkTimer: ReturnType<typeof setTimeout>;
+  onCleanup(() => clearTimeout(checkTimer));
   const handleSubdomainInput = (value: string) => {
     const clean = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
     setSubdomain(clean);

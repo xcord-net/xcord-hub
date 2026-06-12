@@ -188,6 +188,8 @@ namespace XcordHub.Infrastructure.Migrations
                     OnlineCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     SnowflakeWorkerId = table.Column<long>(type: "bigint", nullable: false),
+                    ProvisioningAttempts = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    LastProvisioningAttemptAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
@@ -395,6 +397,8 @@ namespace XcordHub.Infrastructure.Migrations
                     IsMeteredBilling = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     CurrentPeriodEnd = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     NextBillingDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    BillingStatusChangedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    BillingSuspended = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>

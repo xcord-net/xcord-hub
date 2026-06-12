@@ -66,6 +66,7 @@ public sealed class CancelInstanceBillingHandler(
         instance.Billing.Tier = InstanceTier.Free;
         instance.Billing.MediaEnabled = false;
         instance.Billing.BillingStatus = BillingStatus.Cancelled;
+        instance.Billing.BillingStatusChangedAt = DateTimeOffset.UtcNow;
         instance.Billing.StripeSubscriptionId = null;
         instance.Billing.StripePriceId = null;
         instance.Billing.CurrentPeriodEnd = null;

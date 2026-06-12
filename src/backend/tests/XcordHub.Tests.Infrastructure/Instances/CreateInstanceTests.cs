@@ -86,7 +86,8 @@ public sealed class CreateInstanceTests
             new NoOpCaptchaService(),
             new SnowflakeIdGenerator(312),
             BuildConfiguration(),
-            Options.Create(new AuthOptions { BcryptWorkFactor = 4 }));
+            Options.Create(new AuthOptions { BcryptWorkFactor = 4 }),
+            stripeOptions ?? Options.Create(new StripeOptions()));
 
         return new CreateInstanceHandler(
             db,
