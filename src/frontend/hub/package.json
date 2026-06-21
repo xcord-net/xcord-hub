@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource-variable/figtree": "^5.2.10",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.15.0",
     "@stripe/stripe-js": "^8.11.0",

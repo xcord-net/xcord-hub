@@ -1,4 +1,5 @@
 import { render } from 'solid-js/web';
+import '@fontsource-variable/figtree';
 import App from './App';
 import './index.css';
 import { installCsrfFetchInterceptor } from './utils/csrf';

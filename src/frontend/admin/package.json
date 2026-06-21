@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource-variable/figtree": "^5.2.10",
     "@solidjs/router": "^0.15.0",
     "solid-js": "^1.9.0"
   },

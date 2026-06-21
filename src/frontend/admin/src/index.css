@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300..900&family=Sora:wght@400;600;700&display=swap');
+/* Figtree is self-hosted via @fontsource-variable/figtree (imported in index.tsx)
+   so it works offline and under a strict style-src 'self' CSP. */
 @import "tailwindcss";
 
 @theme {
@@ -34,7 +35,7 @@
   --color-xcord-border: #1e2130;
 
   /* === Font === */
-  --font-sans: "Figtree", "Segoe UI", sans-serif;
+  --font-sans: "Figtree Variable", "Figtree", "Segoe UI", sans-serif;
 }
 
 * {
