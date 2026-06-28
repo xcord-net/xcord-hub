@@ -5,6 +5,7 @@ using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 using XcordHub.Tests.Infrastructure.Fixtures;
 using Microsoft.EntityFrameworkCore;
+using Xunit;
 
 namespace XcordHub.Tests.Infrastructure.Admin;
 
@@ -18,20 +19,27 @@ namespace XcordHub.Tests.Infrastructure.Admin;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class AdminListInstancesTests
+public sealed class AdminListInstancesTests : IAsyncLifetime
 {
     private const string TestEncryptionKey = "admin-list-instances-tests-encryption-key-256-bits-req!!";
     private const long UserIdBase = 1_311_000_000L;
     private const long InstanceIdBase = 2_311_000_000L;
 
-    private readonly string _connectionString;
+    private readonly SharedPostgresFixture _fixture;
+    private string _connectionString = string.Empty;
 
     public AdminListInstancesTests(SharedPostgresFixture fixture)
     {
-        _connectionString = fixture
-            .CreateDatabaseAsync("xcordhub_admin_list_instances_test", TestEncryptionKey)
-            .GetAwaiter().GetResult();
+        _fixture = fixture;
     }
+
+    public async Task InitializeAsync()
+    {
+        _connectionString = await _fixture
+            .CreateDatabaseAsync("xcordhub_admin_list_instances_test", TestEncryptionKey);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private HubDbContext CreateDbContext()
     {

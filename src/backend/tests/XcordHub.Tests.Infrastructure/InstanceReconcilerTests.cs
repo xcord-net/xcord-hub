@@ -20,27 +20,35 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class InstanceReconcilerTests
+public sealed class InstanceReconcilerTests : IAsyncLifetime
 {
-    private readonly DbContextOptions<HubDbContext> _options;
+    private readonly SharedPostgresFixture _fixture;
     private readonly IEncryptionService _encryptionService;
     private readonly SnowflakeIdGenerator _snowflake;
-    private readonly InstanceReconciler _reconciler;
+    private DbContextOptions<HubDbContext> _options = null!;
+    private InstanceReconciler _reconciler = null!;
 
     private const string EncryptionKey = "reconciler-test-encryption-key-with-256-bits-minimum-len!!";
 
     public InstanceReconcilerTests(SharedPostgresFixture fixture)
     {
-        var connectionString = fixture.CreateDatabaseAsync("xcordhub_reconciler_test", EncryptionKey).GetAwaiter().GetResult();
+        _fixture = fixture;
+        _encryptionService = new AesEncryptionService(EncryptionKey);
+        _snowflake = new SnowflakeIdGenerator(3);
+    }
+
+    public async Task InitializeAsync()
+    {
+        var connectionString = await _fixture.CreateDatabaseAsync("xcordhub_reconciler_test", EncryptionKey);
         _options = new DbContextOptionsBuilder<HubDbContext>()
             .UseNpgsql(connectionString)
             .Options;
-        _encryptionService = new AesEncryptionService(EncryptionKey);
-        _snowflake = new SnowflakeIdGenerator(3);
 
         var scopeFactory = new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
         _reconciler = new InstanceReconciler(scopeFactory, NullLogger<InstanceReconciler>.Instance);
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private HubDbContext CreateContext() => new(_options, _encryptionService);
 

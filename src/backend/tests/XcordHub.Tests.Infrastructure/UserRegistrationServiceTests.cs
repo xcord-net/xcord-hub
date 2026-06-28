@@ -23,17 +23,25 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class UserRegistrationServiceTests
+public sealed class UserRegistrationServiceTests : IAsyncLifetime
 {
-    private readonly string _connectionString;
+    private readonly SharedPostgresFixture _fixture;
+    private string _connectionString = string.Empty;
 
     private const string TestEncryptionKey = "user-reg-svc-tests-encryption-key-256-bits-minimum-ok!";
     private const long UserIdBase = 1_249_000_000L;
 
     public UserRegistrationServiceTests(SharedPostgresFixture fixture)
     {
-        _connectionString = fixture.CreateDatabaseAsync("xcordhub_user_reg_svc", TestEncryptionKey).GetAwaiter().GetResult();
+        _fixture = fixture;
     }
+
+    public async Task InitializeAsync()
+    {
+        _connectionString = await _fixture.CreateDatabaseAsync("xcordhub_user_reg_svc", TestEncryptionKey);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // ---------------------------------------------------------------------------
     // Helpers
@@ -47,12 +55,12 @@ public sealed class UserRegistrationServiceTests
         return new HubDbContext(options, new AesEncryptionService(TestEncryptionKey));
     }
 
-    private static UserRegistrationService CreateService(HubDbContext db) =>
+    private static async Task<UserRegistrationService> CreateServiceAsync(HubDbContext db) =>
         new UserRegistrationService(
             db,
             new NoOpCaptchaService(),
             new AesEncryptionService(TestEncryptionKey),
-            JwtTestHelper.CreateJwtService(db, TestEncryptionKey),
+            await JwtTestHelper.CreateJwtServiceAsync(db, TestEncryptionKey),
             new SnowflakeIdGenerator(249),
             Options.Create(new AuthOptions { BcryptWorkFactor = 4 }));
 
@@ -65,7 +73,7 @@ public sealed class UserRegistrationServiceTests
     {
         // Arrange
         await using var db = CreateDbContext();
-        var service = CreateService(db);
+        var service = await CreateServiceAsync(db);
 
         // Act
         var result = await service.RegisterAsync(
@@ -119,7 +127,7 @@ public sealed class UserRegistrationServiceTests
 
         // Act - register with the same username but a different email
         await using var db = CreateDbContext();
-        var service = CreateService(db);
+        var service = await CreateServiceAsync(db);
         var result = await service.RegisterAsync(
             "dupuser_username",
             "Another User",
@@ -158,7 +166,7 @@ public sealed class UserRegistrationServiceTests
 
         // Act - register with a different username but the same email
         await using var db = CreateDbContext();
-        var service = CreateService(db);
+        var service = await CreateServiceAsync(db);
         var result = await service.RegisterAsync(
             "dupuser_email_new",
             "Another User",
@@ -181,7 +189,7 @@ public sealed class UserRegistrationServiceTests
 
         // Arrange
         await using var db = CreateDbContext();
-        var service = CreateService(db);
+        var service = await CreateServiceAsync(db);
 
         // Act - do NOT call SaveChanges
         var result = await service.RegisterAsync(
@@ -208,7 +216,7 @@ public sealed class UserRegistrationServiceTests
     {
         // Arrange
         await using var db = CreateDbContext();
-        var service = CreateService(db);
+        var service = await CreateServiceAsync(db);
         const string plainPassword = "PlainText_Password_1!";
 
         // Act

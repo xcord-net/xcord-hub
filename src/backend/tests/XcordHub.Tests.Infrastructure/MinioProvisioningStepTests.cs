@@ -21,10 +21,11 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class MinioProvisioningStepTests
+public sealed class MinioProvisioningStepTests : IAsyncLifetime
 {
-    private readonly HubDbContext _dbContext;
-    private readonly string _connectionString;
+    private readonly SharedPostgresFixture _fixture;
+    private HubDbContext _dbContext = null!;
+    private string _connectionString = string.Empty;
 
     // ID ranges reserved for this test class - must not overlap with other test classes.
     // User IDs: 9_278_000_000 – 9_278_000_099
@@ -37,12 +38,19 @@ public sealed class MinioProvisioningStepTests
 
     public MinioProvisioningStepTests(SharedPostgresFixture fixture)
     {
-        _connectionString = fixture.CreateDatabaseAsync("xcordhub_minio_step_test", TestEncryptionKey).GetAwaiter().GetResult();
+        _fixture = fixture;
+    }
+
+    public async Task InitializeAsync()
+    {
+        _connectionString = await _fixture.CreateDatabaseAsync("xcordhub_minio_step_test", TestEncryptionKey);
         var options = new DbContextOptionsBuilder<HubDbContext>()
             .UseNpgsql(_connectionString)
             .Options;
         _dbContext = new HubDbContext(options, new AesEncryptionService(TestEncryptionKey));
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // ──────────── Spy implementations ────────────
 

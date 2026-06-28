@@ -12,6 +12,7 @@ using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 using XcordHub.Tests.Infrastructure.Billing;
 using XcordHub.Tests.Infrastructure.Fixtures;
+using Xunit;
 
 namespace XcordHub.Tests.Infrastructure.Instances;
 
@@ -25,19 +26,26 @@ namespace XcordHub.Tests.Infrastructure.Instances;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class CreateInstanceTests
+public sealed class CreateInstanceTests : IAsyncLifetime
 {
     private const string TestEncryptionKey = "create-instance-handler-tests-encryption-key-256-req!!";
     private const long UserIdBase = 1_312_000_000L;
 
-    private readonly string _connectionString;
+    private readonly SharedPostgresFixture _fixture;
+    private string _connectionString = string.Empty;
 
     public CreateInstanceTests(SharedPostgresFixture fixture)
     {
-        _connectionString = fixture
-            .CreateDatabaseAsync("xcordhub_create_instance_handler_test", TestEncryptionKey)
-            .GetAwaiter().GetResult();
+        _fixture = fixture;
     }
+
+    public async Task InitializeAsync()
+    {
+        _connectionString = await _fixture
+            .CreateDatabaseAsync("xcordhub_create_instance_handler_test", TestEncryptionKey);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private HubDbContext CreateDbContext()
     {

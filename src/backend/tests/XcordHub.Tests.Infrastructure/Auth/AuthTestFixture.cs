@@ -98,19 +98,27 @@ public class AuthIntegrationCollection : ICollectionFixture<AuthIntegrationFixtu
 /// scoped to a per-class isolated PostgreSQL database, plus the shared Redis
 /// multiplexer needed by LoginHandler.
 /// </summary>
-public abstract class AuthTestsBase
+public abstract class AuthTestsBase : IAsyncLifetime
 {
     protected const string TestEncryptionKey = "auth-handler-tests-encryption-key-256-bits-minimum-req!!!";
     protected const string RedisChannelPrefix = "auth-tests";
 
-    protected readonly string _connectionString;
+    protected readonly string _dbName;
+    protected string _connectionString = string.Empty;
     protected readonly AuthIntegrationFixture _fixture;
 
     protected AuthTestsBase(AuthIntegrationFixture fixture, string dbName)
     {
         _fixture = fixture;
-        _connectionString = fixture.CreateDatabaseAsync(dbName, TestEncryptionKey).GetAwaiter().GetResult();
+        _dbName = dbName;
     }
+
+    public async Task InitializeAsync()
+    {
+        _connectionString = await _fixture.CreateDatabaseAsync(_dbName, TestEncryptionKey);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     protected HubDbContext CreateDbContext()
     {

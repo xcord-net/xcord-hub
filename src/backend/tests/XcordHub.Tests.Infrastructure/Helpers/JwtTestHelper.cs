@@ -16,7 +16,7 @@ public static class JwtTestHelper
     public const string TestIssuer = "test-issuer";
     public const string TestAudience = "test-audience";
 
-    public static IJwtService CreateJwtService(
+    public static async Task<IJwtService> CreateJwtServiceAsync(
         HubDbContext db,
         string encryptionKey,
         string issuer = TestIssuer,
@@ -45,7 +45,7 @@ public static class JwtTestHelper
 
         // Ensure the key pair exists, then load the public key into the singleton
         // so that any caller that subsequently validates a token has the key available.
-        jwt.EnsureRsaKeyPairAsync().GetAwaiter().GetResult();
+        await jwt.EnsureRsaKeyPairAsync();
         var publicKey = db.SystemSettings.First(s => s.Key == JwtService.RsaPublicKeySettingKey);
         rsaKeySingleton.LoadPublicKey(publicKey.Value);
 

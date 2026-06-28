@@ -12,6 +12,7 @@ using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 using XcordHub.Tests.Infrastructure.Fixtures;
+using Xunit;
 
 namespace XcordHub.Tests.Infrastructure.Billing;
 
@@ -26,17 +27,27 @@ namespace XcordHub.Tests.Infrastructure.Billing;
 ///   User IDs:     1_255_000_000 – 1_255_000_099
 ///   Instance IDs: 2_255_000_000 – 2_255_000_099  (assigned by Snowflake; verified by DB query)
 /// </summary>
-public abstract class BillingTestsBase
+public abstract class BillingTestsBase : IAsyncLifetime
 {
     protected const string TestEncryptionKey = "billing-tests-encryption-key-with-256-bits-minimum-okk!";
     protected const long UserIdBase = 1_255_000_000L;
 
-    protected readonly string _connectionString;
+    protected readonly SharedPostgresFixture _fixture;
+    protected readonly string _dbName;
+    protected string _connectionString = string.Empty;
 
     protected BillingTestsBase(SharedPostgresFixture fixture, string dbName)
     {
-        _connectionString = fixture.CreateDatabaseAsync(dbName, TestEncryptionKey).GetAwaiter().GetResult();
+        _fixture = fixture;
+        _dbName = dbName;
     }
+
+    public async Task InitializeAsync()
+    {
+        _connectionString = await _fixture.CreateDatabaseAsync(_dbName, TestEncryptionKey);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     protected HubDbContext CreateDbContext()
     {

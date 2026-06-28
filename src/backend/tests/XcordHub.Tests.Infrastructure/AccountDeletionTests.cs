@@ -18,25 +18,33 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class AccountDeletionTests
+public sealed class AccountDeletionTests : IAsyncLifetime
 {
-    private readonly HubDbContext _dbContext;
+    private readonly SharedPostgresFixture _fixture;
     private readonly IEncryptionService _encryptionService;
     private readonly SnowflakeIdGenerator _snowflake;
+    private HubDbContext _dbContext = null!;
 
     private const string EncryptionKey = "test-encryption-key-with-256-bits-minimum-length-required";
     private const string TestPassword = "TestPass123!";
 
     public AccountDeletionTests(SharedPostgresFixture fixture)
     {
-        var connectionString = fixture.CreateDatabaseAsync("xcordhub_acctdeletion_test", EncryptionKey).GetAwaiter().GetResult();
+        _fixture = fixture;
+        _encryptionService = new AesEncryptionService(EncryptionKey);
+        _snowflake = new SnowflakeIdGenerator(2);
+    }
+
+    public async Task InitializeAsync()
+    {
+        var connectionString = await _fixture.CreateDatabaseAsync("xcordhub_acctdeletion_test", EncryptionKey);
         var options = new DbContextOptionsBuilder<HubDbContext>()
             .UseNpgsql(connectionString)
             .Options;
-        _encryptionService = new AesEncryptionService(EncryptionKey);
         _dbContext = new HubDbContext(options, _encryptionService);
-        _snowflake = new SnowflakeIdGenerator(2);
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private HubUser CreateUser(string username, string email, bool isAdmin = false)
     {

@@ -27,10 +27,10 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class DestructionCleanupStepTests
+public sealed class DestructionCleanupStepTests : IAsyncLifetime
 {
     private readonly SharedPostgresFixture _fixture;
-    private readonly HubDbContext _dbContext;
+    private HubDbContext _dbContext = null!;
     private readonly string _hubConnectionString;
 
     // ID ranges reserved for this test class - must not overlap with other test classes.
@@ -44,14 +44,18 @@ public sealed class DestructionCleanupStepTests
     {
         _fixture = fixture;
         _hubConnectionString = fixture.AdminConnectionString;
+    }
 
-        var connStr = fixture.CreateDatabaseAsync("xcordhub_destruction_cleanup_test", TestEncryptionKey)
-            .GetAwaiter().GetResult();
+    public async Task InitializeAsync()
+    {
+        var connStr = await _fixture.CreateDatabaseAsync("xcordhub_destruction_cleanup_test", TestEncryptionKey);
         var options = new DbContextOptionsBuilder<HubDbContext>()
             .UseNpgsql(connStr)
             .Options;
         _dbContext = new HubDbContext(options, new AesEncryptionService(TestEncryptionKey));
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // ──────────────────────────────────────────────────────────
     // Helpers

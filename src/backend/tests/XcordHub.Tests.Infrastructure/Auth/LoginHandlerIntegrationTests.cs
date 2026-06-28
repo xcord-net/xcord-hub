@@ -23,10 +23,10 @@ public sealed class LoginHandlerIntegrationTests : AuthTestsBase
     public LoginHandlerIntegrationTests(AuthIntegrationFixture fixture)
         : base(fixture, "xcordhub_login_handler_test") { }
 
-    private LoginHandler BuildHandler(HubDbContext db, int maxAttempts = 5)
+    private async Task<LoginHandler> BuildHandlerAsync(HubDbContext db, int maxAttempts = 5)
     {
         var enc = new AesEncryptionService(TestEncryptionKey);
-        var jwtService = JwtTestHelper.CreateJwtService(db, TestEncryptionKey);
+        var jwtService = await JwtTestHelper.CreateJwtServiceAsync(db, TestEncryptionKey);
         return new LoginHandler(
             db,
             enc,
@@ -44,7 +44,7 @@ public sealed class LoginHandlerIntegrationTests : AuthTestsBase
         await using var db = CreateDbContext();
         var (user, email, password) = await SeedUserAsync(db, UserIdBase + 1, "valid", isAdmin: false);
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
         var result = await handler.Handle(new LoginRequest(email, password), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -74,7 +74,7 @@ public sealed class LoginHandlerIntegrationTests : AuthTestsBase
         await using var db = CreateDbContext();
         var (user, email, password) = await SeedUserAsync(db, UserIdBase + 2, "admin", isAdmin: true);
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
         var result = await handler.Handle(new LoginRequest(email, password), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -96,7 +96,7 @@ public sealed class LoginHandlerIntegrationTests : AuthTestsBase
         await using var db = CreateDbContext();
         var (_, email, _) = await SeedUserAsync(db, UserIdBase + 3, "wrongpw");
 
-        var handler = BuildHandler(db, maxAttempts: 5);
+        var handler = await BuildHandlerAsync(db, maxAttempts: 5);
         var result = await handler.Handle(
             new LoginRequest(email, "ThisIsTheWrongPassword!"), CancellationToken.None);
 
@@ -119,7 +119,7 @@ public sealed class LoginHandlerIntegrationTests : AuthTestsBase
         var (_, email, password) = await SeedUserAsync(
             db, UserIdBase + 4, "twofa", twoFactorEnabled: true, twoFactorSecret: "JBSWY3DPEHPK3PXP");
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
         var result = await handler.Handle(new LoginRequest(email, password), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
@@ -133,7 +133,7 @@ public sealed class LoginHandlerIntegrationTests : AuthTestsBase
         await using var db = CreateDbContext();
         var (_, email, password) = await SeedUserAsync(db, UserIdBase + 5, "disabled", isDisabled: true);
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
         var result = await handler.Handle(new LoginRequest(email, password), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();

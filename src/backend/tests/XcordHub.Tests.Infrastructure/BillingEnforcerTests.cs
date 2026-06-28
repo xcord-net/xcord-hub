@@ -19,7 +19,7 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class BillingEnforcerTests
+public sealed class BillingEnforcerTests : IAsyncLifetime
 {
     private sealed class NoopInstanceNotifier : IInstanceNotifier
     {
@@ -27,25 +27,33 @@ public sealed class BillingEnforcerTests
             => Task.CompletedTask;
     }
 
-    private readonly DbContextOptions<HubDbContext> _options;
+    private readonly SharedPostgresFixture _fixture;
     private readonly IEncryptionService _encryptionService;
     private readonly SnowflakeIdGenerator _snowflake;
-    private readonly BillingEnforcer _enforcer;
+    private DbContextOptions<HubDbContext> _options = null!;
+    private BillingEnforcer _enforcer = null!;
 
     private const string EncryptionKey = "billing-enforcer-test-encryption-key-256-bits-minimum!!!!";
 
     public BillingEnforcerTests(SharedPostgresFixture fixture)
     {
-        var connectionString = fixture.CreateDatabaseAsync("xcordhub_billingenforcer_test", EncryptionKey).GetAwaiter().GetResult();
+        _fixture = fixture;
+        _encryptionService = new AesEncryptionService(EncryptionKey);
+        _snowflake = new SnowflakeIdGenerator(4);
+    }
+
+    public async Task InitializeAsync()
+    {
+        var connectionString = await _fixture.CreateDatabaseAsync("xcordhub_billingenforcer_test", EncryptionKey);
         _options = new DbContextOptionsBuilder<HubDbContext>()
             .UseNpgsql(connectionString)
             .Options;
-        _encryptionService = new AesEncryptionService(EncryptionKey);
-        _snowflake = new SnowflakeIdGenerator(4);
 
         var scopeFactory = new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
         _enforcer = new BillingEnforcer(scopeFactory, NullLogger<BillingEnforcer>.Instance);
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private HubDbContext CreateContext() => new(_options, _encryptionService);
 

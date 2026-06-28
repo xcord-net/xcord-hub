@@ -11,6 +11,7 @@ using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 using XcordHub.Shared.Extensions;
 using XcordHub.Tests.Infrastructure.Fixtures;
+using Xunit;
 
 namespace XcordHub.Tests.Infrastructure;
 
@@ -22,9 +23,10 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class BillingTierInstanceTests
+public sealed class BillingTierInstanceTests : IAsyncLifetime
 {
-    private readonly string _connectionString;
+    private readonly SharedPostgresFixture _fixture;
+    private string _connectionString = string.Empty;
 
     // ID ranges reserved for this test class to avoid conflicts with other test classes.
     // User IDs: 1_254_000_000 – 1_254_000_099
@@ -37,9 +39,16 @@ public sealed class BillingTierInstanceTests
 
     public BillingTierInstanceTests(SharedPostgresFixture fixture)
     {
-        var dbName = $"xcordhub_billing_tier_{Interlocked.Increment(ref _dbCounter)}";
-        _connectionString = fixture.CreateDatabaseAsync(dbName, TestEncryptionKey).GetAwaiter().GetResult();
+        _fixture = fixture;
     }
+
+    public async Task InitializeAsync()
+    {
+        var dbName = $"xcordhub_billing_tier_{Interlocked.Increment(ref _dbCounter)}";
+        _connectionString = await _fixture.CreateDatabaseAsync(dbName, TestEncryptionKey);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // ---------------------------------------------------------------------------
     // Helpers

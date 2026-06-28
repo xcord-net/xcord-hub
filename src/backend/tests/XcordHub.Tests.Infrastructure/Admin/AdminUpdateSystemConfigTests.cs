@@ -4,6 +4,7 @@ using XcordHub.Entities;
 using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Services;
 using XcordHub.Tests.Infrastructure.Fixtures;
+using Xunit;
 
 namespace XcordHub.Tests.Infrastructure.Admin;
 
@@ -18,18 +19,25 @@ namespace XcordHub.Tests.Infrastructure.Admin;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class AdminUpdateSystemConfigTests
+public sealed class AdminUpdateSystemConfigTests : IAsyncLifetime
 {
     private const string TestEncryptionKey = "admin-update-syscfg-tests-encryption-key-256-bits-req!!";
 
-    private readonly string _connectionString;
+    private readonly SharedPostgresFixture _fixture;
+    private string _connectionString = string.Empty;
 
     public AdminUpdateSystemConfigTests(SharedPostgresFixture fixture)
     {
-        _connectionString = fixture
-            .CreateDatabaseAsync("xcordhub_admin_syscfg_test", TestEncryptionKey)
-            .GetAwaiter().GetResult();
+        _fixture = fixture;
     }
+
+    public async Task InitializeAsync()
+    {
+        _connectionString = await _fixture
+            .CreateDatabaseAsync("xcordhub_admin_syscfg_test", TestEncryptionKey);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private HubDbContext CreateDbContext()
     {
@@ -70,10 +78,6 @@ public sealed class AdminUpdateSystemConfigTests
         // First call - enable the flag (creates the singleton row if absent).
         var enabled = await service.SetPaidServersDisabledAsync(true, CancellationToken.None);
         var enabledAt = enabled.UpdatedAt;
-
-        // Give the wall clock a measurable step so the second UpdatedAt cannot
-        // accidentally match the first.
-        await Task.Delay(20);
 
         // Second call - flip it back. The handler must mutate the same row,
         // not create a second SystemConfig.

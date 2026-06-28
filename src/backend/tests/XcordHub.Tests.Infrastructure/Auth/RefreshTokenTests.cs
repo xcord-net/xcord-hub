@@ -25,10 +25,10 @@ public sealed class RefreshTokenTests : AuthTestsBase
     public RefreshTokenTests(AuthIntegrationFixture fixture)
         : base(fixture, "xcordhub_refresh_token_test") { }
 
-    private RefreshTokenHandler BuildHandler(HubDbContext db) =>
+    private async Task<RefreshTokenHandler> BuildHandlerAsync(HubDbContext db) =>
         new RefreshTokenHandler(
             db,
-            JwtTestHelper.CreateJwtService(db, TestEncryptionKey),
+            await JwtTestHelper.CreateJwtServiceAsync(db, TestEncryptionKey),
             new SnowflakeIdGenerator(461),
             BuildAuthOptions());
 
@@ -60,7 +60,7 @@ public sealed class RefreshTokenTests : AuthTestsBase
         await using var db = CreateDbContext();
         var (user, rawToken, stored) = await SeedRefreshTokenAsync(db, UserIdBase + 1, "rotate");
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
         var result = await handler.HandleWithToken(rawToken, CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -89,7 +89,7 @@ public sealed class RefreshTokenTests : AuthTestsBase
             db, UserIdBase + 2, "expired",
             expiresAt: DateTimeOffset.UtcNow.AddMinutes(-5));
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
         var result = await handler.HandleWithToken(rawToken, CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
@@ -108,7 +108,7 @@ public sealed class RefreshTokenTests : AuthTestsBase
         await using var db = CreateDbContext();
         var (_, rawToken, _) = await SeedRefreshTokenAsync(db, UserIdBase + 3, "replay");
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
 
         // First use - rotates successfully.
         var first = await handler.HandleWithToken(rawToken, CancellationToken.None);
@@ -118,7 +118,7 @@ public sealed class RefreshTokenTests : AuthTestsBase
         await using var replayDb = CreateDbContext();
         var replayHandler = new RefreshTokenHandler(
             replayDb,
-            JwtTestHelper.CreateJwtService(replayDb, TestEncryptionKey),
+            await JwtTestHelper.CreateJwtServiceAsync(replayDb, TestEncryptionKey),
             new SnowflakeIdGenerator(461),
             BuildAuthOptions());
         var replay = await replayHandler.HandleWithToken(rawToken, CancellationToken.None);
@@ -133,7 +133,7 @@ public sealed class RefreshTokenTests : AuthTestsBase
     {
         await using var db = CreateDbContext();
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
         var bogus = TokenHelper.GenerateToken();
         var result = await handler.HandleWithToken(bogus, CancellationToken.None);
 
@@ -149,7 +149,7 @@ public sealed class RefreshTokenTests : AuthTestsBase
         var (_, rawToken, _) = await SeedRefreshTokenAsync(
             db, UserIdBase + 4, "disabled", isDisabled: true);
 
-        var handler = BuildHandler(db);
+        var handler = await BuildHandlerAsync(db);
         var result = await handler.HandleWithToken(rawToken, CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();

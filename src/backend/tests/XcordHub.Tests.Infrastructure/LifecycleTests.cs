@@ -22,19 +22,27 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class LifecycleTests
+public sealed class LifecycleTests : IAsyncLifetime
 {
-    private readonly HubDbContext _dbContext;
+    private readonly SharedPostgresFixture _fixture;
+    private HubDbContext _dbContext = null!;
 
     public LifecycleTests(SharedPostgresFixture fixture)
     {
+        _fixture = fixture;
+    }
+
+    public async Task InitializeAsync()
+    {
         var encryptionKey = "lifecycle-test-encryption-key-with-256-bits-minimum-ok!";
-        var connectionString = fixture.CreateDatabaseAsync("xcordhub_lifecycle_test", encryptionKey).GetAwaiter().GetResult();
+        var connectionString = await _fixture.CreateDatabaseAsync("xcordhub_lifecycle_test", encryptionKey);
         var options = new DbContextOptionsBuilder<HubDbContext>()
             .UseNpgsql(connectionString)
             .Options;
         _dbContext = new HubDbContext(options, new AesEncryptionService(encryptionKey));
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // ---------------------------------------------------------------------------
     // Spy / stub implementations for infrastructure services.

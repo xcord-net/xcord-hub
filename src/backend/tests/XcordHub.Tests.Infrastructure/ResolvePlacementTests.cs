@@ -8,6 +8,7 @@ using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 using XcordHub.Tests.Infrastructure.Fixtures;
+using Xunit;
 
 namespace XcordHub.Tests.Infrastructure;
 
@@ -18,22 +19,30 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Integration")]
-public sealed class ResolvePlacementTests
+public sealed class ResolvePlacementTests : IAsyncLifetime
 {
-    private readonly HubDbContext _dbContext;
+    private readonly SharedPostgresFixture _fixture;
+    private HubDbContext _dbContext = null!;
     private static long _nextId = 9_300_000_000L;
     private static int _dbCounter;
 
     public ResolvePlacementTests(SharedPostgresFixture fixture)
     {
+        _fixture = fixture;
+    }
+
+    public async Task InitializeAsync()
+    {
         var encryptionKey = "placement-test-encryption-key-with-256-bits-minimum-ok!";
         var dbName = $"xcordhub_placement_{Interlocked.Increment(ref _dbCounter)}";
-        var connectionString = fixture.CreateDatabaseAsync(dbName, encryptionKey).GetAwaiter().GetResult();
+        var connectionString = await _fixture.CreateDatabaseAsync(dbName, encryptionKey);
         var options = new DbContextOptionsBuilder<HubDbContext>()
             .UseNpgsql(connectionString)
             .Options;
         _dbContext = new HubDbContext(options, new AesEncryptionService(encryptionKey));
     }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // -------------------------------------------------------------------------
     // Scenario 2: Hub provisioning properly computes when to add data servers

@@ -81,7 +81,7 @@ public class InfrastructureTestFixture : IAsyncLifetime
 
         // Start MinIO for object storage
         _minioContainer = new ContainerBuilder()
-            .WithImage("minio/minio:latest")
+            .WithImage("minio/minio:RELEASE.2025-09-07T16-13-09Z")  // pinned (was :latest) - matches compose stack
             .WithCommand("server", "/data")
             .WithEnvironment("MINIO_ROOT_USER", "minioadmin")
             .WithEnvironment("MINIO_ROOT_PASSWORD", "minioadmin")

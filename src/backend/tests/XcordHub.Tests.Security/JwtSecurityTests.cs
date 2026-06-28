@@ -60,22 +60,22 @@ public sealed class JwtSecurityTests
         _fixture = fixture;
     }
 
-    private HubDbContext CreateDbContext()
+    private async Task<HubDbContext> CreateDbContextAsync()
     {
         var options = new DbContextOptionsBuilder<HubDbContext>()
             .UseNpgsql(_fixture.ConnectionString)
             .Options;
         var ctx = new HubDbContext(options, new AesEncryptionService(TestEncryptionKey));
-        ctx.Database.EnsureCreated();
+        await ctx.Database.EnsureCreatedAsync();
         return ctx;
     }
 
-    private (IJwtService jwt, RsaSecurityKey publicKey, HubDbContext db) CreateJwtService(
+    private async Task<(IJwtService jwt, RsaSecurityKey publicKey, HubDbContext db)> CreateJwtServiceAsync(
         string issuer = ValidIssuer,
         string audience = ValidAudience,
         int expirationMinutes = 15)
     {
-        var db = CreateDbContext();
+        var db = await CreateDbContextAsync();
         var encryption = new AesEncryptionService(TestEncryptionKey);
         var rsaKeySingleton = new RsaKeySingleton();
         var options = Options.Create(new JwtOptions
@@ -96,7 +96,7 @@ public sealed class JwtSecurityTests
             encryption,
             NullLogger<JwtService>.Instance);
 
-        jwt.EnsureRsaKeyPairAsync().GetAwaiter().GetResult();
+        await jwt.EnsureRsaKeyPairAsync();
         var publicKeyEntry = db.SystemSettings.First(s => s.Key == JwtService.RsaPublicKeySettingKey);
         rsaKeySingleton.LoadPublicKey(publicKeyEntry.Value);
 
@@ -104,9 +104,9 @@ public sealed class JwtSecurityTests
     }
 
     [Fact]
-    public void ValidToken_ShouldBeAccepted()
+    public async Task ValidToken_ShouldBeAccepted()
     {
-        var (jwt, publicKey, db) = CreateJwtService();
+        var (jwt, publicKey, db) = await CreateJwtServiceAsync();
         try
         {
             var token = jwt.GenerateAccessToken(12345, false);
@@ -138,9 +138,9 @@ public sealed class JwtSecurityTests
     }
 
     [Fact]
-    public void TokenWithWrongSigningKey_ShouldBeRejected()
+    public async Task TokenWithWrongSigningKey_ShouldBeRejected()
     {
-        var (jwt, _, db) = CreateJwtService();
+        var (jwt, _, db) = await CreateJwtServiceAsync();
         try
         {
             var token = jwt.GenerateAccessToken(12345, false);
@@ -172,9 +172,9 @@ public sealed class JwtSecurityTests
     }
 
     [Fact]
-    public void ExpiredToken_ShouldBeRejected()
+    public async Task ExpiredToken_ShouldBeRejected()
     {
-        var (jwt, publicKey, db) = CreateJwtService(expirationMinutes: -1);
+        var (jwt, publicKey, db) = await CreateJwtServiceAsync(expirationMinutes: -1);
         try
         {
             var token = jwt.GenerateAccessToken(12345, false);
@@ -203,9 +203,9 @@ public sealed class JwtSecurityTests
     }
 
     [Fact]
-    public void TokenWithWrongIssuer_ShouldBeRejected()
+    public async Task TokenWithWrongIssuer_ShouldBeRejected()
     {
-        var (jwt, publicKey, db) = CreateJwtService(issuer: "wrong-issuer");
+        var (jwt, publicKey, db) = await CreateJwtServiceAsync(issuer: "wrong-issuer");
         try
         {
             var token = jwt.GenerateAccessToken(12345, false);
@@ -234,9 +234,9 @@ public sealed class JwtSecurityTests
     }
 
     [Fact]
-    public void TokenWithWrongAudience_ShouldBeRejected()
+    public async Task TokenWithWrongAudience_ShouldBeRejected()
     {
-        var (jwt, publicKey, db) = CreateJwtService(audience: "wrong-audience");
+        var (jwt, publicKey, db) = await CreateJwtServiceAsync(audience: "wrong-audience");
         try
         {
             var token = jwt.GenerateAccessToken(12345, false);
@@ -265,9 +265,9 @@ public sealed class JwtSecurityTests
     }
 
     [Fact]
-    public void AdminClaim_ShouldBePresent()
+    public async Task AdminClaim_ShouldBePresent()
     {
-        var (jwt, publicKey, db) = CreateJwtService();
+        var (jwt, publicKey, db) = await CreateJwtServiceAsync();
         try
         {
             var token = jwt.GenerateAccessToken(12345, true);
@@ -297,9 +297,9 @@ public sealed class JwtSecurityTests
     }
 
     [Fact]
-    public void NonAdminToken_ShouldHaveAdminFalse()
+    public async Task NonAdminToken_ShouldHaveAdminFalse()
     {
-        var (jwt, publicKey, db) = CreateJwtService();
+        var (jwt, publicKey, db) = await CreateJwtServiceAsync();
         try
         {
             var token = jwt.GenerateAccessToken(12345, false);
@@ -329,9 +329,9 @@ public sealed class JwtSecurityTests
     }
 
     [Fact]
-    public void GeneratedToken_UsesRs256Algorithm()
+    public async Task GeneratedToken_UsesRs256Algorithm()
     {
-        var (jwt, _, db) = CreateJwtService();
+        var (jwt, _, db) = await CreateJwtServiceAsync();
         try
         {
             var token = jwt.GenerateAccessToken(12345, false);

@@ -8,6 +8,7 @@ using XcordHub.Infrastructure.Data;
 using XcordHub.Infrastructure.Options;
 using XcordHub.Infrastructure.Services;
 using XcordHub.Tests.Infrastructure.Fixtures;
+using Xunit;
 
 namespace XcordHub.Tests.Infrastructure;
 
@@ -18,15 +19,23 @@ namespace XcordHub.Tests.Infrastructure;
 /// </summary>
 [Collection("SharedPostgres")]
 [Trait("Category", "Auth")]
-public sealed class ForgotPasswordHandlerTests
+public sealed class ForgotPasswordHandlerTests : IAsyncLifetime
 {
-    private readonly string _connectionString;
+    private readonly SharedPostgresFixture _fixture;
+    private string _connectionString = string.Empty;
     private const string TestEncryptionKey = "test-encryption-key-with-256-bits-minimum-length-required";
 
     public ForgotPasswordHandlerTests(SharedPostgresFixture fixture)
     {
-        _connectionString = fixture.CreateDatabaseAsync("xcordhub_forgotpw_test", TestEncryptionKey).GetAwaiter().GetResult();
+        _fixture = fixture;
     }
+
+    public async Task InitializeAsync()
+    {
+        _connectionString = await _fixture.CreateDatabaseAsync("xcordhub_forgotpw_test", TestEncryptionKey);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
