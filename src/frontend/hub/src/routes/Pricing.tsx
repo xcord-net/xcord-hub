@@ -94,7 +94,7 @@ const tiers: Tier[] = [
 
 const faqs = [
   { q: 'Can I switch plans later?', a: 'Yes. Upgrades apply instantly, downgrades at the next cycle. Everything is prorated.' },
-  { q: 'What happens to my data if I cancel?', a: 'It stays for 30 days. You can export anytime, whether you\'re on a paid plan or not.' },
+  { q: 'What happens to my data if I cancel?', a: 'It stays for 30 days. You can export anytime, paid plan or not.' },
   { q: 'Is the self-hosted version really free?', a: 'Aside from your hosting fees, yes. Apache 2.0. No enterprise edition, no open-core gotchas. Same code we run on our cloud.' },
   { q: 'Can I connect a self-hosted instance to the hub?', a: 'Yes. Click the + button in the header to add any Xcord server by URL. Your server list is saved in your browser.' },
   { q: 'This is amazing! Can I still donate even if I have the FREE plan?', a: 'Unfortunately, no one has ever asked this question. Then again, nobody\'s ever asked the other questions, either.' },
