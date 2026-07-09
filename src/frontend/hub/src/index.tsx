@@ -1,5 +1,8 @@
 import { render } from 'solid-js/web';
 import '@fontsource-variable/figtree';
+import '@fontsource-variable/schibsted-grotesk';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
 import App from './App';
 import './index.css';
 import { installCsrfFetchInterceptor } from './utils/csrf';

@@ -2,47 +2,102 @@
    so it works offline and under a strict style-src 'self' CSP. */
 @import "tailwindcss";
 
-@theme {
-  /* === Backgrounds (cool undertone, deep slate) === */
-  --color-xcord-bg-primary: #1a1d25;
-  --color-xcord-bg-secondary: #151821;
-  --color-xcord-bg-tertiary: #10131a;
-  --color-xcord-bg-accent: #242836;
-  --color-xcord-bg-floating: #0c0e14;
+@theme static {
+  /* === Backgrounds (warm graphite; elevation = lighter surface, not borders) === */
+  --color-xcord-bg-primary: #1b1a1f;
+  --color-xcord-bg-secondary: #17161a;
+  --color-xcord-bg-tertiary: #131315;
+  --color-xcord-bg-accent: #232228;
+  --color-xcord-bg-floating: #26252c;
 
-  /* === Text (slightly warm for contrast) === */
-  --color-xcord-text-primary: #e6e4f0;
-  --color-xcord-text-secondary: #a8a6b8;
-  --color-xcord-text-muted: #6a6880;
-  --color-xcord-text-link: #e0a44a;
+  /* === Text === */
+  --color-xcord-text-primary: #f0eee9;
+  --color-xcord-text-secondary: #b9b6c0;
+  --color-xcord-text-muted: #84818c;
+  --color-xcord-text-faint: #6f6c76;
+  --color-xcord-text-link: #d4943a;
 
-  /* === Brand (amber-gold signature) === */
+  /* === Brand (amber signature, unchanged) === */
   --color-xcord-brand: #d4943a;
   --color-xcord-brand-hover: #be8333;
 
   /* === Status === */
-  --color-xcord-status-online: #3ba55d;
-  --color-xcord-status-idle: #f0b232;
-  --color-xcord-status-dnd: #ed4245;
-  --color-xcord-status-offline: #747f8d;
+  --color-xcord-status-online: #69b980;
+  --color-xcord-status-idle: #d6b56b;
+  --color-xcord-status-dnd: #e2574a;
+  --color-xcord-status-offline: #6f6c76;
+
+  /* === Live (stage/broadcast on-air) === */
+  --color-xcord-live: #e2574a;
 
   /* === Semantic === */
-  --color-xcord-green: #3ba55d;
-  --color-xcord-yellow: #f0b232;
-  --color-xcord-red: #ed4245;
+  --color-xcord-green: #69b980;
+  --color-xcord-yellow: #d6b56b;
+  --color-xcord-red: #e2574a;
+
+  /* === Danger === */
+  --color-xcord-danger: #c94b3f;
+  --color-xcord-danger-solid: #b4453c;
+  --color-xcord-danger-hover: #a03f37;
+  --color-xcord-danger-dark: #8c3730;
+  --color-xcord-danger-text: #e08d84;
+  --color-xcord-danger-text-light: #edb0aa;
+  --color-xcord-danger-bg: rgba(201, 75, 63, 0.18);
+  --color-xcord-danger-bg-hover: rgba(201, 75, 63, 0.32);
+  --color-xcord-danger-bg-subtle: rgba(201, 75, 63, 0.1);
+  --color-xcord-danger-border: rgba(201, 75, 63, 0.35);
+
+  /* === Success === */
+  --color-xcord-success: #69b980;
+  --color-xcord-success-text: #8fd0a5;
+  --color-xcord-success-bg: rgba(105, 185, 128, 0.16);
+  --color-xcord-success-glow: rgba(143, 208, 165, 1);
+  --color-xcord-success-dark: #4f9a66;
+  --color-xcord-success-dark-hover: #428455;
+
+  /* === Warning === */
+  --color-xcord-warning: #b99341;
+  --color-xcord-warning-hover: #a07f38;
+  --color-xcord-warning-glow: #d6b56b;
+  --color-xcord-warning-bg: rgba(185, 147, 65, 0.15);
+  --color-xcord-warning-border: rgba(185, 147, 65, 0.4);
 
   /* === Border === */
-  --color-xcord-border: #1e2130;
+  --color-xcord-border: rgba(255, 255, 255, 0.06);
 
-  /* === Landing (Hub only) === */
-  --color-xcord-landing-bg: #080a12;
-  --color-xcord-landing-surface: #0e1018;
-  --color-xcord-landing-border: #191c2a;
-  --color-xcord-landing-text: #e6e4f0;
-  --color-xcord-landing-text-muted: #6a6880;
+  /* === Scrollbar === */
+  --color-xcord-scrollbar: #2e2d34;
 
-  /* === Font === */
+  /* === Landing (hub only; now same material as the app) === */
+  --color-xcord-landing-bg: #131315;
+  --color-xcord-landing-surface: #1b1a1f;
+  --color-xcord-landing-border: rgba(255, 255, 255, 0.06);
+  --color-xcord-landing-text: #f0eee9;
+  --color-xcord-landing-text-muted: #84818c;
+
+  /* === Type === */
   --font-sans: "Figtree Variable", "Figtree", "Segoe UI", sans-serif;
+  --font-display: "Schibsted Grotesk Variable", "Schibsted Grotesk", "Figtree Variable", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* === Radii === */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* === Elevation === */
+  --shadow-1: 0 3px 12px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 24px 70px rgba(0, 0, 0, 0.55);
+
+  /* === Motion === */
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+:root {
+  --dur-fast: 150ms;
+  --dur: 200ms;
 }
 
 * {
@@ -66,13 +121,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--color-xcord-bg-tertiary);
+  background-color: var(--color-xcord-scrollbar);
   border-radius: 4px;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-xcord-bg-tertiary) transparent;
+  scrollbar-color: var(--color-xcord-scrollbar) transparent;
 }
 
 /* Override browser autofill background */

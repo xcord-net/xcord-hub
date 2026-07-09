@@ -18,9 +18,12 @@
   },
   "dependencies": {
     "@fontsource-variable/figtree": "^5.2.10",
+    "@fontsource-variable/schibsted-grotesk": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.15.0",
     "@stripe/stripe-js": "^8.11.0",
+    "lucide-solid": "^1.23.0",
     "solid-js": "^1.9.0"
   },
   "devDependencies": {
