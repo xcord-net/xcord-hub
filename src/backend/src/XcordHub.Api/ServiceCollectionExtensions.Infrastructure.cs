@@ -193,6 +193,20 @@ public static partial class ServiceCollectionExtensions
                 limiterOptions.QueueLimit = 0;
             });
 
+            // Captcha issuance: per-IP limit (default 20/min) to slow mass GIF harvesting.
+            // Uses a policy (per-IP partition) rather than AddFixedWindowLimiter, which shares
+            // one bucket across all callers.
+            options.AddPolicy("captcha", context =>
+            {
+                var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = rateLimitOptions.CaptchaPermitLimit,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                });
+            });
+
             // Federation bootstrap-token registration: tight per-IP limit (default 5 / 15 min).
             // Protects /api/v1/federation/register against brute-force token guessing. Uses a
             // policy rather than AddFixedWindowLimiter so the bucket is partitioned by client

@@ -135,7 +135,7 @@ app.MapHealthEndpoint();
 app.MapHandlerEndpoints(typeof(FeaturesAssemblyMarker).Assembly);
 
 // Ghost-font captcha endpoints (non-standard handler - registered manually)
-app.MapGhostFontCaptcha();
+app.MapGhostFontCaptcha().RequireRateLimiting("captcha");
 
 // Stripe webhook endpoint (non-standard handler - registered manually)
 XcordHub.Features.Billing.StripeWebhookHandler.Map(app);

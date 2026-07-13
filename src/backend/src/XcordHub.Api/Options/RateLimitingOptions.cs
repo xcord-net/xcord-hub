@@ -15,6 +15,9 @@ public sealed class RateLimitingOptions
     /// <summary>Max contact form submissions per minute per IP (default 3).</summary>
     public int ContactFormPermitLimit { get; set; } = 3;
 
+    /// <summary>Max captcha issuances per minute per IP (default 20). Limits GIF harvesting.</summary>
+    public int CaptchaPermitLimit { get; set; } = 20;
+
     /// <summary>
     /// Max federation bootstrap-token registration attempts per 15-minute window per IP.
     /// Defaults to 5 to slow brute-force token guessing on /api/v1/federation/register.
