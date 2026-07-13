@@ -2,6 +2,7 @@ using BCrypt.Net;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Xcord.Captcha;
 using XcordHub.Entities;
 using XcordHub.Features.Auth;
 using XcordHub.Infrastructure.Data;

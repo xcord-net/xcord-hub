@@ -1,8 +1,9 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Minio;
+using Xcord.Captcha;
+using Xcord.Captcha.AspNetCore;
 using XcordHub.Api.Options;
-using XcordHub.Features.Auth;
 using XcordHub.Features.Backups;
 using XcordHub.Features.Monitoring;
 using XcordHub.Features.Provisioning;
@@ -35,7 +36,6 @@ public static partial class ServiceCollectionExtensions
         services.Configure<HubEmailOptions>(config.GetSection("Email"));
         services.Configure<EmailOptions>(config.GetSection("Email"));
         services.Configure<MinioOptions>(config.GetSection(MinioOptions.SectionName));
-        services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
         services.Configure<AuthOptions>(config.GetSection(AuthOptions.SectionName));
         services.Configure<TopologyOptions>(config.GetSection(TopologyOptions.SectionName));
         services.Configure<ColdStorageOptions>(config.GetSection(ColdStorageOptions.SectionName));
@@ -43,11 +43,13 @@ public static partial class ServiceCollectionExtensions
 
     private static void AddCaptcha(IServiceCollection services, IConfiguration config)
     {
-        var captchaEnabled = config.GetValue<bool>("Captcha:Enabled", true);
-        if (captchaEnabled)
-            services.AddScoped<ICaptchaService, CaptchaService>();
-        else
-            services.AddSingleton<ICaptchaService, NoOpCaptchaService>();
+        var enabled = config.GetValue<bool>("Captcha:Enabled", true);
+        services.AddGhostFontCaptcha(o =>
+        {
+            o.Enabled = enabled;
+            o.KeyPrefix = "captcha:"; // hub shares Redis; keep existing key shape
+        });
+        if (enabled) services.UseRedisCaptchaStore();
     }
 
     private static void AddColdStorage(IServiceCollection services, IConfiguration config)

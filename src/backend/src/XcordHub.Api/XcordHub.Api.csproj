@@ -68,6 +68,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../../xcord-common/src/Xcord.Common/Xcord.Common.csproj" />
+    <ProjectReference Include="../../../../../xcord-common/src/Xcord.Captcha/Xcord.Captcha.csproj" />
   </ItemGroup>
 
   <ItemGroup>

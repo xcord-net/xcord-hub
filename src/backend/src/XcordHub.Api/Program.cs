@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Serilog;
+using Xcord.Captcha.AspNetCore;
 using XcordHub.Api;
 using XcordHub.Features;
 using XcordHub.Infrastructure.Data;
@@ -132,6 +133,9 @@ app.MapHealthEndpoint();
 
 // Auto-register all handler endpoints
 app.MapHandlerEndpoints(typeof(FeaturesAssemblyMarker).Assembly);
+
+// Ghost-font captcha endpoints (non-standard handler - registered manually)
+app.MapGhostFontCaptcha();
 
 // Stripe webhook endpoint (non-standard handler - registered manually)
 XcordHub.Features.Billing.StripeWebhookHandler.Map(app);
