@@ -1559,26 +1559,6 @@
         }
       }
     },
-    "/api/v1/auth/captcha": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "operationId": "GetCaptcha",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CaptchaResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/auth/change-password": {
       "post": {
         "tags": [
@@ -2203,6 +2183,62 @@
           }
         }
       }
+    },
+    "/api/v1/auth/captcha": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/captcha/{id}.gif": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/captcha/{id}.wav": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2609,21 +2645,6 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
-          }
-        }
-      },
-      "CaptchaResponse": {
-        "required": [
-          "captchaId",
-          "question"
-        ],
-        "type": "object",
-        "properties": {
-          "captchaId": {
-            "type": "string"
-          },
-          "question": {
-            "type": "string"
           }
         }
       },
