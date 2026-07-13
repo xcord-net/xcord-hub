@@ -53,6 +53,7 @@ COPY src/backend/src/XcordHub.Features/XcordHub.Features.csproj src/backend/src/
 COPY src/backend/src/XcordHub.Infrastructure/XcordHub.Infrastructure.csproj src/backend/src/XcordHub.Infrastructure/
 COPY src/backend/src/XcordHub.Shared/XcordHub.Shared.csproj src/backend/src/XcordHub.Shared/
 COPY xcord-common/src/Xcord.Common/Xcord.Common.csproj xcord-common/src/Xcord.Common/
+COPY xcord-common/src/Xcord.Captcha/Xcord.Captcha.csproj xcord-common/src/Xcord.Captcha/
 
 # Restore dependencies
 RUN dotnet restore src/backend/src/XcordHub.Api/XcordHub.Api.csproj -r linux-musl-x64 -p:PublishReadyToRun=true
