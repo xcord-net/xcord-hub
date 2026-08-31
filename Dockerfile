@@ -53,8 +53,30 @@ COPY src/backend/src/XcordHub.Shared/XcordHub.Shared.csproj src/backend/src/Xcor
 COPY xcord-common/src/Xcord.Common/Xcord.Common.csproj xcord-common/src/Xcord.Common/
 COPY xcord-common/src/Xcord.Captcha/Xcord.Captcha.csproj xcord-common/src/Xcord.Captcha/
 
+# The RID comes from the build platform, not from a literal. `linux-musl-x64`
+# was hardcoded here and in the publish below, which fails on arm64 before it
+# fails usefully: the restore succeeds, and then the OpenAPI document generator
+# (Microsoft.Extensions.ApiDescription.Server) tries to RUN the freshly built
+# x64 assembly on an aarch64 host and dies with MSB3073 exit code 2, naming a
+# targets file rather than the architecture.
+#
+# Derived from `uname -m` rather than from BuildKit's TARGETARCH, because
+# `ARG TARGETARCH=amd64` SHADOWS the automatic value — a declared default wins
+# over the platform arg, so the first attempt at this fix silently produced
+# linux-musl-x64 again on an aarch64 host. TARGETARCH is still honoured when
+# explicitly passed, for a cross-build.
+ARG TARGETARCH
+RUN arch="${TARGETARCH:-$(uname -m)}"; \
+    case "$arch" in \
+      amd64|x86_64)  rid=linux-musl-x64 ;; \
+      arm64|aarch64) rid=linux-musl-arm64 ;; \
+      *) echo "unsupported build architecture: $arch" >&2; exit 1 ;; \
+    esac; \
+    echo "$rid" > /tmp/rid; \
+    echo "building for $arch -> $rid"
+
 # Restore dependencies
-RUN dotnet restore src/backend/src/XcordHub.Api/XcordHub.Api.csproj -r linux-musl-x64 -p:PublishReadyToRun=true
+RUN dotnet restore src/backend/src/XcordHub.Api/XcordHub.Api.csproj -r "$(cat /tmp/rid)" -p:PublishReadyToRun=true
 
 # Copy full source
 COPY xcord-common/ xcord-common/
@@ -66,7 +88,7 @@ RUN dotnet publish src/backend/src/XcordHub.Api/XcordHub.Api.csproj \
     -c Release \
     -o /app/publish \
     -p:Version=$VERSION \
-    -r linux-musl-x64 \
+    -r "$(cat /tmp/rid)" \
     -p:PublishReadyToRun=true \
     --self-contained false \
     --no-restore
