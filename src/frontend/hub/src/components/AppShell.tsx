@@ -43,7 +43,7 @@ export default function AppShell(props: { children: JSX.Element }) {
   });
 
   return (
-    <div class="flex flex-col h-screen bg-xcord-bg-primary">
+    <div class="xcord-grid-ground flex flex-col h-screen bg-xcord-bg-primary">
       {/* Header bar */}
       <header class="flex items-center h-12 bg-xcord-bg-floating border-b border-xcord-bg-tertiary px-2 gap-1 shrink-0">
         {/* Mobile menu button */}

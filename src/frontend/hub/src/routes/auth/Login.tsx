@@ -7,12 +7,35 @@ import PageMeta from '../../components/PageMeta';
 export default function Login() {
   const auth = useAuth();
   const navigate = useNavigate();
-  onMount(() => auth.clearError());
   const [email, setEmail] = createSignal('');
   const [password, setPassword] = createSignal('');
   const [totpCode, setTotpCode] = createSignal('');
   const [loading, setLoading] = createSignal(false);
   const [needs2FA, setNeeds2FA] = createSignal(false);
+  const [devLoginEnabled, setDevLoginEnabled] = createSignal(false);
+
+  onMount(async () => {
+    auth.clearError();
+    try {
+      const response = await fetch('/api/v1/hub/features');
+      if (!response.ok) return;
+      const data = await response.json();
+      setDevLoginEnabled(data.devLoginEnabled === true);
+    } catch {
+      // Feature probe is best-effort - never block the login form on it.
+    }
+  });
+
+  // Only reachable on the local dev stack: the endpoint is not mapped unless
+  // TestSeed:Key is configured, and the same gate drives devLoginEnabled.
+  const handleDevLogin = async () => {
+    setLoading(true);
+    const success = await auth.devLogin();
+    setLoading(false);
+    if (success) {
+      navigate('/dashboard', { replace: true });
+    }
+  };
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
@@ -123,6 +146,19 @@ export default function Login() {
           >
             {loading() ? 'Logging in...' : needs2FA() ? 'Verify' : 'Log In'}
           </button>
+
+          {/* Local dev stack only - deliberately reads as scaffolding, not product UI. */}
+          <Show when={devLoginEnabled() && !needs2FA()}>
+            <button
+              type="button"
+              data-testid="dev-login-button"
+              disabled={loading()}
+              onClick={handleDevLogin}
+              class="w-full py-2 font-mono text-sm text-xcord-text-muted hover:text-xcord-text-primary border border-dashed border-xcord-bg-tertiary hover:border-xcord-text-muted disabled:opacity-50 rounded transition"
+            >
+              Dev login as admin
+            </button>
+          </Show>
 
           <Show when={needs2FA()}>
             <button

@@ -140,8 +140,11 @@ app.MapGhostFontCaptcha().RequireRateLimiting("captcha");
 // Stripe webhook endpoint (non-standard handler - registered manually)
 XcordHub.Features.Billing.StripeWebhookHandler.Map(app);
 
-// Dev-only test seed endpoint for E2E tests
-if (app.Environment.IsDevelopment())
+// Test seed endpoint for E2E tests - enabled when TestSeed:Key is configured.
+// Gating on configuration rather than the environment name keeps this in step
+// with xcord-fed, and matters because the local dev stack runs the gateway with
+// ASPNETCORE_ENVIRONMENT=Production to stay production-identical.
+if (!string.IsNullOrEmpty(app.Configuration["TestSeed:Key"]))
 {
     TestSeedEndpoint.Map(app);
 }

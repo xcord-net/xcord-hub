@@ -40,7 +40,7 @@ export default function DashboardSidebar() {
       </Show>
 
       <aside class={`
-        fixed inset-y-0 left-0 z-30 w-60 bg-xcord-bg-secondary flex flex-col shrink-0
+        fixed inset-y-0 left-0 z-30 w-60 bg-xcord-bg-secondary/92 flex flex-col shrink-0
         transform transition-transform duration-200 ease-in-out
         md:relative md:translate-x-0 md:z-auto
         ${sidebarOpen() ? 'translate-x-0' : '-translate-x-full'}

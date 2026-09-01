@@ -26,4 +26,13 @@ public sealed class RateLimitingOptions
 
     /// <summary>Window (in minutes) for the bootstrap-token rate limiter (default 15).</summary>
     public int BootstrapTokenWindowMinutes { get; set; } = 15;
+
+    /// <summary>
+    /// Max /api/v1/admin/stats requests per minute per IP (default 30). The spark
+    /// console polls twice a minute per open tab; the rest of the budget is
+    /// headroom for a reload. This route is reachable from the public internet
+    /// through the guest's catch-all proxy rule, so the limit is what stops the
+    /// bearer token being brute-forced for free.
+    /// </summary>
+    public int AdminStatsPermitLimit { get; set; } = 30;
 }

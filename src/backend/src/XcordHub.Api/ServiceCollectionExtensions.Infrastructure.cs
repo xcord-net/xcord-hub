@@ -4,6 +4,7 @@ using Minio;
 using Xcord.Captcha;
 using Xcord.Captcha.AspNetCore;
 using XcordHub.Api.Options;
+using XcordHub.Features.Admin;
 using XcordHub.Features.Backups;
 using XcordHub.Features.Monitoring;
 using XcordHub.Features.Provisioning;
@@ -137,15 +138,20 @@ public static partial class ServiceCollectionExtensions
             {
                 AllowAutoRedirect = false,
             });
+        // Alerting:WebhookUrl points at the spark's notify acceptor; the token is
+        // that acceptor's ingest token, without which it answers 401. Both are
+        // read once here - unset means every health alarm is logged and dropped,
+        // which is what the stats endpoint's posture reports.
         var alertWebhookUrl = config.GetSection("Alerting:WebhookUrl").Value;
+        var alertWebhookToken = config.GetSection("Alerting:WebhookToken").Value;
         services.AddHttpClient<IAlertService, WebhookAlertService>(client =>
         {
-            // Configure HTTP client if needed
+            client.Timeout = TimeSpan.FromSeconds(10);
         })
         .AddTypedClient((httpClient, sp) =>
         {
             var logger = sp.GetRequiredService<ILogger<WebhookAlertService>>();
-            return new WebhookAlertService(httpClient, logger, alertWebhookUrl);
+            return new WebhookAlertService(httpClient, logger, alertWebhookUrl, alertWebhookToken);
         });
     }
 
@@ -159,6 +165,24 @@ public static partial class ServiceCollectionExtensions
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
+                // The console stats route, limited HERE rather than through a
+                // named policy: this middleware runs before UseRouting, so no
+                // endpoint is selected yet and RequireRateLimiting metadata is
+                // never read. See StatsAccessGuard.RoutePath. The route is
+                // reachable from the public internet through the guest's
+                // catch-all proxy rule, and the limit is what keeps its bearer
+                // token from being brute-forced for free.
+                if (StatsAccessGuard.IsStatsRoute(context))
+                {
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        StatsAccessGuard.RateLimitKey(context), _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = rateLimitOptions.AdminStatsPermitLimit,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0
+                        });
+                }
+
                 var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
                 return RateLimitPartition.GetTokenBucketLimiter(ipAddress, _ => new TokenBucketRateLimiterOptions
                 {
@@ -221,6 +245,7 @@ public static partial class ServiceCollectionExtensions
                     QueueLimit = 0
                 });
             });
+
         });
     }
 

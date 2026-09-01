@@ -2150,6 +2150,19 @@
         }
       }
     },
+    "/api/v1/admin/stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "GetAppStats",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/admin/keys/rotate": {
       "post": {
         "tags": [
@@ -2964,7 +2977,8 @@
         "required": [
           "paymentsEnabled",
           "stripePublishableKey",
-          "paidServersDisabled"
+          "paidServersDisabled",
+          "devLoginEnabled"
         ],
         "type": "object",
         "properties": {
@@ -2976,6 +2990,9 @@
             "nullable": true
           },
           "paidServersDisabled": {
+            "type": "boolean"
+          },
+          "devLoginEnabled": {
             "type": "boolean"
           }
         }

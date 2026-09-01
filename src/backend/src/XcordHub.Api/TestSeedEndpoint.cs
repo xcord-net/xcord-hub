@@ -25,6 +25,16 @@ public static class TestSeedEndpoint
         string RefreshToken
     );
 
+    // Mirrors LoginApiResponse so the hub SPA's auth store can consume it with
+    // the same code path as a real login.
+    public sealed record DevLoginResponse(
+        string UserId,
+        string Username,
+        string DisplayName,
+        string Email,
+        string AccessToken
+    );
+
     public static void Map(WebApplication app)
     {
         app.MapPost("/api/v1/test/seed-user", async (
@@ -138,6 +148,60 @@ public static class TestSeedEndpoint
         })
         .AllowAnonymous()
         .WithName("TestSeedUser")
+        .WithTags("Test");
+
+        // One-click sign-in for the local dev stack, behind the "Dev login as
+        // admin" button on the login page. Takes no body and no X-Test-Key:
+        // the browser cannot hold a secret, so the gate is that this route is
+        // not mapped at all unless TestSeed:Key is configured (see Program.cs).
+        app.MapPost("/api/v1/test/dev-login", async (
+            HttpContext httpContext,
+            HubDbContext dbContext,
+            IEncryptionService encryptionService,
+            IJwtService jwtService,
+            SnowflakeIdGenerator snowflakeGenerator,
+            ILogger<Program> logger,
+            CancellationToken ct) =>
+        {
+            var now = DateTimeOffset.UtcNow;
+
+            // Oldest admin - the account seeded from the "admin" block of the
+            // gateway config on first boot.
+            var admin = await dbContext.HubUsers
+                .Where(u => u.IsAdmin && !u.IsDisabled && u.DeletedAt == null)
+                .OrderBy(u => u.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (admin is null)
+                return Results.Problem(statusCode: 404, title: "NOT_FOUND",
+                    detail: "No admin user exists on this hub");
+
+            var refreshTokenValue = TokenHelper.GenerateToken();
+            dbContext.RefreshTokens.Add(new RefreshToken
+            {
+                Id = snowflakeGenerator.NextId(),
+                TokenHash = TokenHelper.HashToken(refreshTokenValue),
+                HubUserId = admin.Id,
+                ExpiresAt = now.AddDays(30),
+                CreatedAt = now
+            });
+            await dbContext.SaveChangesAsync(ct);
+
+            var accessToken = jwtService.GenerateAccessToken(admin.Id, admin.IsAdmin);
+            AuthCookieHelper.SetRefreshTokenCookie(httpContext, refreshTokenValue);
+
+            logger.LogWarning("TestSeed: dev-login issued for admin {Username}", admin.Username);
+
+            return Results.Ok(new DevLoginResponse(
+                admin.Id.ToString(),
+                admin.Username,
+                admin.DisplayName,
+                encryptionService.Decrypt(admin.Email),
+                accessToken));
+        })
+        .AllowAnonymous()
+        .Produces<DevLoginResponse>(200)
+        .WithName("TestDevLogin")
         .WithTags("Test");
     }
 }

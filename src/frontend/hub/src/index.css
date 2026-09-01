@@ -4,17 +4,17 @@
 
 @theme static {
   /* === Backgrounds (warm graphite; elevation = lighter surface, not borders) === */
-  --color-xcord-bg-primary: #1b1a1f;
-  --color-xcord-bg-secondary: #17161a;
-  --color-xcord-bg-tertiary: #131315;
-  --color-xcord-bg-accent: #232228;
-  --color-xcord-bg-floating: #26252c;
+  --color-xcord-bg-primary: #1a171b;
+  --color-xcord-bg-secondary: #171416;
+  --color-xcord-bg-tertiary: #131114;
+  --color-xcord-bg-accent: #221e22;
+  --color-xcord-bg-floating: #292328;
 
   /* === Text === */
-  --color-xcord-text-primary: #f0eee9;
-  --color-xcord-text-secondary: #b9b6c0;
-  --color-xcord-text-muted: #84818c;
-  --color-xcord-text-faint: #6f6c76;
+  --color-xcord-text-primary: #f0ede8;
+  --color-xcord-text-secondary: #b6afac;
+  --color-xcord-text-muted: #898180;   /* clears WCAG AA 4.5:1 on bg-primary */
+  --color-xcord-text-faint: #6a6361;
   --color-xcord-text-link: #d4943a;
 
   /* === Brand (amber signature, unchanged) === */
@@ -63,17 +63,24 @@
   --color-xcord-warning-border: rgba(185, 147, 65, 0.4);
 
   /* === Border === */
-  --color-xcord-border: rgba(255, 255, 255, 0.06);
+  --color-xcord-border: rgba(255, 240, 225, 0.09);
+  /* Solid structural edge for controls that need a visible boundary. Heavier
+     than the hairline above. */
+  --color-xcord-line: #2c272c;
+  /* Grid ground drawn behind the app shell so panes read as surfaces.
+     The fine 30px weave sits under a heavier 150px module line. */
+  --color-xcord-grid: rgba(240, 200, 150, 0.05);
+  --color-xcord-grid-major: rgba(240, 200, 150, 0.085);
 
   /* === Scrollbar === */
   --color-xcord-scrollbar: #2e2d34;
 
   /* === Landing (hub only; now same material as the app) === */
-  --color-xcord-landing-bg: #131315;
-  --color-xcord-landing-surface: #1b1a1f;
-  --color-xcord-landing-border: rgba(255, 255, 255, 0.06);
-  --color-xcord-landing-text: #f0eee9;
-  --color-xcord-landing-text-muted: #84818c;
+  --color-xcord-landing-bg: #131114;
+  --color-xcord-landing-surface: #1a171b;
+  --color-xcord-landing-border: rgba(255, 240, 225, 0.09);
+  --color-xcord-landing-text: #f0ede8;
+  --color-xcord-landing-text-muted: #898180;
 
   /* === Type === */
   --font-sans: "Figtree Variable", "Figtree", "Segoe UI", sans-serif;
@@ -91,6 +98,12 @@
   --shadow-2: 0 12px 40px rgba(0, 0, 0, 0.45);
   --shadow-3: 0 24px 70px rgba(0, 0, 0, 0.55);
 
+  /* The only colored glow in the system. It marks "on air" and nothing else:
+     the live badge and the live-room dot. Every other emphasis comes from
+     structure (a solid amber edge, a surface step, a hairline). Adding a
+     second blurred colored shadow anywhere breaks the rule. */
+  --shadow-live: 0 0 9px rgba(226, 87, 74, 0.85);
+
   /* === Motion === */
   --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
@@ -102,6 +115,19 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Two grid layers ride on the shell's base color: a fine 30px weave and a
+   heavier 150px module. Panes above sit at partial opacity so the grid reads
+   through and they register as surfaces on a ground rather than shapes on
+   flat color. Matches the fed shell in xcord-fed Layout.module.css. */
+.xcord-grid-ground {
+  background-image:
+    linear-gradient(var(--color-xcord-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-xcord-grid) 1px, transparent 1px),
+    linear-gradient(var(--color-xcord-grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-xcord-grid-major) 1px, transparent 1px);
+  background-size: 30px 30px, 30px 30px, 150px 150px, 150px 150px;
 }
 
 body {

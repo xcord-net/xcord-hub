@@ -77,6 +77,42 @@ describe('Login (route)', () => {
     expect(await findByText(/Enter the 6-digit code/)).toBeInTheDocument();
   });
 
+  it('hides the dev login button when the hub does not offer it', async () => {
+    mockFetch({
+      'GET /api/v1/hub/features': () => ({ status: 200, body: { devLoginEnabled: false } }),
+    });
+    const { getByTestId, queryByTestId } = renderPage();
+    // Wait for the features probe to settle before asserting the absence.
+    await waitFor(() => expect(getByTestId('login-submit-button')).toBeInTheDocument());
+    await waitFor(() => expect(queryByTestId('dev-login-button')).not.toBeInTheDocument());
+  });
+
+  it('shows the dev login button and signs in through it when enabled', async () => {
+    const { calls } = mockFetch({
+      'GET /api/v1/hub/features': () => ({ status: 200, body: { devLoginEnabled: true } }),
+      'POST /api/v1/test/dev-login': () => ({
+        status: 200,
+        body: {
+          userId: '1',
+          username: 'e2e-admin',
+          displayName: 'E2E Admin',
+          email: 'admin@e2e.test',
+          accessToken: 'dev-token',
+        },
+      }),
+    });
+    const { findByTestId } = renderPage();
+    fireEvent.click(await findByTestId('dev-login-button'));
+    await waitFor(() =>
+      expect(calls).toContainEqual(
+        expect.objectContaining({ method: 'POST', url: '/api/v1/test/dev-login' }),
+      ),
+    );
+    // The hub keeps its access token in localStorage, so a dev login has to
+    // land there for restoreSession to pick the session back up on reload.
+    await waitFor(() => expect(localStorage.getItem('xcord_hub_token')).toBe('dev-token'));
+  });
+
   it('disables the submit button while loading', async () => {
     mockFetch({
       'POST /api/v1/auth/login': () => new Promise(() => {}),

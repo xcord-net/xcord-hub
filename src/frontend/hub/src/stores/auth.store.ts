@@ -63,6 +63,33 @@ async function loginWith2FA(email: string, password: string, code: string): Prom
   }
 }
 
+/**
+ * One-click sign-in for the local dev stack. The endpoint is not mapped unless
+ * TestSeed:Key is configured, and the same gate drives the devLoginEnabled flag
+ * on /api/v1/hub/features that decides whether the button is rendered at all.
+ */
+async function devLogin(): Promise<boolean> {
+  setError(null);
+  try {
+    const response = await fetch('/api/v1/test/dev-login', { method: 'POST' });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      setError(data?.detail || data?.message || 'Dev login failed');
+      return false;
+    }
+
+    const data = await response.json();
+    setToken(data.accessToken);
+    setUser({ userId: String(data.userId), username: data.username, displayName: data.displayName, email: data.email });
+    localStorage.setItem('xcord_hub_token', data.accessToken);
+    return true;
+  } catch {
+    setError('Network error. Please try again.');
+    return false;
+  }
+}
+
 async function signup(email: string, password: string, displayName: string, username: string, captchaId?: string, captchaAnswer?: string): Promise<boolean> {
   setError(null);
   try {
@@ -222,6 +249,7 @@ export function useAuth() {
     get error() { return error(); },
     login,
     loginWith2FA,
+    devLogin,
     signup,
     signupWithInstance,
     logout,
@@ -247,6 +275,7 @@ export const authStore = {
   error,
   login,
   loginWith2FA,
+  devLogin,
   signup,
   signupWithInstance,
   logout,

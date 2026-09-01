@@ -152,6 +152,43 @@ public sealed class GetFeaturesEndpointTests
         response.StatusCode.Should().Be(HttpStatusCode.OK, "endpoint should allow anonymous access");
     }
 
+    // The dev login route signs a caller in as the hub admin with no credentials
+    // at all. The only thing standing between that and production is the
+    // TestSeed:Key gate in Program.cs, so pin the closed direction: neither
+    // fixture configures a key, so the route must not exist and the features
+    // payload must not advertise it to the login page.
+
+    [Fact]
+    public async Task DevLogin_WithoutTestSeedKey_IssuesNoSession()
+    {
+        var client = _fixture.WithStripeFactory.CreateClient();
+
+        var response = await client.PostAsync("/api/v1/test/dev-login", null);
+
+        // The exact status is a routing detail - the SPA fallback claims the
+        // path for GET, so an unmapped POST surfaces as 405 rather than 404.
+        // What must hold is that no session comes back.
+        response.IsSuccessStatusCode.Should().BeFalse(
+            "TestSeedEndpoint is only mapped when TestSeed:Key is configured");
+        response.Headers.TryGetValues("Set-Cookie", out var cookies);
+        (cookies ?? Enumerable.Empty<string>())
+            .Should().NotContain(c => c.Contains("refresh_token"),
+                "an unmapped dev login route must not authenticate anyone");
+    }
+
+    [Fact]
+    public async Task GetFeatures_WithoutTestSeedKey_ReportsDevLoginDisabled()
+    {
+        var client = _fixture.WithStripeFactory.CreateClient();
+
+        var response = await client.GetAsync("/api/v1/hub/features");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<GetFeaturesResponse>();
+        body.Should().NotBeNull();
+        body!.DevLoginEnabled.Should().BeFalse("no TestSeed:Key is configured");
+    }
+
     [Fact]
     public async Task GetFeatures_ResponseIsCamelCase()
     {
