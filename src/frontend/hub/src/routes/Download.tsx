@@ -94,10 +94,11 @@ function NotifyForm(props: { platform: string }) {
   return (
     <Show
       when={status() !== 'success'}
-      fallback={<p class="text-sm text-green-400 text-center py-1">{message()}</p>}
+      fallback={<p data-testid="download-notify-success" class="text-sm text-green-400 text-center py-1">{message()}</p>}
     >
       <form onSubmit={handleSubmit} class="flex gap-2 mt-1">
         <input
+          data-testid="download-notify-email"
           type="email"
           required
           placeholder="you@example.com"
@@ -106,6 +107,7 @@ function NotifyForm(props: { platform: string }) {
           class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-xcord-landing-bg border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
         />
         <button
+          data-testid="download-notify-submit"
           type="submit"
           disabled={status() === 'loading'}
           class="px-3 py-2 rounded-lg font-medium bg-xcord-brand text-white text-sm hover:bg-xcord-brand-hover disabled:opacity-50 shrink-0"

@@ -77,6 +77,12 @@ public sealed class NoopDockerService : IDockerService
         return Task.CompletedTask;
     }
 
+    public Task StartExistingContainerAsync(string containerId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("NOOP: Would start existing container {ContainerId}", containerId);
+        return Task.CompletedTask;
+    }
+
     public Task StopContainerAsync(string containerId, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("NOOP: Would stop container {ContainerId}", containerId);

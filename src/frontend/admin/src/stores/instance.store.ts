@@ -168,9 +168,14 @@ export function useInstances() {
     },
 
     async fetchBackupRecords(id: string, page = 1, pageSize = 20): Promise<BackupRecord[]> {
-      return await api.get<BackupRecord[]>(
+      // ListBackupRecordsResponse is { backups, total, page, pageSize }. Typing
+      // this as a bare array meant the component held an object, read .length as
+      // undefined, and rendered the empty state no matter how many backups
+      // existed - the history list could never show anything.
+      const data = await api.get<{ backups?: BackupRecord[] } | BackupRecord[]>(
         `/api/v1/admin/instances/${id}/backups?page=${page}&pageSize=${pageSize}`
       );
+      return Array.isArray(data) ? data : data.backups ?? [];
     },
 
     async triggerBackup(id: string, kind: string): Promise<BackupRecord> {

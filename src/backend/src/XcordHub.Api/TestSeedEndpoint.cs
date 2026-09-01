@@ -1,6 +1,7 @@
 using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Xcord.Captcha.Storage;
 using XcordHub.Entities;
 using XcordHub.Features.Auth;
 using XcordHub.Infrastructure.Data;
@@ -202,6 +203,43 @@ public static class TestSeedEndpoint
         .AllowAnonymous()
         .Produces<DevLoginResponse>(200)
         .WithName("TestDevLogin")
+        .WithTags("Test");
+
+        // Reveal the answer to an already-issued captcha challenge.
+        //
+        // A browser test cannot read a ghost-font GIF, and disabling the captcha
+        // for E2E would mean the get-started wizard the tests exercise is not the
+        // one users walk. This keeps the real captcha enabled end to end: the
+        // image renders, refresh reissues, the audio track works, a wrong answer
+        // is still rejected.
+        //
+        // Gated exactly like seed-user: the route is not mapped unless
+        // TestSeed:Key is configured, and the caller must present that key. The
+        // read is non-consuming, so validation stays single-use.
+        //
+        // Mirrors the same route in xcord-fed.
+        app.MapGet("/api/v1/test/captcha/{captchaId}", async (
+            string captchaId,
+            HttpContext httpContext,
+            ICaptchaStore store) =>
+        {
+            var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+
+            var expectedKey = config["TestSeed:Key"];
+            if (string.IsNullOrEmpty(expectedKey))
+                return Results.Problem(statusCode: 403, title: "FORBIDDEN", detail: "TestSeed:Key is not configured");
+
+            var providedKey = httpContext.Request.Headers["X-Test-Key"].FirstOrDefault();
+            if (providedKey != expectedKey)
+                return Results.Problem(statusCode: 403, title: "FORBIDDEN", detail: "Invalid or missing X-Test-Key header");
+
+            var answer = await store.PeekAnswerAsync(captchaId);
+            return answer is null
+                ? Results.Problem(statusCode: 404, title: "NOT_FOUND", detail: "Unknown or expired captcha id")
+                : Results.Ok(new { captchaId, answer });
+        })
+        .AllowAnonymous()
+        .WithName("TestCaptchaAnswer")
         .WithTags("Test");
     }
 }

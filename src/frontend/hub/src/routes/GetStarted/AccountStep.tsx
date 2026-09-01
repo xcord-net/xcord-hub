@@ -154,7 +154,7 @@ export default function AccountStep(props: AccountStepProps) {
         <Captcha onSolved={props.onCaptchaSolved} />
 
         <Show when={props.error() || props.authError()}>
-          <div class="text-sm text-xcord-red">{props.error() || props.authError()}</div>
+          <div data-testid="get-started-error" class="text-sm text-xcord-red">{props.error() || props.authError()}</div>
         </Show>
 
         <div class="flex gap-3">

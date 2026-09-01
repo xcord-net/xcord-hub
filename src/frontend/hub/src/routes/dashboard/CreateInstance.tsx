@@ -382,6 +382,7 @@ export default function CreateInstance() {
               Admin Password
             </label>
             <input
+              data-testid="create-instance-admin-password"
               type="password"
               value={adminPassword()}
               onInput={(e) => setAdminPassword(e.currentTarget.value)}
@@ -401,6 +402,7 @@ export default function CreateInstance() {
               Confirm Admin Password
             </label>
             <input
+              data-testid="create-instance-confirm-password"
               type="password"
               value={confirmPassword()}
               onInput={(e) => setConfirmPassword(e.currentTarget.value)}
@@ -418,6 +420,7 @@ export default function CreateInstance() {
           </Show>
 
           <button
+            data-testid="create-instance-submit"
             type="submit"
             disabled={loading() || !!subdomainError() || !subdomain()}
             class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"

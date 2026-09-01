@@ -130,6 +130,7 @@ export default function Account() {
           <div>
             <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Username</label>
             <input
+              data-testid="account-username"
               type="text"
               value={auth.user?.username ?? ''}
               disabled
@@ -229,6 +230,7 @@ export default function Account() {
             Permanently delete your account and all associated data. This action cannot be undone.
           </p>
           <button
+            data-testid="hub-delete-account-button"
             onClick={() => { setConfirmDelete(true); setDeleteError(''); }}
             class="px-4 py-2 bg-xcord-red/10 text-xcord-red hover:bg-xcord-red/20 rounded text-sm font-medium transition"
           >
@@ -245,6 +247,7 @@ export default function Account() {
                 Type your username <span class="text-xcord-text-primary font-mono">{auth.user?.username}</span> to confirm
               </label>
               <input
+                data-testid="hub-delete-account-username"
                 type="text"
                 value={deleteConfirmText()}
                 onInput={(e) => setDeleteConfirmText(e.currentTarget.value)}
@@ -256,6 +259,7 @@ export default function Account() {
             <div>
               <label class="block text-xs font-bold uppercase text-xcord-text-muted mb-2">Password</label>
               <input
+                data-testid="hub-delete-account-password"
                 type="password"
                 value={deletePassword()}
                 onInput={(e) => setDeletePassword(e.currentTarget.value)}
@@ -264,10 +268,11 @@ export default function Account() {
               />
             </div>
             <Show when={deleteError()}>
-              <div class="text-sm text-xcord-red">{deleteError()}</div>
+              <div data-testid="hub-delete-account-error" class="text-sm text-xcord-red">{deleteError()}</div>
             </Show>
             <div class="flex gap-3">
               <button
+                data-testid="hub-delete-account-confirm"
                 onClick={handleDeleteAccount}
                 disabled={deletingAccount() || !deleteConfirmText() || !deletePassword()}
                 class="px-4 py-2 bg-xcord-red text-white hover:opacity-80 disabled:opacity-50 rounded text-sm font-medium transition"

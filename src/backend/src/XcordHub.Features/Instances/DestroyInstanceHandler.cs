@@ -12,7 +12,11 @@ using XcordHub.Shared.Extensions;
 
 namespace XcordHub.Features.Instances;
 
-public sealed record DestroyInstanceCommand(long InstanceId, long UserId);
+/// <param name="AsPlatformAdmin">
+///   Set by the admin-scoped route. A platform operator acts on any instance in
+///   the fleet, not only the ones they happen to own.
+/// </param>
+public sealed record DestroyInstanceCommand(long InstanceId, long UserId, bool AsPlatformAdmin = false);
 
 public sealed class DestroyInstanceHandler(
     HubDbContext dbContext,
@@ -32,7 +36,7 @@ public sealed class DestroyInstanceHandler(
         }
 
         // Verify ownership
-        if (instance.OwnerId != request.UserId)
+        if (!request.AsPlatformAdmin && instance.OwnerId != request.UserId)
         {
             return Error.Forbidden("NOT_OWNER", "You do not have permission to destroy this instance");
         }
@@ -110,6 +114,34 @@ public sealed class DestroyInstanceHandler(
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
+        // Platform-operator route. The admin console has always called this
+        // path; until now it did not exist, so every lifecycle action in the
+        // console failed with 405. Ownership is bypassed deliberately - an
+        // operator acts on the whole fleet, and Policies.Admin is the gate.
+        app.MapDelete("/api/v1/admin/instances/{instanceId:long}", async (
+            [FromRoute] long instanceId,
+            ClaimsPrincipal user,
+            DestroyInstanceHandler handler,
+            CancellationToken ct) =>
+        {
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !long.TryParse(userIdClaim, out var adminId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var adminCommand = new DestroyInstanceCommand(instanceId, adminId, AsPlatformAdmin: true);
+            var adminResult = await handler.Handle(adminCommand, ct).ConfigureAwait(false);
+
+            return adminResult.Match(
+                success => Results.Ok(new SuccessResponse(true)),
+                error => Results.Json(new { Error = error.Code, Message = error.Message }, statusCode: error.StatusCode));
+        })
+        .RequireAuthorization(Policies.Admin)
+        .Produces<SuccessResponse>(200)
+        .WithName("AdminDestroyInstance")
+        .WithTags("Admin");
+
         return app.MapPost("/api/v1/hub/instances/{instanceId:long}/destroy", async (
             [FromRoute] long instanceId,
             ClaimsPrincipal user,

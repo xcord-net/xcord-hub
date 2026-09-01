@@ -24,6 +24,14 @@ public interface IDockerService
     Task<bool> VerifyMigrationsCompleteAsync(string instanceDomain, CancellationToken cancellationToken = default);
     Task UpdateServiceImageAsync(string serviceId, string newImage, CancellationToken cancellationToken = default);
     Task StopContainerAsync(string containerId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Scales a suspended instance's service back to one replica.
+    ///
+    /// Suspend scales to zero; without this there is nothing to undo it, and a
+    /// "resume" could only ever hope the container came back on its own.
+    /// </summary>
+    Task StartExistingContainerAsync(string containerId, CancellationToken cancellationToken = default);
     Task RemoveContainerAsync(string containerId, CancellationToken cancellationToken = default);
     Task RemoveNetworkAsync(string networkId, CancellationToken cancellationToken = default);
 }

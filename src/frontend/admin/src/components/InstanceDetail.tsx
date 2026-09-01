@@ -26,6 +26,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
   return (
     <div>
       <button
+        data-testid="instance-detail-back"
         onClick={props.onBack}
         class="mb-4 px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
       >
@@ -47,6 +48,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
           <div class="border-b border-gray-200">
             <nav class="flex">
               <button
+                data-testid="instance-tab-overview"
                 onClick={() => setActiveTab('overview')}
                 class={`px-6 py-3 font-medium text-sm border-b-2 ${
                   activeTab() === 'overview'
@@ -57,6 +59,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
                 Overview
               </button>
               <button
+                data-testid="instance-tab-health"
                 onClick={() => setActiveTab('health')}
                 class={`px-6 py-3 font-medium text-sm border-b-2 ${
                   activeTab() === 'health'
@@ -67,6 +70,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
                 Health
               </button>
               <button
+                data-testid="instance-tab-config"
                 onClick={() => setActiveTab('config')}
                 class={`px-6 py-3 font-medium text-sm border-b-2 ${
                   activeTab() === 'config'
@@ -77,6 +81,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
                 Configuration
               </button>
               <button
+                data-testid="instance-tab-logs"
                 onClick={() => setActiveTab('logs')}
                 class={`px-6 py-3 font-medium text-sm border-b-2 ${
                   activeTab() === 'logs'
@@ -87,6 +92,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
                 Logs
               </button>
               <button
+                data-testid="instance-tab-backups"
                 onClick={() => setActiveTab('backups')}
                 class={`px-6 py-3 font-medium text-sm border-b-2 ${
                   activeTab() === 'backups'
@@ -97,6 +103,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
                 Backups
               </button>
               <button
+                data-testid="instance-tab-version"
                 onClick={() => setActiveTab('version')}
                 class={`px-6 py-3 font-medium text-sm border-b-2 ${
                   activeTab() === 'version'
@@ -114,7 +121,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <h4 class="font-semibold mb-2">Status</h4>
-                  <p>{instance()!.status}</p>
+                  <p data-testid="instance-detail-status">{instance()!.status}</p>
                 </div>
                 <div>
                   <h4 class="font-semibold mb-2">Created</h4>

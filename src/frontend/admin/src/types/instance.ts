@@ -18,23 +18,41 @@ export type InstanceStatus = (typeof InstanceStatus)[keyof typeof InstanceStatus
 // Nested types not yet in generated spec - AdminGetInstanceResponse returns
 // resourceLimits/featureFlags/health/infrastructure as untyped JSON.
 // These stay local until the backend OpenAPI spec properly types those fields.
+/**
+ * Mirrors the fields UpdateResourceLimitsCommand accepts, which is the subset of
+ * XcordHub.Entities.ResourceLimits an operator can edit.
+ *
+ * As with FeatureFlags, the console previously invented its own names
+ * (maxMembers, maxStorageGb, maxChannelsPerServer, ...). None of them bound, so
+ * the editor rendered blanks and every save wrote zeros over the real limits.
+ */
 export interface ResourceLimits {
-  maxMembers: number;
+  maxUsers: number;
   maxServers: number;
-  maxChannelsPerServer: number;
-  maxFileUploadMb: number;
-  maxStorageGb: number;
-  maxMonthlyBandwidthGb: number;
+  maxStorageMb: number;
+  maxCpuPercent: number;
+  maxMemoryMb: number;
+  maxRateLimit: number;
+  maxVoiceConcurrency: number;
+  maxVideoConcurrency: number;
 }
 
+/**
+ * Mirrors XcordHub.Entities.FeatureFlags, which is what
+ * PATCH /api/v1/admin/instances/{id}/feature-flags binds and what provisioning
+ * reads when it configures an instance container.
+ *
+ * These names are not cosmetic. The console previously declared a different set
+ * entirely (allowCustomEmoji, allowBots, ...); none of those names bound to the
+ * command, so every save wrote five defaulted `false` flags and quietly stripped
+ * voice, video, simulcast, member tiers, and broadcast from the instance.
+ */
 export interface FeatureFlags {
-  allowCustomEmoji: boolean;
-  allowVoiceChannels: boolean;
-  allowVideoStreaming: boolean;
-  allowBots: boolean;
-  allowWebhooks: boolean;
-  allowAutomod: boolean;
-  allowServerDiscovery: boolean;
+  canUseVoiceChannels: boolean;
+  canUseVideoChannels: boolean;
+  canUseSimulcast: boolean;
+  canUseMemberTiers: boolean;
+  canBroadcast: boolean;
 }
 
 export interface HealthStatus {

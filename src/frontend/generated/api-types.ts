@@ -230,6 +230,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/instances/{instanceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["AdminDestroyInstance"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hub/instances/{instanceId}/destroy": {
         parameters: {
             query?: never;
@@ -278,6 +294,22 @@ export interface paths {
         patch: operations["UpdateInstance"];
         trace?: never;
     };
+    "/api/v1/admin/instances/{instanceId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AdminResumeInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/hub/instances/{instanceId}/resume": {
         parameters: {
             query?: never;
@@ -288,6 +320,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["ResumeInstance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/instances/{instanceId}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AdminSuspendInstance"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2296,6 +2344,28 @@ export interface operations {
             };
         };
     };
+    AdminDestroyInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"];
+                };
+            };
+        };
+    };
     DestroyInstance: {
         parameters: {
             query?: never;
@@ -2388,7 +2458,51 @@ export interface operations {
             };
         };
     };
+    AdminResumeInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"];
+                };
+            };
+        };
+    };
     ResumeInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                instanceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessResponse"];
+                };
+            };
+        };
+    };
+    AdminSuspendInstance: {
         parameters: {
             query?: never;
             header?: never;

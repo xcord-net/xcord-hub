@@ -209,6 +209,7 @@ export default function InstanceDetail() {
 
                   <Show when={!confirmDelete()}>
                     <button
+                      data-testid="instance-delete-button"
                       onClick={() => setConfirmDelete(true)}
                       class="px-4 py-2 bg-xcord-red/10 text-xcord-red hover:bg-xcord-red/20 rounded text-sm font-medium transition"
                     >
@@ -219,6 +220,7 @@ export default function InstanceDetail() {
                     <div class="flex items-center gap-3 p-3 bg-xcord-red/10 rounded">
                       <span class="text-sm text-xcord-red">Are you sure? This cannot be undone.</span>
                       <button
+                        data-testid="instance-delete-confirm"
                         onClick={() => handleAction('destroy')}
                         disabled={actionLoading()}
                         class="px-3 py-1 bg-xcord-red text-white rounded text-sm font-medium transition hover:opacity-80"

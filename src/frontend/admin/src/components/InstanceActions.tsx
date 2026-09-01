@@ -41,6 +41,7 @@ export function InstanceActions(props: InstanceActionsProps) {
       <div class="space-y-3">
         <Show when={props.status === InstanceStatus.Running}>
           <button
+            data-testid="instance-action-suspend"
             onClick={() => setShowConfirm('suspend')}
             disabled={isLoading()}
             class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:bg-gray-400"
@@ -51,6 +52,7 @@ export function InstanceActions(props: InstanceActionsProps) {
 
         <Show when={props.status === InstanceStatus.Suspended}>
           <button
+            data-testid="instance-action-resume"
             onClick={() => setShowConfirm('resume')}
             disabled={isLoading()}
             class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
@@ -61,6 +63,7 @@ export function InstanceActions(props: InstanceActionsProps) {
 
         <Show when={props.status !== InstanceStatus.Destroyed}>
           <button
+            data-testid="instance-action-destroy"
             onClick={() => setShowConfirm('destroy')}
             disabled={isLoading()}
             class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
@@ -82,6 +85,7 @@ export function InstanceActions(props: InstanceActionsProps) {
             </p>
             <div class="flex gap-3">
               <button
+                data-testid="instance-action-confirm"
                 onClick={() => handleAction(showConfirm()!)}
                 disabled={isLoading()}
                 class="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
@@ -89,6 +93,7 @@ export function InstanceActions(props: InstanceActionsProps) {
                 {isLoading() ? 'Processing...' : 'Confirm'}
               </button>
               <button
+                data-testid="instance-action-cancel"
                 onClick={() => setShowConfirm(null)}
                 disabled={isLoading()}
                 class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"

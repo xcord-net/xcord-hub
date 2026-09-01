@@ -148,6 +148,9 @@ export default function Overview() {
               {(instance) => (
                 <A
                   href={`/dashboard/instances/${instance.instanceId}`}
+                  data-testid="instance-row"
+                  data-domain={instance.domain}
+                  data-status={instance.status}
                   class="flex items-center gap-4 bg-xcord-bg-secondary hover:bg-xcord-bg-accent rounded-lg p-4 transition group"
                 >
                   <div class="w-10 h-10 rounded-lg bg-xcord-brand/20 flex items-center justify-center text-xcord-brand font-bold shrink-0">

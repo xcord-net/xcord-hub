@@ -71,10 +71,10 @@ export default function ConfigStep(props: ConfigStepProps) {
             <span class="text-xs text-xcord-text-muted mt-1 block">Checking availability...</span>
           </Show>
           <Show when={props.subdomain().length > 0 && props.subdomainError()}>
-            <span class="text-xs text-xcord-red mt-1 block">{props.subdomainError()}</span>
+            <span data-testid="get-started-subdomain-error" class="text-xs text-xcord-red mt-1 block">{props.subdomainError()}</span>
           </Show>
           <Show when={props.subdomainValid() && props.subdomainStatus() === 'available'}>
-            <span class="text-xs text-xcord-green mt-1 block">Available!</span>
+            <span data-testid="get-started-subdomain-available" class="text-xs text-xcord-green mt-1 block">Available!</span>
           </Show>
         </div>
 

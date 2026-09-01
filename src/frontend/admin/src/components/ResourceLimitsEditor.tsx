@@ -7,14 +7,34 @@ interface ResourceLimitsEditorProps {
   initialLimits: ResourceLimits;
 }
 
+/**
+ * ResourceLimitsJson is stored with JsonSerializer defaults and returned
+ * verbatim, so the payload keys are PascalCase.
+ */
+function normaliseLimits(raw: ResourceLimits | Record<string, unknown> | undefined | null): ResourceLimits {
+  const source = (raw ?? {}) as Record<string, unknown>;
+  const read = (name: string) =>
+    Number(source[name] ?? source[name.charAt(0).toUpperCase() + name.slice(1)] ?? 0);
+  return {
+    maxUsers: read('maxUsers'),
+    maxServers: read('maxServers'),
+    maxStorageMb: read('maxStorageMb'),
+    maxCpuPercent: read('maxCpuPercent'),
+    maxMemoryMb: read('maxMemoryMb'),
+    maxRateLimit: read('maxRateLimit'),
+    maxVoiceConcurrency: read('maxVoiceConcurrency'),
+    maxVideoConcurrency: read('maxVideoConcurrency'),
+  };
+}
+
 export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
   const instanceStore = useInstances();
-  const [limits, setLimits] = createSignal<ResourceLimits>(props.initialLimits);
+  const [limits, setLimits] = createSignal<ResourceLimits>(normaliseLimits(props.initialLimits));
   const [isEditing, setIsEditing] = createSignal(false);
   const [isSaving, setIsSaving] = createSignal(false);
 
   createEffect(() => {
-    setLimits(props.initialLimits);
+    setLimits(normaliseLimits(props.initialLimits));
   });
 
   const handleSave = async () => {
@@ -30,7 +50,7 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
   };
 
   const handleCancel = () => {
-    setLimits(props.initialLimits);
+    setLimits(normaliseLimits(props.initialLimits));
     setIsEditing(false);
   };
 
@@ -44,6 +64,7 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
         <h3 class="text-lg font-semibold">Resource Limits</h3>
         {!isEditing() && (
           <button
+            data-testid="resource-limits-edit"
             onClick={() => setIsEditing(true)}
             class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
           >
@@ -55,11 +76,12 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Max Members</label>
+            <label class="block text-sm font-medium mb-1">Max Users</label>
             <input
+              data-testid="resource-limit-maxUsers"
               type="number"
-              value={limits().maxMembers}
-              onInput={(e) => updateLimit('maxMembers', parseInt(e.currentTarget.value))}
+              value={limits().maxUsers}
+              onInput={(e) => updateLimit('maxUsers', parseInt(e.currentTarget.value))}
               disabled={!isEditing()}
               class="w-full px-3 py-2 border rounded disabled:bg-gray-100"
             />
@@ -68,6 +90,7 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
           <div>
             <label class="block text-sm font-medium mb-1">Max Servers</label>
             <input
+              data-testid="resource-limit-maxServers"
               type="number"
               value={limits().maxServers}
               onInput={(e) => updateLimit('maxServers', parseInt(e.currentTarget.value))}
@@ -77,44 +100,48 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Max Channels per Server</label>
+            <label class="block text-sm font-medium mb-1">Max CPU (%)</label>
             <input
+              data-testid="resource-limit-maxCpuPercent"
               type="number"
-              value={limits().maxChannelsPerServer}
-              onInput={(e) => updateLimit('maxChannelsPerServer', parseInt(e.currentTarget.value))}
+              value={limits().maxCpuPercent}
+              onInput={(e) => updateLimit('maxCpuPercent', parseInt(e.currentTarget.value))}
               disabled={!isEditing()}
               class="w-full px-3 py-2 border rounded disabled:bg-gray-100"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Max File Upload (MB)</label>
+            <label class="block text-sm font-medium mb-1">Max Memory (MB)</label>
             <input
+              data-testid="resource-limit-maxMemoryMb"
               type="number"
-              value={limits().maxFileUploadMb}
-              onInput={(e) => updateLimit('maxFileUploadMb', parseInt(e.currentTarget.value))}
+              value={limits().maxMemoryMb}
+              onInput={(e) => updateLimit('maxMemoryMb', parseInt(e.currentTarget.value))}
               disabled={!isEditing()}
               class="w-full px-3 py-2 border rounded disabled:bg-gray-100"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Max Storage (GB)</label>
+            <label class="block text-sm font-medium mb-1">Max Storage (MB)</label>
             <input
+              data-testid="resource-limit-maxStorageMb"
               type="number"
-              value={limits().maxStorageGb}
-              onInput={(e) => updateLimit('maxStorageGb', parseInt(e.currentTarget.value))}
+              value={limits().maxStorageMb}
+              onInput={(e) => updateLimit('maxStorageMb', parseInt(e.currentTarget.value))}
               disabled={!isEditing()}
               class="w-full px-3 py-2 border rounded disabled:bg-gray-100"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1">Max Monthly Bandwidth (GB)</label>
+            <label class="block text-sm font-medium mb-1">Max Rate Limit (req/min)</label>
             <input
+              data-testid="resource-limit-maxRateLimit"
               type="number"
-              value={limits().maxMonthlyBandwidthGb}
-              onInput={(e) => updateLimit('maxMonthlyBandwidthGb', parseInt(e.currentTarget.value))}
+              value={limits().maxRateLimit}
+              onInput={(e) => updateLimit('maxRateLimit', parseInt(e.currentTarget.value))}
               disabled={!isEditing()}
               class="w-full px-3 py-2 border rounded disabled:bg-gray-100"
             />
@@ -124,6 +151,7 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
         {isEditing() && (
           <div class="flex gap-3 pt-2">
             <button
+              data-testid="resource-limits-save"
               onClick={handleSave}
               disabled={isSaving()}
               class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
@@ -131,6 +159,7 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
               {isSaving() ? 'Saving...' : 'Save Changes'}
             </button>
             <button
+              data-testid="resource-limits-cancel"
               onClick={handleCancel}
               disabled={isSaving()}
               class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"

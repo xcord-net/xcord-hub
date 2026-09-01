@@ -45,7 +45,7 @@ export function MailingListPage() {
     <div class="bg-white rounded-lg shadow">
       <div class="p-6 border-b border-gray-200">
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold">Mailing List</h2>
+          <h2 data-testid="mailing-list-heading" class="text-xl font-semibold">Mailing List</h2>
           <span class="text-sm text-gray-500">{mailingList.total} subscribers</span>
         </div>
 
@@ -99,7 +99,7 @@ export function MailingListPage() {
             <tbody class="divide-y divide-gray-200">
               <For each={mailingList.entries}>
                 {(entry) => (
-                  <tr class="hover:bg-gray-50">
+                  <tr data-testid="mailing-list-row" data-email={entry.email} class="hover:bg-gray-50">
                     <td class="px-6 py-4 text-sm font-medium">{entry.email}</td>
                     <td class="px-6 py-4">
                       <span class={`px-2 py-1 text-xs rounded ${getTierColor(entry.tier)}`}>

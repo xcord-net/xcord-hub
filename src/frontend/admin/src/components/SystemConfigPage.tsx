@@ -16,7 +16,7 @@ export function SystemConfigPage() {
   return (
     <div class="bg-white rounded-lg shadow">
       <div class="p-6 border-b border-gray-200">
-        <h2 class="text-xl font-semibold">System Settings</h2>
+        <h2 data-testid="system-config-heading" class="text-xl font-semibold">System Settings</h2>
         <p class="text-sm text-gray-500 mt-1">Hub-wide controls for instance creation and billing</p>
       </div>
 
@@ -34,7 +34,7 @@ export function SystemConfigPage() {
                     Free-tier creation is unaffected. Existing paid servers continue to operate.
                   </p>
                 </div>
-                <label class="relative inline-flex items-center cursor-pointer mt-1">
+                <label data-testid="paid-servers-disabled-label" class="relative inline-flex items-center cursor-pointer mt-1">
                   <input
                     id="paidServersDisabled"
                     data-testid="paid-servers-disabled-toggle"

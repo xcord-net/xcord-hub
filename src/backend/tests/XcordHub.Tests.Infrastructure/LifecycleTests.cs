@@ -76,6 +76,12 @@ public sealed class LifecycleTests : IAsyncLifetime
             return Task.CompletedTask;
         }
 
+        public Task StartExistingContainerAsync(string containerId, CancellationToken cancellationToken = default)
+        {
+            _callLog.Add($"Start:{containerId}");
+            return Task.CompletedTask;
+        }
+
         public Task<string> CreateNetworkAsync(string instanceDomain, CancellationToken cancellationToken = default) => Task.FromResult("net_spy");
         public Task<bool> VerifyNetworkAsync(string networkId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task<string> CreateSecretAsync(string instanceDomain, string configJson, CancellationToken cancellationToken = default) => Task.FromResult("secret_spy");

@@ -16,6 +16,39 @@ const sampleRecord = {
 };
 
 describe('BackupHistory', () => {
+  it('renders rows from the paginated response the API actually returns', async () => {
+    // Regression: the store typed this endpoint as returning a bare array, but
+    // it returns { backups, total, page, pageSize }. The component held an
+    // object, read .length as undefined, and showed "No backups found" however
+    // many backups existed.
+    mockFetch({
+      'GET /api/v1/admin/instances/inst-1/backups': () => ({
+        status: 200,
+        body: {
+          backups: [
+            {
+              id: '1',
+              managedInstanceId: 'inst-1',
+              status: 'Completed',
+              kind: 'Full',
+              sizeBytes: 1024,
+              storagePath: 'backups/inst-1/full/x',
+              errorMessage: null,
+              startedAt: new Date().toISOString(),
+              completedAt: new Date().toISOString(),
+            },
+          ],
+          total: 1,
+          page: 1,
+          pageSize: 20,
+        },
+      }),
+    });
+
+    const { findAllByTestId } = render(() => <BackupHistory instanceId="inst-1" />);
+    expect(await findAllByTestId('backup-row')).toHaveLength(1);
+  });
+
   beforeEach(() => {
     useInstances().reset();
   });

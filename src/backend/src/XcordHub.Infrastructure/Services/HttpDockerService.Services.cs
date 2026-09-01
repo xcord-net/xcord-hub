@@ -408,6 +408,50 @@ public sealed partial class HttpDockerService
     }
 
     /// <summary>
+    /// Scales a service back to a single replica. The counterpart to
+    /// <see cref="StopContainerAsync"/>, which scales it to zero.
+    /// The <paramref name="containerId"/> is actually the service ID.
+    /// </summary>
+    public async Task StartExistingContainerAsync(string containerId, CancellationToken cancellationToken = default)
+    {
+        var serviceId = containerId;
+        _logger.LogInformation("Scaling up service {ServiceId} to 1 replica", serviceId);
+
+        var inspectResponse = await _httpClient.GetAsync($"/services/{serviceId}", cancellationToken).ConfigureAwait(false);
+        if (!inspectResponse.IsSuccessStatusCode)
+        {
+            if (inspectResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("Service {ServiceId} not found, cannot start", serviceId);
+                return;
+            }
+            inspectResponse.EnsureSuccessStatusCode();
+        }
+
+        var serviceDoc = await inspectResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken).ConfigureAwait(false);
+        var version = serviceDoc.GetProperty("Version").GetProperty("Index").GetInt64();
+
+        var spec = serviceDoc.GetProperty("Spec");
+        var specDict = JsonSerializer.Deserialize<Dictionary<string, object>>(spec.GetRawText())!;
+
+        specDict["Mode"] = new Dictionary<string, object>
+        {
+            ["Replicated"] = new { Replicas = 1L }
+        };
+
+        var updateResponse = await _httpClient.PostAsJsonAsync(
+            $"/services/{serviceId}/update?version={version}",
+            specDict, cancellationToken);
+
+        if (!updateResponse.IsSuccessStatusCode && updateResponse.StatusCode != System.Net.HttpStatusCode.NotModified)
+        {
+            updateResponse.EnsureSuccessStatusCode();
+        }
+
+        _logger.LogInformation("Scaled service {ServiceId} to 1 replica", serviceId);
+    }
+
+    /// <summary>
     /// Removes a Swarm service entirely.
     /// The <paramref name="containerId"/> is actually the service ID.
     /// </summary>

@@ -6,15 +6,56 @@ import { mockFetch } from '../tests/helpers/mockFetch';
 import type { ResourceLimits } from '../types/instance';
 
 const limits: ResourceLimits = {
-  maxMembers: 100,
+  maxUsers: 100,
   maxServers: 5,
-  maxChannelsPerServer: 50,
-  maxFileUploadMb: 25,
-  maxStorageGb: 10,
-  maxMonthlyBandwidthGb: 100,
+  maxStorageMb: 10_240,
+  maxCpuPercent: 50,
+  maxMemoryMb: 2048,
+  maxRateLimit: 100,
+  maxVoiceConcurrency: 10,
+  maxVideoConcurrency: 5,
 };
 
 describe('ResourceLimitsEditor', () => {
+  it('sends the limit names the hub API actually binds', async () => {
+    // Regression: the editor used to declare maxMembers / maxChannelsPerServer /
+    // maxFileUploadMb / maxStorageGb / maxMonthlyBandwidthGb. None of those bound
+    // to UpdateResourceLimitsCommand, so the fields rendered blank and every save
+    // wrote zeros over the instance's real limits.
+    let sent: Record<string, unknown> | undefined;
+    mockFetch({
+      'PATCH /api/v1/admin/instances/inst-1/resource-limits': ({ body }) => {
+        sent = body as Record<string, unknown>;
+        return { status: 200, body: {} };
+      },
+      'GET /api/v1/admin/instances/inst-1': () => ({ status: 200, body: {} }),
+    });
+
+    const { getByText, getByTestId } = render(() => (
+      <ResourceLimitsEditor instanceId="inst-1" initialLimits={limits} />
+    ));
+    fireEvent.click(getByText('Edit'));
+    fireEvent.input(getByTestId('resource-limit-maxServers'), { target: { value: '9' } });
+    fireEvent.click(getByText('Save Changes'));
+
+    await waitFor(() => expect(sent).toBeDefined());
+    expect(sent!.maxServers).toBe(9);
+    expect(sent!.maxUsers).toBe(100);
+    expect(sent!.maxStorageMb).toBe(10_240);
+    expect(sent).not.toHaveProperty('maxMembers');
+  });
+
+  it('reads the PascalCase limits the hub API returns', () => {
+    const { getByTestId } = render(() => (
+      <ResourceLimitsEditor
+        instanceId="inst-1"
+        initialLimits={{ MaxUsers: 42, MaxServers: 3 } as never}
+      />
+    ));
+    expect(getByTestId('resource-limit-maxUsers')).toHaveValue(42);
+    expect(getByTestId('resource-limit-maxServers')).toHaveValue(3);
+  });
+
   beforeEach(() => {
     useInstances().reset();
   });
@@ -24,7 +65,7 @@ describe('ResourceLimitsEditor', () => {
       <ResourceLimitsEditor instanceId="inst-1" initialLimits={limits} />
     ));
     expect(getByText('Resource Limits')).toBeInTheDocument();
-    expect(getByText('Max Members')).toBeInTheDocument();
+    expect(getByText('Max Users')).toBeInTheDocument();
   });
 
   it('inputs are disabled until Edit is clicked', () => {

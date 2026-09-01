@@ -475,6 +475,37 @@
         }
       }
     },
+    "/api/v1/admin/instances/{instanceId}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminDestroyInstance",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hub/instances/{instanceId}/destroy": {
       "post": {
         "tags": [
@@ -608,12 +639,74 @@
         }
       }
     },
+    "/api/v1/admin/instances/{instanceId}/resume": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminResumeInstance",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/hub/instances/{instanceId}/resume": {
       "post": {
         "tags": [
           "Instances"
         ],
         "operationId": "ResumeInstance",
+        "parameters": [
+          {
+            "name": "instanceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/instances/{instanceId}/suspend": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AdminSuspendInstance",
         "parameters": [
           {
             "name": "instanceId",

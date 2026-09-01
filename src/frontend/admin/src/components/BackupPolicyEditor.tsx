@@ -58,6 +58,8 @@ export function BackupPolicyEditor(props: BackupPolicyEditorProps) {
           <div class="flex items-center justify-between">
             <label class="text-sm font-medium">Enable Scheduled Backups</label>
             <button
+              data-testid="backup-policy-enabled"
+              data-enabled={policy()!.enabled ? 'true' : 'false'}
               onClick={() => update('enabled', !policy()!.enabled)}
               class={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
                 policy()!.enabled ? 'bg-blue-600' : 'bg-gray-300'
@@ -74,6 +76,7 @@ export function BackupPolicyEditor(props: BackupPolicyEditorProps) {
           <div>
             <label class="block text-sm font-medium mb-1">Frequency</label>
             <select
+              data-testid="backup-policy-frequency"
               value={policy()!.frequency}
               onChange={(e) => update('frequency', e.currentTarget.value as BackupPolicy['frequency'])}
               disabled={!policy()!.enabled}
@@ -136,6 +139,7 @@ export function BackupPolicyEditor(props: BackupPolicyEditorProps) {
 
           <div class="flex items-center gap-3 pt-2">
             <button
+              data-testid="backup-policy-save"
               onClick={handleSave}
               disabled={isSaving()}
               class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
@@ -144,7 +148,7 @@ export function BackupPolicyEditor(props: BackupPolicyEditorProps) {
             </button>
 
             <Show when={saveResult() === 'success'}>
-              <span class="text-sm text-green-600">Policy saved.</span>
+              <span data-testid="backup-policy-saved" class="text-sm text-green-600">Policy saved.</span>
             </Show>
             <Show when={saveResult() === 'error'}>
               <span class="text-sm text-red-600">Failed to save policy.</span>

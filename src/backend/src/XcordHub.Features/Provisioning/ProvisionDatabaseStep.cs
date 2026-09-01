@@ -70,16 +70,38 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
 
             if (exists != null)
             {
-                return Error.Failure("DATABASE_ALREADY_EXISTS",
-                    $"Database '{dbName}' already exists. A previous instance was not properly destroyed. " +
-                    "Use the hub API to destroy the stale instance before re-provisioning.");
-            }
+                // The step retries, and CREATE DATABASE is the first thing it does.
+                // If an earlier attempt created the database and then something
+                // transient went wrong (a dropped connection mid-step), refusing
+                // here wedges the subdomain forever: every retry finds the
+                // database the previous attempt just made and gives up.
+                //
+                // Adopting it is only safe when it cannot hold anyone else's data,
+                // so both must hold: this instance is still mid-provision, and the
+                // database has no tables in it. Anything else is the stale-instance
+                // case this guard was written for, and still fails loudly.
+                var adoptable = instance.Status == Entities.InstanceStatus.Provisioning
+                    && await IsEmptyDatabaseAsync(connectionString, dbName, cancellationToken).ConfigureAwait(false);
 
-            // CREATE DATABASE cannot run inside a transaction
-            await using var createDbCmd = new NpgsqlCommand(
-                $"CREATE DATABASE \"{dbName}\"", conn);
-            await createDbCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Created database {Database} for instance {Domain}", dbName, instance.Domain);
+                if (!adoptable)
+                {
+                    return Error.Failure("DATABASE_ALREADY_EXISTS",
+                        $"Database '{dbName}' already exists. A previous instance was not properly destroyed. " +
+                        "Use the hub API to destroy the stale instance before re-provisioning.");
+                }
+
+                _logger.LogWarning(
+                    "Database {Database} already exists and is empty - adopting it as this provisioning run's own retry",
+                    dbName);
+            }
+            else
+            {
+                // CREATE DATABASE cannot run inside a transaction
+                await using var createDbCmd = new NpgsqlCommand(
+                    $"CREATE DATABASE \"{dbName}\"", conn);
+                await createDbCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("Created database {Database} for instance {Domain}", dbName, instance.Domain);
+            }
 
             // Create per-instance PG user (idempotent - skip if exists)
             await using var checkUserCmd = new NpgsqlCommand(
@@ -208,6 +230,33 @@ public sealed class ProvisionDatabaseStep : IProvisioningStep
         catch (Exception ex)
         {
             return Error.Failure("DB_VERIFY_FAILED", $"Database verification failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// True when the database exists but holds no user tables, so adopting it
+    /// cannot expose a previous tenant's data.
+    /// </summary>
+    private static async Task<bool> IsEmptyDatabaseAsync(
+        string connectionString, string dbName, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var builder = new NpgsqlConnectionStringBuilder(connectionString) { Database = dbName };
+            await using var conn = new NpgsqlConnection(builder.ConnectionString);
+            await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+            await using var cmd = new NpgsqlCommand(
+                "SELECT COUNT(*) FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema')",
+                conn);
+            var tableCount = Convert.ToInt64(
+                await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) ?? 0L);
+            return tableCount == 0;
+        }
+        catch
+        {
+            // If we cannot look inside it, we cannot claim it is safe to adopt.
+            return false;
         }
     }
 

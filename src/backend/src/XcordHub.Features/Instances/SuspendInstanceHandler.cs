@@ -11,7 +11,11 @@ using XcordHub.Infrastructure.Services;
 
 namespace XcordHub.Features.Instances;
 
-public sealed record SuspendInstanceCommand(long InstanceId, long UserId);
+/// <param name="AsPlatformAdmin">
+///   Set by the admin-scoped route. A platform operator acts on any instance in
+///   the fleet, not only the ones they happen to own.
+/// </param>
+public sealed record SuspendInstanceCommand(long InstanceId, long UserId, bool AsPlatformAdmin = false);
 
 public sealed class SuspendInstanceHandler(
     HubDbContext dbContext,
@@ -33,7 +37,7 @@ public sealed class SuspendInstanceHandler(
         }
 
         // Verify ownership
-        if (instance.OwnerId != request.UserId)
+        if (!request.AsPlatformAdmin && instance.OwnerId != request.UserId)
         {
             return Error.Forbidden("NOT_OWNER", "You do not have permission to suspend this instance");
         }
@@ -105,6 +109,34 @@ public sealed class SuspendInstanceHandler(
 
     public static RouteHandlerBuilder Map(IEndpointRouteBuilder app)
     {
+        // Platform-operator route. The admin console has always called this
+        // path; until now it did not exist, so every lifecycle action in the
+        // console failed with 405. Ownership is bypassed deliberately - an
+        // operator acts on the whole fleet, and Policies.Admin is the gate.
+        app.MapPost("/api/v1/admin/instances/{instanceId:long}/suspend", async (
+            [FromRoute] long instanceId,
+            ClaimsPrincipal user,
+            SuspendInstanceHandler handler,
+            CancellationToken ct) =>
+        {
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !long.TryParse(userIdClaim, out var adminId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var adminCommand = new SuspendInstanceCommand(instanceId, adminId, AsPlatformAdmin: true);
+            var adminResult = await handler.Handle(adminCommand, ct).ConfigureAwait(false);
+
+            return adminResult.Match(
+                success => Results.Ok(new SuccessResponse(true)),
+                error => Results.Json(new { Error = error.Code, Message = error.Message }, statusCode: error.StatusCode));
+        })
+        .RequireAuthorization(Policies.Admin)
+        .Produces<SuccessResponse>(200)
+        .WithName("AdminSuspendInstance")
+        .WithTags("Admin");
+
         return app.MapPost("/api/v1/hub/instances/{instanceId:long}/suspend", async (
             [FromRoute] long instanceId,
             ClaimsPrincipal user,

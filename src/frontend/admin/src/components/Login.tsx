@@ -36,6 +36,7 @@ export function Login() {
             </label>
             <input
               id="email"
+              data-testid="admin-login-email"
               type="email"
               value={email()}
               onInput={(e) => setEmail(e.currentTarget.value)}
@@ -51,6 +52,7 @@ export function Login() {
             </label>
             <input
               id="password"
+              data-testid="admin-login-password"
               type="password"
               value={password()}
               onInput={(e) => setPassword(e.currentTarget.value)}
@@ -61,12 +63,13 @@ export function Login() {
           </div>
 
           {error() && (
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div data-testid="admin-login-error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error()}
             </div>
           )}
 
           <button
+            data-testid="admin-login-submit"
             type="submit"
             disabled={isLoading()}
             class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"

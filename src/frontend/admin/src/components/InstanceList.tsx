@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createSignal } from 'solid-js';
+import { For, Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { useInstances } from '../stores/instance.store';
 import { InstanceStatus } from '../types/instance';
 import { FleetUpgrade } from './FleetUpgrade';
@@ -9,6 +9,10 @@ interface InstanceListProps {
   onProvisionNew: () => void;
 }
 
+// Statuses an instance passes through rather than settles in. While any row is
+// in one of these, the list refreshes itself.
+const TRANSIENT_STATUSES: string[] = ['provisioning', 'suspending', 'resuming', 'destroying', 'pending'];
+
 export function InstanceList(props: InstanceListProps) {
   const instanceStore = useInstances();
   const [fleetUpgradeOpen, setFleetUpgradeOpen] = createSignal(false);
@@ -18,6 +22,27 @@ export function InstanceList(props: InstanceListProps) {
   // would just duplicate the initial request.
   createEffect(() => {
     instanceStore.fetchInstances();
+  });
+
+  // An operator who restarts an instance should watch it come back, not reload
+  // the page to find out. Matches the owner-facing dashboard, which has polled
+  // transient instances all along; the console was the surface that did not.
+  const hasTransientInstances = () =>
+    instanceStore.instances.some((i) => TRANSIENT_STATUSES.includes(i.status.toLowerCase()));
+
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+  createEffect(() => {
+    if (hasTransientInstances()) {
+      if (!pollTimer) pollTimer = setInterval(() => instanceStore.fetchInstances(), 3000);
+    } else if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = undefined;
+    }
+  });
+
+  onCleanup(() => {
+    if (pollTimer) clearInterval(pollTimer);
   });
 
   const totalPages = () => Math.ceil(instanceStore.total / instanceStore.pageSize);
@@ -141,6 +166,9 @@ export function InstanceList(props: InstanceListProps) {
               <For each={instanceStore.instances}>
                 {(instance) => (
                   <tr
+                    data-testid="admin-instance-row"
+                    data-subdomain={instance.subdomain}
+                    data-status={instance.status}
                     onClick={() => props.onSelectInstance(instance.id)}
                     class="hover:bg-gray-50 cursor-pointer"
                   >

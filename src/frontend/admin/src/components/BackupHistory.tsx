@@ -106,6 +106,7 @@ export function BackupHistory(props: BackupHistoryProps) {
             <option value="Redis">Redis</option>
           </select>
           <button
+            data-testid="backup-trigger"
             onClick={handleTrigger}
             disabled={isTriggering()}
             class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm"
@@ -122,7 +123,7 @@ export function BackupHistory(props: BackupHistoryProps) {
       <Show when={!isLoading()}>
         <Show
           when={records().length > 0}
-          fallback={<p class="text-gray-500 text-sm">No backups found.</p>}
+          fallback={<p data-testid="backup-empty" class="text-gray-500 text-sm">No backups found.</p>}
         >
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -138,7 +139,7 @@ export function BackupHistory(props: BackupHistoryProps) {
               <tbody>
                 <For each={records()}>
                   {(record) => (
-                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <tr data-testid="backup-row" data-status={record.status} class="border-b border-gray-100 hover:bg-gray-50">
                       <td class="py-2 pr-4 text-gray-700">
                         {new Date(record.startedAt).toLocaleString()}
                       </td>

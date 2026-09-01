@@ -24,6 +24,7 @@ export function Layout(props: LayoutProps) {
           <div class="flex items-center gap-4">
             <span class="text-sm">{auth.username}</span>
             <button
+              data-testid="admin-logout"
               onClick={handleLogout}
               class="px-3 py-1 bg-blue-700 hover:bg-blue-800 rounded text-sm"
             >
@@ -38,6 +39,7 @@ export function Layout(props: LayoutProps) {
           <aside class="w-48 bg-white rounded-lg shadow p-4">
             <nav class="space-y-2">
               <button
+                data-testid="nav-instances"
                 onClick={() => props.onNavigate('instances')}
                 class={`w-full text-left px-3 py-2 rounded ${
                   props.currentPage === 'instances' || props.currentPage === 'instance-detail'
@@ -48,6 +50,7 @@ export function Layout(props: LayoutProps) {
                 Instances
               </button>
               <button
+                data-testid="nav-mailing-list"
                 onClick={() => props.onNavigate('mailing-list')}
                 class={`w-full text-left px-3 py-2 rounded ${
                   props.currentPage === 'mailing-list'
