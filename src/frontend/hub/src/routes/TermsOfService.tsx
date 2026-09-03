@@ -28,11 +28,11 @@ export default function TermsOfService() {
         description="Terms of Service for Xcord's hosted platform. Read about account responsibilities, acceptable use, and data handling."
         path="/terms"
       />
-      <h1 class="text-4xl font-bold text-white mb-2">Terms of Service</h1>
+      <h1 class="font-display text-4xl sm:text-5xl font-extrabold tracking-[-0.02em] text-xcord-landing-text mb-2">Terms of Service</h1>
       <p class="text-xcord-landing-text-muted mb-12">Last updated: February 2026</p>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">1. Acceptance of Terms</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">1. Acceptance of Terms</h2>
         <p class="text-sm leading-relaxed">
           By creating an account or using any Xcord hosted service, you agree to these Terms of Service.
           If you do not agree, do not use the service. These terms apply to Xcord's hosted platform only -
@@ -41,7 +41,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">2. Eligibility</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">2. Eligibility</h2>
         <p class="text-sm leading-relaxed">
           You must be at least 18 years old to create an account. By registering, you confirm that you meet
           this age requirement. Accounts created by minors will be terminated.
@@ -49,7 +49,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">3. Your Account</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">3. Your Account</h2>
         <p class="text-sm leading-relaxed">
           You are responsible for maintaining the security of your account credentials. You are responsible
           for all activity under your account. Notify us immediately if you suspect unauthorized access.
@@ -57,7 +57,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">4. Encryption</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">4. Encryption</h2>
         <p class="text-sm leading-relaxed">
           Xcord uses end-to-end encryption for certain communications and encrypts data at rest. By using
           the service, you acknowledge that encryption technology may be subject to legal restrictions in
@@ -67,7 +67,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">5. Acceptable Use</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">5. Acceptable Use</h2>
         <p class="text-sm leading-relaxed mb-3">You agree not to use the service to:</p>
         <ul class="text-sm space-y-1.5 list-disc list-inside text-xcord-landing-text-muted">
           <li>Violate any applicable law or regulation</li>
@@ -80,7 +80,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">6. Content</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">6. Content</h2>
         <p class="text-sm leading-relaxed">
           You retain ownership of content you create. By uploading content, you grant Xcord a limited license
           to store, transmit, and display it as necessary to operate the service. We do not claim ownership
@@ -89,7 +89,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">7. Service Availability</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">7. Service Availability</h2>
         <p class="text-sm leading-relaxed">
           We aim for high availability but do not guarantee uninterrupted service. Scheduled maintenance
           windows will be announced in advance when possible. The service is provided "as is" without
@@ -98,7 +98,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">8. Termination</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">8. Termination</h2>
         <p class="text-sm leading-relaxed">
           You may delete your account at any time. We may suspend or terminate accounts that violate these
           terms. Upon termination, your data will be retained for 30 days before permanent deletion, during
@@ -107,7 +107,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">9. Limitation of Liability</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">9. Limitation of Liability</h2>
         <p class="text-sm leading-relaxed">
           To the maximum extent permitted by law, Xcord shall not be liable for any indirect, incidental,
           special, or consequential damages arising from your use of the service.
@@ -115,7 +115,7 @@ export default function TermsOfService() {
       </section>
 
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-white mb-3">10. Changes to Terms</h2>
+        <h2 class="text-xl font-bold text-xcord-landing-text mb-3">10. Changes to Terms</h2>
         <p class="text-sm leading-relaxed">
           We may update these terms from time to time. Material changes will be communicated via email or
           in-app notification at least 30 days before taking effect. Continued use of the service after

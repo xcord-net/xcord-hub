@@ -1,7 +1,39 @@
 import { A } from "@solidjs/router";
-import { onMount, onCleanup } from "solid-js";
-import FeatureCard from "../components/FeatureCard";
+import { onMount, onCleanup, For } from "solid-js";
 import PageMeta from "../components/PageMeta";
+import DeckPreview from "../components/DeckPreview";
+
+/**
+ * Landing surface, rebuilt to the approved Deck design spec:
+ * wordmark, one ownership thesis, a live-looking Deck as the hero, four short
+ * pillar sections, no feature-card grid. Copy traces to
+ * docs/marketing/assets/landing-copy.md, which traces to positioning.md.
+ */
+
+// Each pillar names the product it replaces. That label is the structural
+// device on this page and it carries real information, so it is not decoration.
+const PILLARS = [
+  {
+    instead: "INSTEAD OF DISCORD",
+    title: "Community and voice",
+    body: "Text and voice channels, threads, forums, roles, moderation, and bots. The parts of Discord that work, without the parts that do not.",
+  },
+  {
+    instead: "INSTEAD OF LOCALS",
+    title: "A membership home you own",
+    body: "A community your members join on infrastructure you control, instead of a platform that can remove you from it.",
+  },
+  {
+    instead: "INSTEAD OF PATREON",
+    title: "Paid tiers, zero revenue share",
+    body: "Design your own membership tiers. Members pay through your own Stripe account, so the money goes straight to you and Xcord takes none of it.",
+  },
+  {
+    instead: "INSTEAD OF STREAMYARD",
+    title: "Broadcasting built in",
+    body: "Go live to your community with layout presets, up to 8 guests on stage, and a green room. Relay the same broadcast to YouTube, Twitch, Rumble, and custom RTMP at once.",
+  },
+];
 
 export default function Landing() {
   onMount(() => {
@@ -40,143 +72,151 @@ export default function Landing() {
         description="Xcord is an open-source Discord alternative you can self-host or run on our cloud. Federated community platform with voice and video streaming. You own the server and the encryption keys."
         path="/"
       />
-      {/* Hero Section */}
-      <section class="py-20 sm:py-32">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div class="mb-4">
-            <span class="inline-block text-xs font-bold uppercase tracking-widest bg-xcord-brand/20 text-xcord-brand px-3 py-1 rounded-full">beta</span>
-          </div>
-          <h1 class="text-4xl sm:text-6xl font-bold text-white tracking-tight">
-            Your corner of
-            <br />
-            <span class="text-xcord-brand">the internet.</span>
-          </h1>
-          <p class="mt-6 text-lg sm:text-xl text-xcord-landing-text-muted max-w-2xl mx-auto">
-            Voice, video, and text - fully open-source and yours to keep.
-            Run it on our cloud or self-host it. Same software either way.
-          </p>
-          <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <A
-              data-testid="hero-cta-get-started"
-              href="/get-started"
-              class="px-8 py-3 bg-xcord-brand text-white font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors text-lg"
-            >
-              Launch a Server
-            </A>
-            <A
-              data-testid="hero-cta-pricing"
-              href="/pricing"
-              class="px-8 py-3 bg-xcord-landing-surface border border-xcord-landing-border text-white font-medium rounded-lg hover:bg-xcord-landing-border transition-colors text-lg"
-            >
-              View Pricing
-            </A>
-          </div>
-        </div>
-      </section>
 
-      {/* Features Grid */}
-      <section class="py-20 bg-xcord-landing-surface/50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold text-white">Why Xcord?</h2>
-            <p class="mt-4 text-xcord-landing-text-muted max-w-xl mx-auto">
-              Built for the people who run servers, not the people who sell ads.
+      {/* Hero ------------------------------------------------------------- */}
+      <section class="xcord-grid-ground pt-16 pb-20 sm:pt-24 sm:pb-28">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-3xl">
+            <h1 data-testid="landing-hero-heading" class="font-display text-4xl sm:text-6xl font-extrabold tracking-[-0.02em] leading-[1.05] text-xcord-landing-text">
+              Four tools in one
+              <br />
+              platform <span class="text-xcord-brand">you own.</span>
+            </h1>
+            <p class="mt-6 text-lg text-xcord-landing-text-muted max-w-2xl leading-relaxed">
+              Build a community with chat and voice, run it as your own membership home,
+              charge for tiers while keeping every dollar, and broadcast live to it.
+              Federated, self-hostable, and free of data harvesting.
+            </p>
+
+            <div class="mt-9 flex flex-col sm:flex-row gap-3 sm:items-center">
+              <A
+                data-testid="hero-cta-get-started"
+                href="/get-started"
+                class="px-7 py-3 bg-xcord-brand text-xcord-landing-bg font-semibold rounded-md hover:bg-xcord-brand-hover transition-colors duration-200 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-xcord-brand"
+              >
+                Launch a server
+              </A>
+              <A
+                data-testid="hero-cta-pricing"
+                href="/pricing"
+                class="px-7 py-3 border border-xcord-line text-xcord-landing-text font-medium rounded-md hover:bg-xcord-landing-surface transition-colors duration-200 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-xcord-brand"
+              >
+                See pricing
+              </A>
+            </div>
+
+            <p class="mt-5 font-mono text-[0.7rem] tracking-[0.1em] text-xcord-text-muted">
+              BETA · APACHE 2.0 · YOUR COMMUNITY, YOUR DATA, YOUR KEYS
             </p>
           </div>
-          <div class="flex flex-wrap justify-center gap-6">
-            <div class="w-full md:w-[calc(33.333%-1rem)]">
-              <FeatureCard
-                icon="🎙️"
-                title="Everything built in"
-                description="Voice, video, streaming, bots, automod, forums, polls, emoji, and events. No plugins to install, no add-ons to buy."
-              />
-            </div>
-            <div class="w-full md:w-[calc(33.333%-1rem)]">
-              <FeatureCard
-                icon="💰"
-                title="Keep every dollar"
-                description="Built-in paid tiers with zero revenue share. Gate channels, roles, and content. No third-party tools, no middleman taking a cut."
-              />
-            </div>
-            <div class="w-full md:w-[calc(33.333%-1rem)]">
-              <FeatureCard
-                icon="⚖️"
-                title="Your rules"
-                description="Configurable automod, custom moderation policies, audit logs. You decide what's acceptable on your server - not us."
-              />
-            </div>
-            <div class="w-full md:w-[calc(33.333%-1rem)]">
-              <FeatureCard
-                icon="🛡️"
-                title="No platform risk"
-                description="Your server can't be shut down by a policy change you didn't agree to. Want to leave? Take your data and go."
-              />
-            </div>
-            <div class="w-full md:w-[calc(33.333%-1rem)]">
-              <FeatureCard
-                icon="🔒"
-                title="No ads, no tracking"
-                description="Your members' data isn't the product. No analytics pixels, no advertising networks, no data sales. Ever."
-              />
-            </div>
+
+          {/* The signature: a Deck that is actually running, not a picture */}
+          <div class="mt-14 sm:mt-16">
+            <DeckPreview />
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section class="py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="text-center mb-16">
-            <h2 class="text-3xl font-bold text-white">Up and running in minutes</h2>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="text-center">
-              <div class="w-12 h-12 bg-xcord-brand/10 text-xcord-brand rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                1
-              </div>
-              <h3 class="text-lg font-semibold text-white mb-2">Pick a name</h3>
-              <p class="text-sm text-xcord-landing-text-muted">
-                Choose your server's address. No credit card, no phone number.
-              </p>
-            </div>
-            <div class="text-center">
-              <div class="w-12 h-12 bg-xcord-brand/10 text-xcord-brand rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                2
-              </div>
-              <h3 class="text-lg font-semibold text-white mb-2">Make it yours</h3>
-              <p class="text-sm text-xcord-landing-text-muted">
-                Set your rules, add your branding, configure your channels.
-              </p>
-            </div>
-            <div class="text-center">
-              <div class="w-12 h-12 bg-xcord-brand/10 text-xcord-brand rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                3
-              </div>
-              <h3 class="text-lg font-semibold text-white mb-2">Bring your people</h3>
-              <p class="text-sm text-xcord-landing-text-muted">
-                Share a link. Text, voice, and video - all built in.
-              </p>
-            </div>
+      {/* The problem ------------------------------------------------------ */}
+      <section class="py-20 border-t border-xcord-landing-border">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-3xl">
+            <h2 data-testid="landing-problem-heading" class="font-display text-3xl sm:text-4xl font-bold tracking-[-0.01em] text-xcord-landing-text">
+              You are renting your community from four different landlords.
+            </h2>
+            <p class="mt-5 text-lg text-xcord-landing-text-muted leading-relaxed">
+              Most creators run Discord for community, Locals for a paid membership home,
+              Patreon for tiers, and StreamYard for multistreaming. Four subscriptions.
+              Two of them take a cut of what your members pay. All of them sit on
+              infrastructure you do not own, and treat your members' data as the product.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Stats Section - hidden until real data is available */}
+      {/* Four pillars ----------------------------------------------------- */}
+      <section class="py-20 bg-xcord-landing-surface border-t border-xcord-landing-border">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 class="font-display text-3xl sm:text-4xl font-bold tracking-[-0.01em] text-xcord-landing-text max-w-2xl">
+            One interface. Four products' worth of tools. All yours.
+          </h2>
 
-      {/* Final CTA */}
-      <section class="py-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 class="text-3xl sm:text-4xl font-bold text-white">Ready to run your own server?</h2>
-          <p class="mt-4 text-lg text-xcord-landing-text-muted max-w-xl mx-auto">
+          <div class="mt-12">
+            <For each={PILLARS}>
+              {(pillar) => (
+                <div class="grid grid-cols-1 md:grid-cols-[14rem_1fr] gap-2 md:gap-10 py-8 border-t border-xcord-landing-border">
+                  <div
+                    data-testid="landing-pillar-replaces"
+                    class="font-mono text-[0.68rem] tracking-[0.18em] text-xcord-brand pt-1"
+                  >
+                    {pillar.instead}
+                  </div>
+                  <div>
+                    <h3 class="font-display text-xl font-bold text-xcord-landing-text">
+                      {pillar.title}
+                    </h3>
+                    <p class="mt-2 text-xcord-landing-text-muted leading-relaxed max-w-2xl">
+                      {pillar.body}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </For>
+          </div>
+
+          <p class="font-display text-xl sm:text-2xl font-bold tracking-[-0.01em] text-xcord-landing-text max-w-2xl pt-8 border-t border-xcord-landing-border">
+            One place you own, instead of four subscriptions that each take a cut.
+          </p>
+        </div>
+      </section>
+
+      {/* Ownership -------------------------------------------------------- */}
+      <section class="py-20 border-t border-xcord-landing-border">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="max-w-3xl">
+            <h2 class="font-display text-3xl sm:text-4xl font-bold tracking-[-0.01em] text-xcord-landing-text">
+              You hold the keys. Not us.
+            </h2>
+            <p class="mt-5 text-lg text-xcord-landing-text-muted leading-relaxed">
+              Run Xcord standalone on your own hardware, or let the hub provision and
+              manage an instance for you. Either way, each instance generates and holds
+              its own encryption keys, and the hub never has them. Apache 2.0, no lock-in.
+            </p>
+            <p data-testid="landing-membership-caveat" class="mt-6 border-l-2 border-xcord-line pl-4 text-sm text-xcord-text-muted leading-relaxed">
+              Membership tiers are available on standalone self-hosted instances, and on
+              hub-hosted instances at the Pro tier or higher.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA -------------------------------------------------------- */}
+      <section class="py-24 border-t border-xcord-landing-border xcord-grid-ground">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 class="font-display text-3xl sm:text-4xl font-bold tracking-[-0.01em] text-xcord-landing-text max-w-2xl">
+            Own your community. Keep your revenue. Hold your keys.
+          </h2>
+          <p class="mt-5 text-lg text-xcord-landing-text-muted max-w-2xl">
             Free for up to 10 members. No credit card required.
           </p>
-          <A
-            data-testid="final-cta-get-started"
-            href="/get-started"
-            class="mt-8 inline-block px-8 py-3 bg-xcord-brand text-white font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors text-lg"
-          >
-            Launch a Server
-          </A>
+          <div class="mt-9 flex flex-col sm:flex-row gap-3 sm:items-center">
+            <A
+              data-testid="final-cta-get-started"
+              href="/get-started"
+              class="px-7 py-3 bg-xcord-brand text-xcord-landing-bg font-semibold rounded-md hover:bg-xcord-brand-hover transition-colors duration-200 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-xcord-brand"
+            >
+              Launch a server
+            </A>
+            <A
+              href="/download"
+              class="px-7 py-3 border border-xcord-line text-xcord-landing-text font-medium rounded-md hover:bg-xcord-landing-surface transition-colors duration-200 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-xcord-brand"
+            >
+              Get the apps
+            </A>
+          </div>
+          <p class="mt-5 font-mono text-[0.7rem] tracking-[0.1em] text-xcord-text-faint">
+            WEB · WINDOWS · MACOS · LINUX · IOS · ANDROID
+          </p>
         </div>
       </section>
     </div>

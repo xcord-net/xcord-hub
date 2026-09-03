@@ -66,7 +66,7 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
           <button
             data-testid="resource-limits-edit"
             onClick={() => setIsEditing(true)}
-            class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            class="px-3 py-1 text-sm bg-blue-600 text-xcord-text-primary rounded hover:bg-blue-700"
           >
             Edit
           </button>
@@ -154,7 +154,7 @@ export function ResourceLimitsEditor(props: ResourceLimitsEditorProps) {
               data-testid="resource-limits-save"
               onClick={handleSave}
               disabled={isSaving()}
-              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+              class="px-4 py-2 bg-blue-600 text-xcord-text-primary rounded hover:bg-blue-700 disabled:bg-gray-400"
             >
               {isSaving() ? 'Saving...' : 'Save Changes'}
             </button>

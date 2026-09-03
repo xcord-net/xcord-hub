@@ -54,7 +54,7 @@ export function MailingListPage() {
             onClick={() => mailingList.setTierFilter(null)}
             class={`px-3 py-1 rounded text-sm ${
               !mailingList.tierFilter
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-xcord-text-primary'
                 : 'bg-gray-100 hover:bg-gray-200'
             }`}
           >
@@ -66,7 +66,7 @@ export function MailingListPage() {
                 onClick={() => mailingList.setTierFilter(tier)}
                 class={`px-3 py-1 rounded text-sm ${
                   mailingList.tierFilter === tier
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-xcord-text-primary'
                     : 'bg-gray-100 hover:bg-gray-200'
                 }`}
               >

@@ -1,4 +1,5 @@
 import { createSignal } from 'solid-js';
+import { parseHubMessage, HubMessageType } from '../protocol/hubProtocol';
 
 interface UnreadCounts {
   [instanceUrl: string]: number;
@@ -72,15 +73,12 @@ export const unreadStore = {
   },
 };
 
+// Validation lives in the protocol module so the hub and every instance apply
+// the same rules to the same messages.
 window.addEventListener('message', (event) => {
-  const origin = event.origin;
-  if (!trustedOrigins.has(origin)) return;
-  const data = event.data;
-  if (!data || data.type !== 'xcord_unread') return;
-  const { instanceUrl, count } = data;
-  if (typeof instanceUrl !== 'string') return;
-  if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) return;
-  const claimedOrigin = tryGetOrigin(instanceUrl);
-  if (claimedOrigin !== origin) return;
-  unreadStore.setUnreadCount(instanceUrl, count);
+  const message = parseHubMessage(event, {
+    isTrustedOrigin: (origin) => trustedOrigins.has(origin),
+  });
+  if (message?.type !== HubMessageType.Unread) return;
+  unreadStore.setUnreadCount(message.instanceUrl, message.count);
 });

@@ -130,6 +130,52 @@
   background-size: 30px 30px, 30px 30px, 150px 150px, 150px 150px;
 }
 
+/* Landing Deck preview. Two ambient motions only, both from the design spec:
+   the waveform mark moves because the previewed room has live audio, and the
+   ghost tab materializes the way a real one does when activity surfaces it.
+   No other animation on the landing surface. */
+@keyframes xcord-wave-bar {
+  0%, 100% { transform: scaleY(0.55); }
+  50%      { transform: scaleY(1); }
+}
+
+.xcord-wave i {
+  transform-origin: bottom;
+  animation: xcord-wave-bar 1.1s var(--ease-standard) infinite;
+}
+.xcord-wave i:nth-child(2) { animation-delay: 0.12s; }
+.xcord-wave i:nth-child(3) { animation-delay: 0.24s; }
+.xcord-wave i:nth-child(4) { animation-delay: 0.36s; }
+.xcord-wave i:nth-child(5) { animation-delay: 0.48s; }
+
+@keyframes xcord-ghost-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.xcord-ghost-tab {
+  animation: xcord-ghost-in var(--dur) var(--ease-standard) both;
+  animation-delay: 1.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Everything else collapses to an instant jump to its final state, so a
+     reveal still reveals — it just does not travel. Matches fed's rule. */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Ambient loops are decoration with no final state worth landing on, so they
+     stop outright rather than flashing through one shortened cycle. */
+  .xcord-wave i,
+  .xcord-ghost-tab {
+    animation: none !important;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -166,4 +212,15 @@ select:-webkit-autofill {
   -webkit-text-fill-color: var(--color-xcord-text-primary);
   caret-color: var(--color-xcord-text-primary);
   transition: background-color 5000s ease-in-out 0s;
+}
+
+/* The accessibility floor: a keyboard user must always be able to see where
+   they are. Scoped under `html` so it outranks a component's bare-class
+   `outline: none` on specificity; a component that wants its own indicator can
+   still beat this with `.thing:focus-visible`. Pointer clicks do not match
+   :focus-visible, so this never fires on mouse. */
+html :focus-visible {
+  outline: 2px solid var(--color-xcord-brand);
+  outline-offset: 2px;
+  border-radius: 2px;
 }

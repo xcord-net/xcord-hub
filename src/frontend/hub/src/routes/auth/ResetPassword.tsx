@@ -65,13 +65,13 @@ export default function ResetPassword() {
       />
       <div class="w-full max-w-md bg-xcord-bg-secondary rounded-lg shadow-lg p-8">
         <div class="text-center mb-8">
-          <A href="/" class="text-2xl font-bold text-white">xcord</A>
-          <h1 class="text-xl text-xcord-text-primary mt-4">Set a new password</h1>
+          <A href="/" class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary">xcord</A>
+          <h1 data-testid="auth-heading" class="font-display text-xl font-bold tracking-[-0.01em] text-xcord-text-primary mt-4">Set a new password</h1>
           <p class="text-sm text-xcord-text-muted mt-1">Enter a new password for your account.</p>
         </div>
 
         <Show when={success()}>
-          <div data-testid="reset-password-success" class="text-sm text-green-400 bg-green-900/20 border border-green-800 rounded p-3 mb-4">
+          <div data-testid="reset-password-success" class="text-sm text-xcord-success-text bg-xcord-success-bg border border-xcord-success/40 rounded p-3 mb-4">
             Password reset successfully! Redirecting to login...
           </div>
         </Show>
@@ -87,7 +87,7 @@ export default function ResetPassword() {
                 type="password"
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-md border border-xcord-line outline-none focus:ring-2 focus:ring-xcord-brand"
                 required
                 minLength={8}
               />
@@ -103,7 +103,7 @@ export default function ResetPassword() {
                 type="password"
                 value={confirmPassword()}
                 onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-md border border-xcord-line outline-none focus:ring-2 focus:ring-xcord-brand"
                 required
               />
             </div>
@@ -116,16 +116,16 @@ export default function ResetPassword() {
               type="submit"
               data-testid="reset-password-submit-button"
               disabled={loading()}
-              class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+              class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition"
             >
-              {loading() ? 'Resetting...' : 'Reset Password'}
+              {loading() ? 'Resetting...' : 'Reset password'}
             </button>
           </form>
         </Show>
 
         <p class="text-sm text-xcord-text-muted mt-4">
           Remember your password?{' '}
-          <A href="/login" class="text-xcord-text-link hover:underline">Log In</A>
+          <A href="/login" class="text-xcord-text-link hover:underline">Log in</A>
         </p>
       </div>
     </div>

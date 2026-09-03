@@ -25,8 +25,8 @@ describe('Login (route)', () => {
   });
 
   it('renders heading and email/password fields', () => {
-    const { getByText, getByTestId } = renderPage();
-    expect(getByText('Log in')).toBeInTheDocument();
+    const { getByTestId } = renderPage();
+    expect(getByTestId('auth-heading').textContent).toBe('Log in');
     expect(getByTestId('hub-login-email')).toBeInTheDocument();
     expect(getByTestId('hub-login-password')).toBeInTheDocument();
   });

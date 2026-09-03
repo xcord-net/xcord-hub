@@ -52,7 +52,7 @@ class ApiClient {
         }
 
         if (!retryResponse.ok) {
-          const error = await retryResponse.json().catch(() => ({ error: 'Request failed' }));
+          const error = await retryResponse.json().catch(() => ({ error: 'Something went wrong on our end. Try again.' }));
           throw error;
         }
 
@@ -66,7 +66,7 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      const error = await response.json().catch(() => ({ error: 'Something went wrong on our end. Try again.' }));
       throw error;
     }
 

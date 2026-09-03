@@ -26,18 +26,18 @@ export default function GetStarted() {
           {/* Step indicator */}
           <div data-testid="get-started-steps" class="flex items-center justify-center gap-2 mb-8">
             <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-              f.step() === 1 ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
+              f.step() === 1 ? 'bg-xcord-brand text-xcord-landing-bg' : 'bg-xcord-bg-accent text-xcord-text-muted'
             }`}>1</div>
             <Show when={f.isPaidTier()}>
               <div class="w-8 h-0.5 bg-xcord-bg-accent" />
               <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                f.step() === 2 ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
+                f.step() === 2 ? 'bg-xcord-brand text-xcord-landing-bg' : 'bg-xcord-bg-accent text-xcord-text-muted'
               }`}>2</div>
             </Show>
             <Show when={!f.isLoggedIn()}>
               <div class="w-8 h-0.5 bg-xcord-bg-accent" />
               <div class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                f.step() === f.accountStep() ? 'bg-xcord-brand text-white' : 'bg-xcord-bg-accent text-xcord-text-muted'
+                f.step() === f.accountStep() ? 'bg-xcord-brand text-xcord-landing-bg' : 'bg-xcord-bg-accent text-xcord-text-muted'
               }`}>{f.accountStep()}</div>
             </Show>
           </div>

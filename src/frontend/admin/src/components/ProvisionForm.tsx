@@ -158,7 +158,7 @@ export function ProvisionForm(props: ProvisionFormProps) {
           <button
             type="submit"
             disabled={isLoading()}
-            class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            class="flex-1 bg-blue-600 text-xcord-text-primary py-2 px-4 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isLoading() ? 'Provisioning...' : 'Provision Instance'}
           </button>

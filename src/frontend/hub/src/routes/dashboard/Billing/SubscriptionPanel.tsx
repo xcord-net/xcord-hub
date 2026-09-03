@@ -111,7 +111,7 @@ export default function SubscriptionPanel(props: SubscriptionPanelProps) {
 
   return (
     <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-xcord-bg-primary rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div class="bg-xcord-bg-primary rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-bold text-xcord-text-primary">
@@ -212,7 +212,7 @@ export default function SubscriptionPanel(props: SubscriptionPanelProps) {
               Cancel
             </button>
             <Show when={hasChanges()}>
-              <button onClick={handleSave} disabled={saving()} class="px-4 py-2 text-sm bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition">
+              <button onClick={handleSave} disabled={saving()} class="px-4 py-2 text-sm bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition">
                 {saving() ? 'Saving...' : 'Save Changes'}
               </button>
             </Show>

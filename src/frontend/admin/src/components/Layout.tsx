@@ -18,7 +18,7 @@ export function Layout(props: LayoutProps) {
 
   return (
     <div class="min-h-screen bg-gray-50">
-      <nav class="bg-blue-600 text-white p-4 shadow-md">
+      <nav class="bg-blue-600 text-xcord-text-primary p-4 shadow-md">
         <div class="container mx-auto flex items-center justify-between">
           <h1 class="text-xl font-bold"><Logo /> Hub Admin</h1>
           <div class="flex items-center gap-4">

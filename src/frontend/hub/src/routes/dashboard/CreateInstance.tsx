@@ -188,7 +188,7 @@ export default function CreateInstance() {
         noindex
       />
       <div class="p-8 max-w-xl">
-      <h1 data-testid="create-instance-heading" class="text-2xl font-bold text-xcord-text-primary mb-2">Create Instance</h1>
+      <h1 data-testid="create-instance-heading" class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary mb-2">Create Instance</h1>
 
       <p class="text-sm text-xcord-text-muted mb-8">
           Launch a new Xcord instance. Choose a subdomain and set up your admin account.
@@ -255,6 +255,7 @@ export default function CreateInstance() {
             <div class="grid grid-cols-4 gap-2 mb-4">
               {/* Free - always selectable */}
               <button
+                data-testid="create-instance-tier-free"
                 type="button"
                 disabled={loading()}
                 onClick={() => setSelectedTier('Free')}
@@ -270,6 +271,7 @@ export default function CreateInstance() {
                 fallback={
                   <button
                     type="button"
+                    data-testid="create-instance-tier-basic-waitlist"
                     onClick={() => { setNotifyTier('Basic'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }}
                     disabled={loading()}
                     class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition"
@@ -281,6 +283,7 @@ export default function CreateInstance() {
                 }
               >
                 <button
+                  data-testid="create-instance-tier-basic"
                   type="button"
                   disabled={loading()}
                   onClick={() => setSelectedTier('Basic')}
@@ -298,6 +301,7 @@ export default function CreateInstance() {
                 fallback={
                   <button
                     type="button"
+                    data-testid="create-instance-tier-pro-waitlist"
                     onClick={() => { setNotifyTier('Pro'); setNotifyStatus('idle'); setNotifyMessage(''); setNotifyEmail(''); }}
                     disabled={loading()}
                     class="px-3 py-3 rounded bg-xcord-bg-tertiary text-xcord-text-primary text-sm font-medium text-center hover:bg-xcord-bg-accent transition"
@@ -309,6 +313,7 @@ export default function CreateInstance() {
                 }
               >
                 <button
+                  data-testid="create-instance-tier-pro"
                   type="button"
                   disabled={loading()}
                   onClick={() => setSelectedTier('Pro')}
@@ -423,7 +428,7 @@ export default function CreateInstance() {
             data-testid="create-instance-submit"
             type="submit"
             disabled={loading() || !!subdomainError() || !subdomain()}
-            class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+            class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition"
           >
             {loading() ? 'Creating...' : 'Create Instance'}
           </button>
@@ -432,7 +437,7 @@ export default function CreateInstance() {
       {/* Notify-me modal */}
       <Show when={notifyTier()}>
         <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => { if (e.target === e.currentTarget) setNotifyTier(null); }}>
-          <div class="bg-xcord-bg-primary rounded-xl w-full max-w-sm p-6">
+          <div class="bg-xcord-bg-primary rounded-lg w-full max-w-sm p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-bold text-xcord-text-primary">{notifyTier()}</h3>
               <button onClick={() => setNotifyTier(null)} class="text-xcord-text-muted hover:text-xcord-text-primary text-xl leading-none">&times;</button>
@@ -441,7 +446,7 @@ export default function CreateInstance() {
               <p class="text-sm text-xcord-text-muted mb-4">We'll let you know when {notifyTier()} is available.</p>
               <form onSubmit={handleNotify} class="space-y-3">
                 <input type="email" required placeholder="you@example.com" value={notifyEmail()} onInput={(e) => setNotifyEmail(e.currentTarget.value)} class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand text-sm" />
-                <button type="submit" disabled={notifyStatus() === 'loading'} class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition text-sm">
+                <button type="submit" disabled={notifyStatus() === 'loading'} class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition text-sm">
                   {notifyStatus() === 'loading' ? 'Submitting...' : 'Notify Me'}
                 </button>
               </form>

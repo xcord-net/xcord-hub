@@ -1,5 +1,6 @@
 import { createEffect, onMount, onCleanup } from 'solid-js';
 import { unreadStore } from '../stores/unread.store';
+import { postHubMessage, HubMessageType } from '../protocol/hubProtocol';
 
 interface InstanceIframeProps {
   url: string;
@@ -17,10 +18,9 @@ export default function InstanceIframe(props: InstanceIframeProps) {
   createEffect((prevVisible: boolean) => {
     const visible = props.visible;
     if (prevVisible && !visible && iframeRef?.contentWindow) {
-      iframeRef.contentWindow.postMessage(
-        { type: 'xcord_leave_conversation' },
-        props.url
-      );
+      postHubMessage(iframeRef.contentWindow, props.url, {
+        type: HubMessageType.LeaveConversation,
+      });
     }
     return visible;
   }, true);

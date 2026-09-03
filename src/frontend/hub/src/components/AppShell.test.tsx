@@ -82,10 +82,32 @@ describe('AppShell', () => {
   });
 
   it('shows "?" in the avatar fallback when no user is logged in', () => {
-    const { getByTitle } = renderWithRouter(
+    const { getByTestId } = renderWithRouter(
       () => <AppShell><span>page</span></AppShell>,
       { path: '/dashboard' },
     );
-    expect(getByTitle('Account').textContent?.trim()).toBe('?');
+    expect(getByTestId('hub-account-avatar').textContent?.trim()).toBe('?');
+  });
+
+  it('puts the dashboard sections in the strip instead of a rail', () => {
+    const { getByTestId, queryByRole } = renderWithRouter(
+      () => <AppShell><span>page</span></AppShell>,
+      { path: '/dashboard' },
+    );
+    expect(getByTestId('hub-strip')).toBeInTheDocument();
+    expect(getByTestId('sidebar-nav-overview')).toBeInTheDocument();
+    expect(getByTestId('sidebar-nav-create')).toBeInTheDocument();
+    expect(getByTestId('sidebar-nav-billing')).toBeInTheDocument();
+    expect(getByTestId('sidebar-nav-account')).toBeInTheDocument();
+    // The left rail is gone: there is one navigation surface, not two.
+    expect(queryByRole('complementary')).toBeNull();
+  });
+
+  it('keeps log out reachable from the strip', () => {
+    const { getByTestId } = renderWithRouter(
+      () => <AppShell><span>page</span></AppShell>,
+      { path: '/dashboard' },
+    );
+    expect(getByTestId('hub-logout-button')).toBeInTheDocument();
   });
 });

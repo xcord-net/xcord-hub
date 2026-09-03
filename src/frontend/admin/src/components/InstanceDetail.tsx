@@ -219,7 +219,7 @@ export function InstanceDetail(props: InstanceDetailProps) {
                         <span
                           class={
                             log.level === 'Error'
-                              ? 'text-red-400'
+                              ? 'text-xcord-red'
                               : log.level === 'Warning'
                               ? 'text-yellow-400'
                               : 'text-blue-400'

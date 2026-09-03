@@ -167,7 +167,7 @@ export default function ConfigStep(props: ConfigStepProps) {
           type="button"
           onClick={props.onNext}
           disabled={props.loading() || !props.canProceedStep1()}
-          class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+          class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition"
         >
           {props.loading()
             ? (props.isPaidTier() ? 'Initializing...' : 'Creating...')

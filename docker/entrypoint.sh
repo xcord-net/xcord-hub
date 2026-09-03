@@ -100,6 +100,12 @@ if [ -f "$CONFIG_PATH" ]; then
         },
         TestSeed: {
             Key: (.testSeed.key // "")
+        },
+        LiveKit: {
+            Host: (.liveKit.host // ""),
+            ApiKey: (.liveKit.apiKey // ""),
+            ApiSecret: (.liveKit.apiSecret // ""),
+            EgressServiceUrl: (.liveKit.egressServiceUrl // "")
         }
     }' "$CONFIG_PATH" > "$APPSETTINGS_PATH"
 

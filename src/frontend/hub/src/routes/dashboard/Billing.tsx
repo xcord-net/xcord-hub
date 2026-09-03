@@ -29,7 +29,7 @@ export default function Billing() {
         noindex
       />
       <div class="p-8 max-w-3xl">
-        <h1 data-testid="billing-heading" class="text-2xl font-bold text-xcord-text-primary mb-8">Billing</h1>
+        <h1 data-testid="billing-heading" class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary mb-8">Billing</h1>
 
         {/* Instance list loading / error */}
         <Show when={billing.loading}>

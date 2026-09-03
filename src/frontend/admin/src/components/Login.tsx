@@ -72,7 +72,7 @@ export function Login() {
             data-testid="admin-login-submit"
             type="submit"
             disabled={isLoading()}
-            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            class="w-full bg-blue-600 text-xcord-text-primary py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isLoading() ? 'Signing in...' : 'Sign In'}
           </button>

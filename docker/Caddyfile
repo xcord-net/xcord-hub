@@ -19,3 +19,15 @@ mail.{$HUB_DOMAIN:localhost} {
     tls internal
     reverse_proxy mailpit:8025
 }
+
+# LiveKit signalling, for browsers.
+#
+# The URL an instance hands its clients is used by the browser, not by the
+# server, so an internal Docker name like `livekit:7880` can never work there -
+# and a plain `ws://` origin is refused outright as mixed content by a page
+# served over TLS. This gives it a real, TLS-terminated hostname; Caddy passes
+# the WebSocket upgrade through unchanged.
+livekit.{$HUB_DOMAIN:localhost} {
+    tls internal
+    reverse_proxy livekit:7880
+}

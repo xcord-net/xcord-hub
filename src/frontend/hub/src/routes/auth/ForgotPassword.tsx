@@ -38,8 +38,8 @@ export default function ForgotPassword() {
       />
       <div class="w-full max-w-md bg-xcord-bg-secondary rounded-lg shadow-lg p-8">
         <div class="text-center mb-8">
-          <A href="/" class="text-2xl font-bold text-white">xcord</A>
-          <h1 class="text-xl text-xcord-text-primary mt-4">Forgot your password?</h1>
+          <A href="/" class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary">xcord</A>
+          <h1 data-testid="auth-heading" class="font-display text-xl font-bold tracking-[-0.01em] text-xcord-text-primary mt-4">Forgot your password?</h1>
           <p class="text-sm text-xcord-text-muted mt-1">
             Enter your email and we'll send you a reset link.
           </p>
@@ -66,7 +66,7 @@ export default function ForgotPassword() {
                 type="email"
                 value={email()}
                 onInput={(e) => setEmail(e.currentTarget.value)}
-                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+                class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-md border border-xcord-line outline-none focus:ring-2 focus:ring-xcord-brand"
                 required
               />
             </div>
@@ -79,9 +79,9 @@ export default function ForgotPassword() {
               type="submit"
               data-testid="forgot-password-submit-button"
               disabled={loading()}
-              class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+              class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition"
             >
-              {loading() ? 'Sending...' : 'Send Reset Link'}
+              {loading() ? 'Sending...' : 'Send reset link'}
             </button>
           </form>
 

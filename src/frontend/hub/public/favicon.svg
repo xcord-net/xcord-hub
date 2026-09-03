@@ -7,7 +7,7 @@
       <stop offset="92%" stop-color="#999"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="96" fill="#1e1f22"/>
+  <rect width="512" height="512" rx="96" fill="#131114"/>
   <g fill="none" stroke="url(#wave)" stroke-width="29" stroke-linecap="round" stroke-linejoin="round">
     <!-- Left ))) -->
     <path d="M58,141 C146,209 146,303 58,371"/>

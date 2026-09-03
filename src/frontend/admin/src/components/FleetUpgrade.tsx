@@ -231,7 +231,7 @@ export function FleetUpgrade(props: FleetUpgradeProps) {
               data-testid="fleet-upgrade-submit"
               onClick={handleSubmit}
               disabled={!toImage() || isSubmitting()}
-              class="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              class="px-4 py-2 text-sm text-xcord-text-primary bg-blue-600 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {isSubmitting() ? 'Starting...' : 'Start Rollout'}
             </button>

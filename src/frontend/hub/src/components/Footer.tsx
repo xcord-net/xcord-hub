@@ -6,28 +6,28 @@ export default function Footer() {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div>
-            <h3 class="text-sm font-semibold text-white mb-3">Product</h3>
+            <h3 class="text-sm font-semibold text-xcord-landing-text mb-3">Product</h3>
             <ul class="space-y-2">
-              <li><A href="/pricing" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Pricing</A></li>
-              <li><A href="/download" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Download</A></li>
-              <li><A href="/register" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Get Started</A></li>
+              <li><A href="/pricing" class="text-sm text-xcord-landing-text-muted hover:text-xcord-landing-text transition-colors">Pricing</A></li>
+              <li><A href="/download" class="text-sm text-xcord-landing-text-muted hover:text-xcord-landing-text transition-colors">Download</A></li>
+              <li><A href="/register" class="text-sm text-xcord-landing-text-muted hover:text-xcord-landing-text transition-colors">Get Started</A></li>
             </ul>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-white mb-3">Community</h3>
+            <h3 class="text-sm font-semibold text-xcord-landing-text mb-3">Community</h3>
             <ul class="space-y-2">
-              <li><a href="https://github.com/xcord-net" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+              <li><a href="https://github.com/xcord-net" class="text-sm text-xcord-landing-text-muted hover:text-xcord-landing-text transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a></li>
             </ul>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-white mb-3">Legal</h3>
+            <h3 class="text-sm font-semibold text-xcord-landing-text mb-3">Legal</h3>
             <ul class="space-y-2">
-              <li><A href="/privacy" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Privacy Policy</A></li>
-              <li><A href="/terms" class="text-sm text-xcord-landing-text-muted hover:text-white transition-colors">Terms of Service</A></li>
+              <li><A href="/privacy" class="text-sm text-xcord-landing-text-muted hover:text-xcord-landing-text transition-colors">Privacy Policy</A></li>
+              <li><A href="/terms" class="text-sm text-xcord-landing-text-muted hover:text-xcord-landing-text transition-colors">Terms of Service</A></li>
             </ul>
           </div>
           <div>
-            <h3 class="text-sm font-semibold text-white mb-3">Xcord</h3>
+            <h3 class="text-sm font-semibold text-xcord-landing-text mb-3">Xcord</h3>
             <p class="text-sm text-xcord-landing-text-muted">
               Your server. Your keys. Your community.
             </p>

@@ -17,10 +17,11 @@ function renderPage() {
 }
 
 describe('Landing (route)', () => {
-  it('renders the hero headline', () => {
-    const { getByText } = renderPage();
-    expect(getByText('Your corner of')).toBeInTheDocument();
-    expect(getByText('the internet.')).toBeInTheDocument();
+  it('leads with the ownership thesis', () => {
+    const { getByTestId } = renderPage();
+    const h1 = getByTestId('landing-hero-heading');
+    expect(h1.textContent).toContain('Four tools in one');
+    expect(h1.textContent).toContain('you own.');
   });
 
   it('renders both hero CTA buttons', () => {
@@ -29,10 +30,27 @@ describe('Landing (route)', () => {
     expect(getByTestId('hero-cta-pricing')).toBeInTheDocument();
   });
 
-  it('renders the "Why Xcord?" features section', () => {
-    const { getByText } = renderPage();
-    expect(getByText('Why Xcord?')).toBeInTheDocument();
-    expect(getByText('Everything built in')).toBeInTheDocument();
+  it('names the four pillars by the product each one replaces', () => {
+    const { getAllByTestId } = renderPage();
+    const labels = getAllByTestId('landing-pillar-replaces').map((el) => el.textContent);
+    expect(labels).toEqual([
+      'INSTEAD OF DISCORD',
+      'INSTEAD OF LOCALS',
+      'INSTEAD OF PATREON',
+      'INSTEAD OF STREAMYARD',
+    ]);
+  });
+
+  it('states the problem the four pillars answer', () => {
+    const { getByTestId } = renderPage();
+    expect(getByTestId('landing-problem-heading')).toBeInTheDocument();
+  });
+
+  it('keeps the membership availability caveat visible', () => {
+    const { getByTestId } = renderPage();
+    // The caveat's wording is a compliance detail, so this asserts the text
+    // itself rather than only that the node exists.
+    expect(getByTestId('landing-membership-caveat').textContent).toContain('Pro tier or higher');
   });
 
   it('renders the final CTA at the bottom', () => {
@@ -40,11 +58,12 @@ describe('Landing (route)', () => {
     expect(getByTestId('final-cta-get-started')).toBeInTheDocument();
   });
 
-  it('renders the three step-by-step "How It Works" entries', () => {
-    const { getByText } = renderPage();
-    expect(getByText('Pick a name')).toBeInTheDocument();
-    expect(getByText('Make it yours')).toBeInTheDocument();
-    expect(getByText('Bring your people')).toBeInTheDocument();
+  it('does not use the retired feature-card grid', () => {
+    const { container } = renderPage();
+    // The rebuilt page states pillars as typographic rows. Emoji tiles were the
+    // template look the redesign removed; catching them here keeps them gone.
+    expect(container.textContent).not.toContain('Why Xcord?');
+    expect(container.textContent).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
   });
 
   it('injects a JSON-LD organization script into <head> on mount', () => {

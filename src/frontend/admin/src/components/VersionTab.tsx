@@ -176,7 +176,7 @@ export function VersionTab(props: VersionTabProps) {
                       class={`px-4 py-2 rounded text-sm font-medium ${
                         isUpgradeDisabled()
                           ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-blue-600 text-xcord-text-primary hover:bg-blue-700'
                       }`}
                     >
                       {isUpgrading()

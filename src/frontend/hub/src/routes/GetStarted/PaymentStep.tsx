@@ -62,7 +62,7 @@ export default function PaymentStep(props: PaymentStepProps) {
           type="button"
           onClick={props.onConfirm}
           disabled={props.loading() || !props.stripeCtx()}
-          class="flex-1 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+          class="flex-1 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition"
         >
           {props.loading() ? 'Processing...' : 'Continue'}
         </button>

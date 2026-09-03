@@ -109,7 +109,7 @@ export function BackupHistory(props: BackupHistoryProps) {
             data-testid="backup-trigger"
             onClick={handleTrigger}
             disabled={isTriggering()}
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm"
+            class="px-4 py-2 bg-blue-600 text-xcord-text-primary rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm"
           >
             {isTriggering() ? 'Triggering...' : 'Trigger Backup'}
           </button>
@@ -155,14 +155,14 @@ export function BackupHistory(props: BackupHistoryProps) {
                           <Show when={record.status === 'Completed'}>
                             <button
                               onClick={() => setConfirm({ type: 'restore', backupId: record.id })}
-                              class="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                              class="px-2 py-1 text-xs bg-green-600 text-xcord-text-primary rounded hover:bg-green-700"
                             >
                               Restore
                             </button>
                           </Show>
                           <button
                             onClick={() => setConfirm({ type: 'delete', backupId: record.id })}
-                            class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                            class="px-2 py-1 text-xs bg-red-600 text-xcord-text-primary rounded hover:bg-red-700"
                           >
                             Delete
                           </button>
@@ -208,7 +208,7 @@ export function BackupHistory(props: BackupHistoryProps) {
               <button
                 onClick={handleConfirmedAction}
                 disabled={isActing()}
-                class="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
+                class="flex-1 px-4 py-2 bg-red-600 text-xcord-text-primary rounded hover:bg-red-700 disabled:bg-gray-400"
               >
                 {isActing() ? 'Processing...' : 'Confirm'}
               </button>

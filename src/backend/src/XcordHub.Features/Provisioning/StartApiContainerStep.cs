@@ -20,6 +20,10 @@ public sealed class StartApiContainerStep : IProvisioningStep
     public string StepName => "StartApiContainer";
 
     private readonly string _testSeedKey;
+    private readonly string _defaultLiveKitHost;
+    private readonly string _defaultLiveKitApiKey;
+    private readonly string _defaultLiveKitApiSecret;
+    private readonly string _defaultLiveKitEgressServiceUrl;
 
     public StartApiContainerStep(HubDbContext dbContext, IDockerService dockerService, IEncryptionService encryptionService, IConfiguration configuration, TopologyResolver resolver)
     {
@@ -30,6 +34,18 @@ public sealed class StartApiContainerStep : IProvisioningStep
             ?? throw new InvalidOperationException("Database:ConnectionString not configured");
         _resolver = resolver;
         _testSeedKey = configuration.GetSection("TestSeed:Key").Value ?? "";
+        var configuredLiveKitHost = configuration.GetSection("LiveKit:Host").Value;
+        _defaultLiveKitHost = string.IsNullOrWhiteSpace(configuredLiveKitHost)
+            ? "ws://livekit:7880"
+            : configuredLiveKitHost;
+        _defaultLiveKitApiKey = configuration.GetSection("LiveKit:ApiKey").Value ?? "";
+        _defaultLiveKitApiSecret = configuration.GetSection("LiveKit:ApiSecret").Value ?? "";
+        // The Egress API is served by the LiveKit *server*, which hands the job to
+        // an egress worker over Redis - the egress container itself serves no
+        // Twirp API, so pointing at it fails every start. Server-to-server, so
+        // an internal address is correct here, unlike Host which a browser dials.
+        _defaultLiveKitEgressServiceUrl =
+            configuration.GetSection("LiveKit:EgressServiceUrl").Value ?? "http://livekit:7880";
     }
 
     public async Task<Result<bool>> ExecuteAsync(long instanceId, CancellationToken cancellationToken = default)
@@ -78,8 +94,25 @@ public sealed class StartApiContainerStep : IProvisioningStep
             var redisConnStr = _resolver.GetRedisConnectionString(pool, dataPool) ?? "redis:6379";
             var storageConfig = _resolver.GetStorageConfig(pool, dataPool);
             var storageEndpoint = storageConfig != null ? $"http://{storageConfig.Endpoint}" : "http://minio:9000";
+            // Unlike the database, Redis and storage endpoints above, this one is
+            // handed to the *browser*: the instance passes it back on JoinVoiceChannel
+            // and the client dials it directly. An internal Docker name can never
+            // work there, so a deployment without a pool LiveKit config must be able
+            // to say what its clients should dial. The old hardcoded default is kept
+            // as the last resort so nothing that relied on it changes silently.
             var livekitConfig = _resolver.GetLiveKitConfig(pool);
-            var livekitHost = livekitConfig?.Host ?? "ws://livekit:7880";
+            var livekitHost = livekitConfig?.Host ?? _defaultLiveKitHost;
+            // A LiveKit server only honours tokens signed with a key it was
+            // configured with, so the credential has to come from whoever runs
+            // that server - the pool, or the hub's own configuration. The
+            // per-instance pair generated at provisioning time is the last
+            // resort: it is unique, which is exactly what makes it unusable
+            // against a shared LiveKit that has never heard of it.
+            var livekitApiKey = FirstNonEmpty(
+                livekitConfig?.ApiKey, _defaultLiveKitApiKey, instance.Infrastructure.LiveKitApiKey);
+            var livekitApiSecret = FirstNonEmpty(
+                livekitConfig?.ApiSecret, _defaultLiveKitApiSecret, instance.Infrastructure.LiveKitSecretKey);
+            var livekitEgressServiceUrl = _defaultLiveKitEgressServiceUrl;
 
             // Decrypt owner email for admin user seeding on the instance
             var ownerEmail = instance.Owner != null
@@ -106,7 +139,8 @@ public sealed class StartApiContainerStep : IProvisioningStep
                 instance.Domain, instance.Infrastructure, instance.SnowflakeWorkerId,
                 dbConnStr, instance.Infrastructure.MinioAccessKey, instance.Infrastructure.MinioSecretKey,
                 redisConnStr, instance.Infrastructure.RedisUsername, instance.Infrastructure.RedisPassword,
-                storageEndpoint, livekitHost,
+                storageEndpoint, livekitHost, livekitApiKey, livekitApiSecret,
+                livekitEgressServiceUrl,
                 featureFlags, limits,
                 _testSeedKey,
                 ownerEmail, ownerUsername, ownerDisplayName, adminPasswordHash);
@@ -199,6 +233,10 @@ public sealed class StartApiContainerStep : IProvisioningStep
     /// Generates configuration JSON in the xcord-config.json format that
     /// xcord-fed/docker/entrypoint.sh reads from /run/secrets/xcord-config.
     /// </summary>
+    /// <summary>First value that is actually set, or empty.</summary>
+    private static string FirstNonEmpty(params string?[] candidates) =>
+        Array.Find(candidates, c => !string.IsNullOrWhiteSpace(c)) ?? "";
+
     private static string GenerateConfigJson(
         string domain,
         Entities.InstanceInfrastructure infrastructure,
@@ -211,6 +249,9 @@ public sealed class StartApiContainerStep : IProvisioningStep
         string redisPassword,
         string storageEndpoint,
         string livekitHost,
+        string livekitApiKey,
+        string livekitApiSecret,
+        string livekitEgressServiceUrl,
         FeatureFlags? featureFlags = null,
         ResourceLimits? resourceLimits = null,
         string testSeedKey = "",
@@ -268,8 +309,19 @@ public sealed class StartApiContainerStep : IProvisioningStep
             livekit = new
             {
                 host = livekitHost,
-                apiKey = infrastructure.LiveKitApiKey,
-                apiSecret = infrastructure.LiveKitSecretKey
+                apiKey = livekitApiKey,
+                apiSecret = livekitApiSecret,
+                // Broadcasting needs three more addresses, and only the hub knows
+                // them: the egress service to call, the URL the compositor should
+                // render (the instance's own layout template), and where the HLS
+                // output is served from. Leaving them empty made starting a
+                // broadcast throw before it reached its own error handling, so the
+                // caller got an unexplained 500. The last two are the instance's
+                // public domain, because a headless browser and a viewer both have
+                // to reach them from outside.
+                egressServiceUrl = livekitEgressServiceUrl,
+                egressTemplateBaseUrl = $"https://{domain}",
+                hlsBaseUrl = $"https://{domain}/hls"
             },
             cors = new
             {

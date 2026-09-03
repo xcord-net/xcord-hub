@@ -92,7 +92,7 @@ export default function ContactModal(props: ContactModalProps) {
         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
         onClick={(e) => e.target === e.currentTarget && props.onClose()}
       >
-        <div class="bg-xcord-bg-primary rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+        <div class="bg-xcord-bg-primary rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-bold text-xcord-text-primary">Contact Us</h2>
             <button
@@ -104,7 +104,7 @@ export default function ContactModal(props: ContactModalProps) {
           </div>
 
           <Show when={status() === 'success'}>
-            <p class="text-sm text-green-400 text-center py-8">
+            <p class="text-sm text-xcord-success-text text-center py-8">
               Thanks for reaching out! We'll get back to you soon.
             </p>
           </Show>
@@ -171,13 +171,13 @@ export default function ContactModal(props: ContactModalProps) {
               </div>
 
               <Show when={status() === 'error'}>
-                <p class="text-sm text-red-400">{errorMessage()}</p>
+                <p class="text-sm text-xcord-danger-text">{errorMessage()}</p>
               </Show>
 
               <button
                 type="submit"
                 disabled={status() === 'loading'}
-                class="w-full py-2.5 bg-xcord-brand hover:bg-xcord-brand-hover text-white rounded-lg font-medium transition disabled:opacity-50"
+                class="w-full py-2.5 bg-xcord-brand hover:bg-xcord-brand-hover text-xcord-landing-bg rounded-lg font-medium transition disabled:opacity-50"
               >
                 {status() === 'loading' ? 'Sending...' : 'Send Message'}
               </button>

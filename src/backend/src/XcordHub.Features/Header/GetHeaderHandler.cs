@@ -214,7 +214,8 @@ public sealed class GetHeaderHandler : IEndpoint
                 var isNewKey = {{(isNewKey ? "true" : "false")}};
                 {{(parentOrigin is null
                     ? ""
-                    : $"if (isNewKey) {{ window.parent.postMessage({{ type: 'xcord_hub_key', hubKey: hubKey }}, '{JsStringEscape(parentOrigin)}'); }}")}}
+                    // version must match HUB_PROTOCOL_VERSION in the frontends' hubProtocol.ts.
+                    : $"if (isNewKey) {{ window.parent.postMessage({{ type: 'xcord_hub_key', version: 1, hubKey: hubKey }}, '{JsStringEscape(parentOrigin)}'); }}")}}
                 function navigateTo(url) { window.parent.location.href = url; }
                 function toggleAdd() {
                     var wrap = document.getElementById('addWrap');

@@ -93,13 +93,13 @@ export function InstanceList(props: InstanceListProps) {
             <button
               data-testid="fleet-upgrade-button"
               onClick={() => setFleetUpgradeOpen(true)}
-              class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              class="px-4 py-2 bg-gray-600 text-xcord-text-primary rounded hover:bg-gray-700"
             >
               Fleet Upgrade
             </button>
             <button
               onClick={props.onProvisionNew}
-              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              class="px-4 py-2 bg-blue-600 text-xcord-text-primary rounded hover:bg-blue-700"
             >
               Provision New Instance
             </button>
@@ -111,7 +111,7 @@ export function InstanceList(props: InstanceListProps) {
             onClick={() => instanceStore.setStatusFilter(null)}
             class={`px-3 py-1 rounded text-sm ${
               !instanceStore.statusFilter
-                ? 'bg-blue-600 text-white'
+                ? 'bg-blue-600 text-xcord-text-primary'
                 : 'bg-gray-100 hover:bg-gray-200'
             }`}
           >
@@ -123,7 +123,7 @@ export function InstanceList(props: InstanceListProps) {
                 onClick={() => instanceStore.setStatusFilter(status)}
                 class={`px-3 py-1 rounded text-sm ${
                   instanceStore.statusFilter === status
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-xcord-text-primary'
                     : 'bg-gray-100 hover:bg-gray-200'
                 }`}
               >

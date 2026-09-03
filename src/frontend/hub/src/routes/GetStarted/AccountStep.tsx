@@ -170,7 +170,7 @@ export default function AccountStep(props: AccountStepProps) {
             data-testid="get-started-submit"
             type="submit"
             disabled={props.loading()}
-            class="flex-1 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+            class="flex-1 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition"
           >
             {props.loading() ? 'Creating...' : 'Create Account & Server'}
           </button>

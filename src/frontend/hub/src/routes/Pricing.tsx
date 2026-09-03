@@ -205,11 +205,11 @@ export default function Pricing() {
         path="/pricing"
       />
       <section class="max-w-7xl mx-auto px-6 py-20 text-center">
-        <h1 class="text-4xl font-bold mb-4">
+        <h1 class="font-display text-4xl sm:text-5xl font-extrabold tracking-[-0.02em] text-xcord-landing-text mb-4">
           Pricing
-          <span class="ml-2 align-middle text-xs font-bold uppercase tracking-widest bg-xcord-brand/20 text-xcord-brand px-2.5 py-1 rounded-full">beta</span>
+          <span class="ml-2 align-middle text-xs font-bold uppercase tracking-widest bg-xcord-brand/20 text-xcord-brand px-2.5 py-1 rounded-pill">beta</span>
         </h1>
-        <p class="text-xcord-landing-text-muted mb-12">
+        <p class="text-lg text-xcord-landing-text-muted mb-12">
           Same software on every tier. You're paying for hosting, not features.
         </p>
 
@@ -217,17 +217,17 @@ export default function Pricing() {
         <div data-testid="pricing-tier-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mb-6" style={{ opacity: featuresLoaded() ? 1 : 0, transition: 'opacity 0.15s' }}>
           <For each={tiers}>
             {(tier) => (
-              <div data-testid={`pricing-tier-${tier.name.toLowerCase()}`} class="bg-xcord-landing-surface border border-xcord-landing-border rounded-xl p-6 flex flex-col text-left">
+              <div data-testid={`pricing-tier-${tier.name.toLowerCase()}`} class="bg-xcord-landing-surface border border-xcord-landing-border rounded-lg p-6 flex flex-col text-left">
 
-                <h3 class="text-lg font-semibold text-white">{tier.name}</h3>
+                <h3 class="font-display text-lg font-bold text-xcord-landing-text">{tier.name}</h3>
 
                 {/* Base price */}
                 <div class="mt-3 mb-1">
                   <Show
                     when={!tier.isFree}
-                    fallback={<span class="text-3xl font-bold text-xcord-brand">Free</span>}
+                    fallback={<span class="font-display text-3xl font-extrabold text-xcord-brand">Free</span>}
                   >
-                    <span class="text-3xl font-bold text-white">{tier.basePrice}</span>
+                    <span class="font-display text-3xl font-extrabold text-xcord-landing-text">{tier.basePrice}</span>
                     <span class="text-sm text-xcord-landing-text-muted">{tier.basePriceNote}</span>
                   </Show>
                 </div>
@@ -259,7 +259,7 @@ export default function Pricing() {
                   <A
                     data-testid={`pricing-cta-${tier.name.toLowerCase()}`}
                     href={tier.isFree ? '/get-started' : `/get-started?tier=${tier.name}`}
-                    class="block text-center py-2.5 rounded-lg font-medium transition bg-xcord-brand hover:bg-xcord-brand-hover text-white"
+                    class="block text-center py-2.5 rounded-md font-medium transition bg-xcord-brand hover:bg-xcord-brand-hover text-xcord-landing-bg"
                   >
                     Get Started
                   </A>
@@ -269,7 +269,7 @@ export default function Pricing() {
                   <button
                     data-testid={`pricing-cta-${tier.name.toLowerCase()}`}
                     onClick={() => setShowContact(true)}
-                    class="w-full block text-center py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
+                    class="w-full block text-center py-2.5 rounded-md font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-xcord-landing-bg"
                   >
                     Contact Us
                   </button>
@@ -287,7 +287,7 @@ export default function Pricing() {
                           setNotifyMessage('');
                           setNotifyEmail('');
                         }}
-                        class="w-full py-2.5 rounded-lg font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-white"
+                        class="w-full py-2.5 rounded-md font-medium transition border border-xcord-brand text-xcord-brand hover:bg-xcord-brand hover:text-xcord-landing-bg"
                       >
                         Notify Me
                       </button>
@@ -295,7 +295,7 @@ export default function Pricing() {
                   >
                     <Show
                       when={notifyStatus() !== 'success'}
-                      fallback={<p class="text-sm text-green-400 text-center py-2.5">{notifyMessage()}</p>}
+                      fallback={<p class="text-sm text-xcord-success-text text-center py-2.5">{notifyMessage()}</p>}
                     >
                       <form onSubmit={handleNotify} class="flex gap-2">
                         <input
@@ -304,18 +304,18 @@ export default function Pricing() {
                           placeholder="you@example.com"
                           value={notifyEmail()}
                           onInput={(e) => setNotifyEmail(e.currentTarget.value)}
-                          class="flex-1 px-3 py-2 rounded-lg bg-xcord-landing-bg border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
+                          class="flex-1 px-3 py-2 rounded-md bg-xcord-landing-bg border border-xcord-landing-border text-xcord-landing-text text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
                         />
                         <button
                           type="submit"
                           disabled={notifyStatus() === 'loading'}
-                          class="px-4 py-2 rounded-lg font-medium bg-xcord-brand text-white text-sm hover:bg-xcord-brand-hover disabled:opacity-50"
+                          class="px-4 py-2 rounded-md font-medium bg-xcord-brand text-xcord-landing-bg text-sm hover:bg-xcord-brand-hover disabled:opacity-50"
                         >
                           {notifyStatus() === 'loading' ? '...' : 'Go'}
                         </button>
                       </form>
                       <Show when={notifyStatus() === 'error'}>
-                        <p class="text-xs text-red-400 mt-1">{notifyMessage()}</p>
+                        <p class="text-xs text-xcord-danger-text mt-1">{notifyMessage()}</p>
                       </Show>
                     </Show>
                   </Show>
@@ -330,16 +330,16 @@ export default function Pricing() {
         </p>
 
         {/* Split card: Self-Hosted */}
-        <div class="max-w-3xl mx-auto rounded-xl text-left flex flex-col border border-xcord-landing-border overflow-hidden mb-20">
+        <div class="max-w-3xl mx-auto rounded-lg text-left flex flex-col border border-xcord-landing-border overflow-hidden mb-20">
           <div class="flex-1 p-6 bg-xcord-landing-surface flex flex-col">
-            <h3 class="text-lg font-semibold text-white">Self-Hosted</h3>
+            <h3 class="font-display text-lg font-bold text-xcord-landing-text">Self-Hosted</h3>
             <p class="text-sm text-xcord-brand font-medium mt-2">Full control</p>
             <p class="text-sm text-xcord-landing-text-muted mt-2 mb-6 flex-1">
               Unlimited everything, your servers
             </p>
             <A
               href="/docs/self-hosting"
-              class="block text-center py-2 rounded-lg font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-white transition"
+              class="block text-center py-2 rounded-md font-medium bg-xcord-bg-accent hover:bg-xcord-bg-primary text-xcord-landing-text transition"
             >
               View Docs
             </A>
@@ -349,14 +349,14 @@ export default function Pricing() {
 
       {/* FAQ */}
       <section class="max-w-3xl mx-auto px-6 pb-20">
-        <h2 class="text-2xl font-bold text-center mb-8">Frequently asked questions</h2>
+        <h2 class="font-display text-2xl sm:text-3xl font-bold tracking-[-0.01em] text-center mb-8">Frequently asked questions</h2>
         <div class="space-y-2">
           <For each={faqs}>
             {(faq, i) => (
-              <div class="border border-xcord-landing-border rounded-lg overflow-hidden">
+              <div class="border border-xcord-landing-border rounded-md overflow-hidden">
                 <button
                   onClick={() => setOpenFaq(openFaq() === i() ? null : i())}
-                  class="w-full flex items-center justify-between px-6 py-4 text-left text-white hover:bg-xcord-landing-surface transition"
+                  class="w-full flex items-center justify-between px-6 py-4 text-left text-xcord-landing-text hover:bg-xcord-landing-surface transition"
                 >
                   <span class="font-medium">{faq.q}</span>
                   <svg

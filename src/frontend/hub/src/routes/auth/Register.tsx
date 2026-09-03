@@ -61,8 +61,8 @@ export default function Register() {
       />
       <div class="w-full max-w-md bg-xcord-bg-secondary rounded-lg shadow-lg p-8">
         <div class="text-center mb-8">
-          <A href="/" class="text-2xl font-bold text-white"><Logo /></A>
-          <h1 class="text-xl text-xcord-text-primary mt-4">Create an account</h1>
+          <A href="/" class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary"><Logo /></A>
+          <h1 data-testid="auth-heading" class="font-display text-xl font-bold tracking-[-0.01em] text-xcord-text-primary mt-4">Create an account</h1>
         </div>
 
         <form onSubmit={handleSubmit} class="space-y-4">
@@ -74,7 +74,7 @@ export default function Register() {
               type="email"
               value={email()}
               onInput={(e) => setEmail(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-md border border-xcord-line outline-none focus:ring-2 focus:ring-xcord-brand"
               required
             />
           </div>
@@ -87,7 +87,7 @@ export default function Register() {
               type="text"
               value={username()}
               onInput={(e) => setUsername(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-md border border-xcord-line outline-none focus:ring-2 focus:ring-xcord-brand"
               required
             />
           </div>
@@ -98,7 +98,7 @@ export default function Register() {
               type="text"
               value={displayName()}
               onInput={(e) => setDisplayName(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-md border border-xcord-line outline-none focus:ring-2 focus:ring-xcord-brand"
               placeholder={username() || 'Optional'}
               autocomplete="nickname"
             />
@@ -112,7 +112,7 @@ export default function Register() {
               type="password"
               value={password()}
               onInput={(e) => setPassword(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-md border border-xcord-line outline-none focus:ring-2 focus:ring-xcord-brand"
               required
               minLength={8}
               autocomplete="new-password"
@@ -127,7 +127,7 @@ export default function Register() {
               type="password"
               value={confirmPassword()}
               onInput={(e) => setConfirmPassword(e.currentTarget.value)}
-              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded border-none outline-none focus:ring-2 focus:ring-xcord-brand"
+              class="w-full px-3 py-2 bg-xcord-bg-tertiary text-xcord-text-primary rounded-md border border-xcord-line outline-none focus:ring-2 focus:ring-xcord-brand"
               required
               autocomplete="new-password"
             />
@@ -182,7 +182,7 @@ export default function Register() {
             type="submit"
             data-testid="hub-reg-submit"
             disabled={loading()}
-            class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded font-medium transition"
+            class="w-full py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded font-medium transition"
           >
             {loading() ? 'Creating account...' : 'Continue'}
           </button>
@@ -190,7 +190,7 @@ export default function Register() {
 
         <p class="text-sm text-xcord-text-muted mt-4">
           Already have an account?{' '}
-          <A data-testid="hub-reg-login-link" href="/login" class="text-xcord-text-link hover:underline">Log In</A>
+          <A data-testid="hub-reg-login-link" href="/login" class="text-xcord-text-link hover:underline">Log in</A>
         </p>
       </div>
     </div>

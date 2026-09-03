@@ -94,7 +94,7 @@ function NotifyForm(props: { platform: string }) {
   return (
     <Show
       when={status() !== 'success'}
-      fallback={<p data-testid="download-notify-success" class="text-sm text-green-400 text-center py-1">{message()}</p>}
+      fallback={<p data-testid="download-notify-success" class="text-sm text-xcord-success-text text-center py-1">{message()}</p>}
     >
       <form onSubmit={handleSubmit} class="flex gap-2 mt-1">
         <input
@@ -104,19 +104,19 @@ function NotifyForm(props: { platform: string }) {
           placeholder="you@example.com"
           value={email()}
           onInput={(e) => setEmail(e.currentTarget.value)}
-          class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-xcord-landing-bg border border-xcord-landing-border text-white text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
+          class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-xcord-landing-bg border border-xcord-landing-border text-xcord-landing-text text-sm placeholder:text-xcord-landing-text-muted/50 focus:outline-none focus:border-xcord-brand"
         />
         <button
           data-testid="download-notify-submit"
           type="submit"
           disabled={status() === 'loading'}
-          class="px-3 py-2 rounded-lg font-medium bg-xcord-brand text-white text-sm hover:bg-xcord-brand-hover disabled:opacity-50 shrink-0"
+          class="px-3 py-2 rounded-lg font-medium bg-xcord-brand text-xcord-landing-bg text-sm hover:bg-xcord-brand-hover disabled:opacity-50 shrink-0"
         >
           {status() === 'loading' ? '...' : 'Notify'}
         </button>
       </form>
       <Show when={status() === 'error'}>
-        <p class="text-xs text-red-400 mt-1">{message()}</p>
+        <p class="text-xs text-xcord-danger-text mt-1">{message()}</p>
       </Show>
     </Show>
   );
@@ -217,7 +217,7 @@ export default function Download() {
       {/* Hero */}
       <section class="py-20 sm:py-28">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 class="text-4xl sm:text-5xl font-bold text-white tracking-tight">
+          <h1 class="text-4xl sm:text-5xl font-bold text-xcord-landing-text tracking-tight">
             Get Xcord
           </h1>
           <p class="mt-4 text-lg text-xcord-landing-text-muted max-w-xl mx-auto">
@@ -233,7 +233,7 @@ export default function Download() {
                 <div class="mt-10 flex flex-col items-center gap-3">
                   <a
                     href={primary().url}
-                    class="inline-flex items-center gap-3 px-8 py-4 bg-xcord-brand text-white font-semibold rounded-xl hover:bg-xcord-brand-hover transition-colors text-lg shadow-lg shadow-xcord-brand/20"
+                    class="inline-flex items-center gap-3 px-8 py-4 bg-xcord-brand text-xcord-landing-bg font-semibold rounded-lg hover:bg-xcord-brand-hover transition-colors text-lg shadow-2"
                   >
                     <DownloadArrow />
                     Download for {info.name}
@@ -287,9 +287,9 @@ export default function Download() {
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <For each={appFeatures}>
               {(feat) => (
-                <div class="flex flex-col items-center text-center gap-3 p-6 rounded-xl bg-xcord-landing-surface border border-xcord-landing-border">
+                <div class="flex flex-col items-center text-center gap-3 p-6 rounded-lg bg-xcord-landing-surface border border-xcord-landing-border">
                   <div class="text-xcord-brand">{feat.icon}</div>
-                  <h3 class="font-semibold text-white">{feat.title}</h3>
+                  <h3 class="font-semibold text-xcord-landing-text">{feat.title}</h3>
                   <p class="text-sm text-xcord-landing-text-muted">{feat.description}</p>
                 </div>
               )}
@@ -301,7 +301,7 @@ export default function Download() {
       {/* All platforms grid */}
       <section class="pb-20">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 class="text-xl font-semibold text-white text-center mb-10">
+          <h2 class="text-xl font-semibold text-xcord-landing-text text-center mb-10">
             All platforms
           </h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -312,7 +312,7 @@ export default function Download() {
                 const isDetected = key === detected;
                 return (
                   <div
-                    class={`rounded-xl border p-6 flex flex-col gap-4 transition-colors ${
+                    class={`rounded-lg border p-6 flex flex-col gap-4 transition-colors ${
                       isDetected
                         ? 'bg-xcord-brand/5 border-xcord-brand/40'
                         : 'bg-xcord-landing-surface border-xcord-landing-border'
@@ -323,7 +323,7 @@ export default function Download() {
                         <Icon />
                       </div>
                       <div>
-                        <h3 class="font-semibold text-white">{info.name}</h3>
+                        <h3 class="font-semibold text-xcord-landing-text">{info.name}</h3>
                         <Show when={info.arch}>
                           <p class="text-xs text-xcord-landing-text-muted">{info.arch}</p>
                         </Show>
@@ -354,7 +354,7 @@ export default function Download() {
                           {(link) => (
                             <a
                               href={link.url}
-                              class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition border border-xcord-landing-border text-white hover:bg-xcord-landing-border"
+                              class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition border border-xcord-landing-border text-xcord-landing-text hover:bg-xcord-landing-border"
                             >
                               <DownloadArrow />
                               {link.label}
@@ -381,14 +381,14 @@ export default function Download() {
       {/* System requirements */}
       <section class="pb-20">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 class="text-xl font-semibold text-white text-center mb-8">
+          <h2 class="text-xl font-semibold text-xcord-landing-text text-center mb-8">
             System requirements
           </h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <For each={systemRequirements}>
               {(req) => (
-                <div class="rounded-xl border border-xcord-landing-border bg-xcord-landing-surface p-5">
-                  <h3 class="font-semibold text-white mb-3">{req.platform}</h3>
+                <div class="rounded-lg border border-xcord-landing-border bg-xcord-landing-surface p-5">
+                  <h3 class="font-semibold text-xcord-landing-text mb-3">{req.platform}</h3>
                   <ul class="space-y-2 text-sm text-xcord-landing-text-muted">
                     <li>{req.os}</li>
                     <li>{req.ram}</li>
@@ -405,15 +405,15 @@ export default function Download() {
       {/* Bottom CTA */}
       <section class="pb-24">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div class="rounded-xl border border-xcord-landing-border bg-xcord-landing-surface p-8 sm:p-12">
-            <h2 class="text-2xl font-bold text-white">Prefer to self-host?</h2>
+          <div class="rounded-lg border border-xcord-landing-border bg-xcord-landing-surface p-8 sm:p-12">
+            <h2 class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-landing-text">Prefer to self-host?</h2>
             <p class="mt-3 text-xcord-landing-text-muted max-w-lg mx-auto">
               Deploy your own Xcord instance on your infrastructure. Unlimited users, full control, zero platform lock-in.
             </p>
             <div class="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
               <A
                 href="/docs/self-hosting"
-                class="px-6 py-3 bg-xcord-brand text-white font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors"
+                class="px-6 py-3 bg-xcord-brand text-xcord-landing-bg font-medium rounded-lg hover:bg-xcord-brand-hover transition-colors"
               >
                 Self-Hosting Guide
               </A>
@@ -421,7 +421,7 @@ export default function Download() {
                 href="https://github.com/xcord-net"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="px-6 py-3 border border-xcord-landing-border text-white font-medium rounded-lg hover:bg-xcord-landing-border transition-colors"
+                class="px-6 py-3 border border-xcord-landing-border text-xcord-landing-text font-medium rounded-lg hover:bg-xcord-landing-border transition-colors"
               >
                 View on GitHub
               </a>

@@ -89,11 +89,11 @@ export default function Overview() {
       />
       <div class="p-8">
       <div class="flex items-center justify-between mb-8">
-        <h1 data-testid="overview-heading" class="text-2xl font-bold text-xcord-text-primary">Overview</h1>
+        <h1 data-testid="overview-heading" class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary">Overview</h1>
         <A
           data-testid="overview-create-instance-btn"
           href="/get-started"
-          class="px-4 py-2 bg-xcord-brand hover:bg-xcord-brand-hover text-white rounded text-sm font-medium transition"
+          class="px-4 py-2 bg-xcord-brand hover:bg-xcord-brand-hover text-xcord-landing-bg rounded text-sm font-medium transition"
         >
           Create Instance
         </A>
@@ -103,11 +103,11 @@ export default function Overview() {
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div class="bg-xcord-bg-secondary rounded-lg p-5">
           <div class="text-sm text-xcord-text-muted mb-1">Your Instances</div>
-          <div class="text-2xl font-bold text-xcord-text-primary">{instances().length}</div>
+          <div class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary">{instances().length}</div>
         </div>
         <div class="bg-xcord-bg-secondary rounded-lg p-5">
           <div class="text-sm text-xcord-text-muted mb-1">Connected Servers</div>
-          <div class="text-2xl font-bold text-xcord-text-primary">{connectedCount()}</div>
+          <div class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary">{connectedCount()}</div>
         </div>
       </div>
 
@@ -136,7 +136,7 @@ export default function Overview() {
               <p class="text-xcord-text-muted mb-4">No servers yet.</p>
               <A
                 href="/get-started"
-                class="inline-block px-6 py-2 bg-xcord-brand hover:bg-xcord-brand-hover text-white rounded text-sm font-medium transition"
+                class="inline-block px-6 py-2 bg-xcord-brand hover:bg-xcord-brand-hover text-xcord-landing-bg rounded text-sm font-medium transition"
               >
                 Launch one
               </A>
@@ -157,7 +157,7 @@ export default function Overview() {
                     {instance.displayName[0].toUpperCase()}
                   </div>
                   <div class="flex-1 min-w-0">
-                    <div class="font-medium text-xcord-text-primary group-hover:text-white transition">
+                    <div class="font-medium text-xcord-text-primary group-hover:text-xcord-text-primary transition">
                       {instance.displayName}
                     </div>
                     <div class="text-sm text-xcord-text-muted">{instance.domain}</div>

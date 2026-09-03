@@ -95,17 +95,37 @@ public sealed partial class HttpDockerService
     }
 
     /// <summary>
-    /// Verifies that the Swarm service has at least one running task.
-    /// Polls for up to 15 seconds for the Swarm task to reach running state.
+    /// Verifies that the Swarm service has at least one running task, polling
+    /// until one does or the deadline passes.
     /// The <paramref name="containerId"/> here is actually the service ID
     /// (stored in <c>Infrastructure.DockerContainerId</c>).
     /// </summary>
+    /// <remarks>
+    /// A single task in a terminal state used to end the wait immediately, and
+    /// that is wrong on the path this is most often called from. Resuming a
+    /// service scales it 0 -> 1, and for a moment afterwards Swarm still lists
+    /// the task it shut down on the way to zero alongside the one it is
+    /// starting. Reading the shut-down one first returned false while the
+    /// replacement was still coming up - so a resume failed or succeeded
+    /// depending on the order Swarm happened to return two tasks in. A service
+    /// that crashes and is being retried has the same shape.
+    ///
+    /// A terminal task is therefore only evidence of failure when it is the
+    /// whole picture: no task running, and every task terminal, seen on
+    /// consecutive polls rather than once.
+    /// </remarks>
     public async Task<bool> VerifyContainerRunningAsync(string containerId, CancellationToken cancellationToken = default)
     {
         const int maxWaitMs = 15_000;
         const int pollIntervalMs = 1_000;
+        // One poll can catch the gap between the old task going away and the new
+        // one being created. Three consecutive says the service really is dead.
+        const int terminalPollsBeforeGivingUp = 3;
+
         var serviceId = containerId;
         var elapsed = 0;
+        var allTerminalStreak = 0;
+        string? lastTerminalError = null;
 
         while (elapsed < maxWaitMs)
         {
@@ -120,31 +140,55 @@ public sealed partial class HttpDockerService
                 if (response.IsSuccessStatusCode)
                 {
                     var tasks = await response.Content.ReadFromJsonAsync<JsonElement[]>(cancellationToken).ConfigureAwait(false);
-                    if (tasks != null)
+                    if (tasks is { Length: > 0 })
                     {
+                        var running = false;
+                        var terminal = 0;
+
                         foreach (var task in tasks)
                         {
-                            if (task.TryGetProperty("Status", out var status) &&
-                                status.TryGetProperty("State", out var state) &&
-                                state.GetString() == "running")
+                            if (!task.TryGetProperty("Status", out var status) ||
+                                !status.TryGetProperty("State", out var state))
                             {
-                                _logger.LogInformation("Service {ServiceId} task is running after {Elapsed}ms", serviceId, elapsed);
-                                return true;
+                                continue;
                             }
 
-                            // Check for terminal failure states
-                            if (task.TryGetProperty("Status", out var failStatus) &&
-                                failStatus.TryGetProperty("State", out var failState))
+                            var stateStr = state.GetString();
+                            if (stateStr == "running")
                             {
-                                var stateStr = failState.GetString();
-                                if (stateStr is "failed" or "rejected" or "shutdown")
-                                {
-                                    var errMsg = failStatus.TryGetProperty("Err", out var err) ? err.GetString() : "unknown error";
-                                    _logger.LogWarning("Service {ServiceId} task in terminal state {State}: {Error}",
-                                        serviceId, stateStr, errMsg);
-                                    return false;
-                                }
+                                running = true;
+                                break;
                             }
+
+                            if (stateStr is "failed" or "rejected" or "shutdown" or "orphaned")
+                            {
+                                terminal++;
+                                lastTerminalError = status.TryGetProperty("Err", out var err)
+                                    ? err.GetString()
+                                    : $"task {stateStr}";
+                            }
+                        }
+
+                        if (running)
+                        {
+                            _logger.LogInformation("Service {ServiceId} task is running after {Elapsed}ms", serviceId, elapsed);
+                            return true;
+                        }
+
+                        if (terminal == tasks.Length)
+                        {
+                            allTerminalStreak++;
+                            if (allTerminalStreak >= terminalPollsBeforeGivingUp)
+                            {
+                                _logger.LogWarning(
+                                    "Service {ServiceId} has no running task and all {Count} task(s) are terminal: {Error}",
+                                    serviceId, tasks.Length, lastTerminalError ?? "unknown error");
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            allTerminalStreak = 0;
                         }
                     }
                 }
@@ -158,7 +202,8 @@ public sealed partial class HttpDockerService
             elapsed += pollIntervalMs;
         }
 
-        _logger.LogWarning("Service {ServiceId} did not reach running state within {MaxWait}s", serviceId, maxWaitMs / 1000);
+        _logger.LogWarning("Service {ServiceId} did not reach running state within {MaxWait}s (last task error: {Error})",
+            serviceId, maxWaitMs / 1000, lastTerminalError ?? "none");
         return false;
     }
 

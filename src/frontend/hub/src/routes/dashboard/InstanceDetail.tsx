@@ -26,7 +26,8 @@ export default function InstanceDetail() {
 
   const token = () => localStorage.getItem('xcord_hub_token');
 
-  onMount(async () => {
+  /** Read the instance back from the server. The one source of panel state. */
+  const load = async () => {
     try {
       const response = await fetch(`/api/v1/hub/instances/${params.id}`, {
         headers: token() ? { Authorization: `Bearer ${token()}` } : {},
@@ -38,9 +39,12 @@ export default function InstanceDetail() {
       }
     } catch {
       // API may not be available
-    } finally {
-      setLoading(false);
     }
+  };
+
+  onMount(async () => {
+    await load();
+    setLoading(false);
   });
 
   const statusDot = (status: string) => {
@@ -86,11 +90,19 @@ export default function InstanceDetail() {
         headers: token() ? { Authorization: `Bearer ${token()}` } : {},
       });
       if (response.ok) {
-        const data = await response.json();
-        setInstance(data);
         setConfirmDelete(false);
         setMessage(`Instance ${action}ed`);
-        setTimeout(() => setMessage(''), 3000);
+        // Deliberately not clearing this on a timer for destroy: it is the only
+        // signal the instance is really gone, and the page it describes is
+        // about to stop existing.
+        if (action !== 'destroy') setTimeout(() => setMessage(''), 3000);
+        // Re-read rather than trusting the response body. These endpoints answer
+        // { success: true }, and assigning that to `instance` blanked the whole
+        // panel - name, status and all - the moment an action succeeded.
+        await load();
+      } else {
+        const body = await response.json().catch(() => null);
+        setMessage(body?.Message ?? `Could not ${action} this instance.`);
       }
     } catch {
       setMessage(`Failed to ${action}`);
@@ -123,11 +135,11 @@ export default function InstanceDetail() {
           {(inst) => (
             <>
               <div class="flex items-center gap-4 mb-8">
-                <div class="w-14 h-14 rounded-lg bg-xcord-brand/20 flex items-center justify-center text-xcord-brand text-2xl font-bold">
+                <div class="w-14 h-14 rounded-lg bg-xcord-brand/20 flex items-center justify-center text-xcord-brand font-display text-2xl font-bold tracking-[-0.01em]">
                   {inst().displayName[0].toUpperCase()}
                 </div>
                 <div>
-                  <h1 class="text-2xl font-bold text-xcord-text-primary">{inst().displayName}</h1>
+                  <h1 class="font-display text-2xl font-bold tracking-[-0.01em] text-xcord-text-primary">{inst().displayName}</h1>
                   <div class="flex items-center gap-2 text-sm text-xcord-text-muted">
                     <div class={`w-2 h-2 rounded-full ${statusDot(inst().status)}`} />
                     <span class="capitalize">{inst().status}</span>
@@ -138,7 +150,11 @@ export default function InstanceDetail() {
               </div>
 
               <Show when={message()}>
-                <div class="mb-4 px-4 py-2 bg-xcord-brand/10 text-xcord-brand text-sm rounded">{message()}</div>
+                <div
+                  data-testid="instance-action-message"
+                  role="status"
+                  class="mb-4 px-4 py-2 bg-xcord-brand/10 text-xcord-brand text-sm rounded"
+                >{message()}</div>
               </Show>
 
               {/* Info Grid */}
@@ -177,7 +193,7 @@ export default function InstanceDetail() {
                   <button
                     onClick={handleSaveName}
                     disabled={saving() || editName() === inst().displayName}
-                    class="self-end px-4 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-white rounded text-sm font-medium transition"
+                    class="self-end px-4 py-2 bg-xcord-brand hover:bg-xcord-brand-hover disabled:opacity-50 text-xcord-landing-bg rounded text-sm font-medium transition"
                   >
                     {saving() ? 'Saving...' : 'Save'}
                   </button>
@@ -223,7 +239,7 @@ export default function InstanceDetail() {
                         data-testid="instance-delete-confirm"
                         onClick={() => handleAction('destroy')}
                         disabled={actionLoading()}
-                        class="px-3 py-1 bg-xcord-red text-white rounded text-sm font-medium transition hover:opacity-80"
+                        class="px-3 py-1 bg-xcord-red text-xcord-text-primary rounded text-sm font-medium transition hover:opacity-80"
                       >
                         Confirm Delete
                       </button>

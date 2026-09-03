@@ -26,6 +26,11 @@
   "caddy": {
     "adminUrl": "http://caddy:2019"
   },
+  "liveKit": {
+    "host": "wss://livekit.example.com",
+    "apiKey": "APIxxxxxxxx",
+    "apiSecret": ""
+  },
   "admin": {
     "username": "admin",
     "email": "admin@xcord.local",

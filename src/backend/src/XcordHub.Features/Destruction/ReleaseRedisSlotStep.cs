@@ -19,6 +19,20 @@ namespace XcordHub.Features.Destruction;
 /// </summary>
 public sealed class ReleaseRedisSlotStep : IDestructionStep
 {
+    /// <summary>
+    /// Connect/sync ceiling used when the connection string does not set one.
+    /// Cleanup runs on a best-effort path, so it must not hang the destruction
+    /// pipeline on an unreachable host.
+    /// </summary>
+    private const int DefaultTimeoutMs = 5000;
+
+    /// <summary>
+    /// True when the connection string already sets <paramref name="option"/>,
+    /// in which case the caller's value wins.
+    /// </summary>
+    private static bool SpecifiesOption(string connectionString, string option) =>
+        connectionString.Contains(option, StringComparison.OrdinalIgnoreCase);
+
     private readonly string _hubRedisConnectionString;
     private readonly TopologyResolver _resolver;
     private readonly ILogger<ReleaseRedisSlotStep> _logger;
@@ -42,8 +56,15 @@ public sealed class ReleaseRedisSlotStep : IDestructionStep
 
             var configOptions = ConfigurationOptions.Parse(redisConnectionString);
             configOptions.AbortOnConnectFail = false;
-            configOptions.ConnectTimeout = 5000;
-            configOptions.SyncTimeout = 5000;
+
+            // Impose a ceiling only where the connection string did not express
+            // one. Assigning unconditionally silently discarded any configured
+            // timeout, so a caller asking for a 500ms budget still waited the
+            // full 5s per attempt (times ConnectRetry) before giving up.
+            if (!SpecifiesOption(redisConnectionString, "connectTimeout"))
+                configOptions.ConnectTimeout = DefaultTimeoutMs;
+            if (!SpecifiesOption(redisConnectionString, "syncTimeout"))
+                configOptions.SyncTimeout = DefaultTimeoutMs;
 
             await using var redis = await ConnectionMultiplexer.ConnectAsync(configOptions);
             var redisDb = redis.GetDatabase(infrastructure.RedisDb);
